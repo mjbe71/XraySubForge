@@ -173,4 +173,5 @@ Remnawave, Raven-subscribe, subscribe-middleware-go, Sub-Store.
 
 ## License
 
-MIT, see [LICENSE](LICENSE).
+Copyright (C) 2026 mjbe71. GNU Affero General Public License v3.0 or later (AGPL-3.0-or-later), see [LICENSE](LICENSE).
+In short: you may use, change and share it, also commercially; if you share a changed version, or let people use a changed version over a network, you must offer them its source under the same license.

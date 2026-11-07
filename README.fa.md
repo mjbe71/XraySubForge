@@ -126,6 +126,7 @@ python -m xraysubforge hash-password        # رمز می‌پرسد و یک has
 
 ## مجوز
 
-MIT، فایل [LICENSE](LICENSE).
+Copyright (C) 2026 mjbe71. مجوز GNU Affero General Public License نسخهٔ ۳ یا بالاتر (AGPL-3.0-or-later)، فایل [LICENSE](LICENSE).
+خلاصه: استفاده، تغییر و انتشار آزاد است، حتی تجاری؛ ولی اگر نسخهٔ تغییرداده را پخش کنید یا آن را به‌صورت سرویس شبکه در اختیار دیگران بگذارید، باید کد آن را با همین مجوز به آن‌ها بدهید.
 
 </div>
