@@ -59,18 +59,33 @@ def render(template, **values):
 
 def apply_patch(cfg, patch):
     merge = patch.get("merge") or {}
+    rnd = patch.get("random") or {}
     if patch.get("target", "config") == "outbound":
         for ob in cfg.get("outbounds") or []:
             if isinstance(ob, dict) and ob.get("protocol") not in NON_PROXY:
                 deep_merge(ob, merge)
+                for path, options in rnd.items():  # one random pick per outbound
+                    set_path(ob, path, copy.deepcopy(random.choice(options)))
     else:
         deep_merge(cfg, merge)
+        for path, options in rnd.items():
+            set_path(cfg, path, copy.deepcopy(random.choice(options)))
     pre, post = patch.get("routing_prepend"), patch.get("routing_append")
     if pre or post:
         routing = cfg.get("routing") if isinstance(cfg.get("routing"), dict) else {}
         rules = routing.get("rules") if isinstance(routing.get("rules"), list) else []
         routing["rules"] = copy.deepcopy(pre or []) + rules + copy.deepcopy(post or [])
         cfg["routing"] = routing
+
+
+def _rename(cfg, patch, counter):
+    """A patch's `rename`: {name} = the config's own name, {country} = its flag, {n} = 1, 2, ... in the order it is applied."""
+    if not patch.get("rename"):
+        return
+    counter[0] += 1
+    old = str(cfg.get("remarks") or "")
+    flag = fields_of(cfg).get("flag") or ""
+    cfg["remarks"] = render(patch["rename"], name=old, country=flag, n=counter[0]).strip()
 
 
 def _addr_holder(ob):
@@ -484,8 +499,9 @@ def process(configs, conf, subid=None, accounts=None, params=None):
         for p in conf["patches"]:
             if not p.get("enabled", True) or p.get("stage", "source") != stage:
                 continue
+            n = [0]
             for c in targets:
-                guarded("patch %s" % p.get("id"), lambda c=c, p=p: match(p.get("when"), c) and apply_patch(c, p))
+                guarded("patch %s" % p.get("id"), lambda c=c, p=p: match(p.get("when"), c) and (apply_patch(c, p), _rename(c, p, n)))
 
     run_patches("source", work)
 

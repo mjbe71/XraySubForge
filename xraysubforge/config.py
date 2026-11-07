@@ -28,6 +28,9 @@ DEFAULTS = {
         "mode": "engine",                        # "engine": apply your rules; "proxy": hand the panel's reply through unchanged
         "url": "",                               # JSON-subscription URL of your panel, the id is appended
         "raw_url": "", "clash_url": "",          # the panel's raw / clash subscription URLs; when set they are passed through as they are
+        "source": "json",                        # "json": read panel.url; "raw": build the JSON configs from the links at panel.raw_url
+        "raw_mode": "pass",                      # the raw route: "pass" hands the panel's links through, "engine" applies the rules to them
+        "json_template": {},                     # source "raw": the client config each link is put into (empty = a built-in one)
         "page_url": "",                          # optional: browsers (Accept: text/html) are redirected here
         "timeout": 10, "verify_tls": True, "headers": {},
         "pass_headers": ["Profile-Title", "Profile-Update-Interval", "Subscription-Userinfo",
@@ -57,6 +60,7 @@ DEFAULTS = {
     "patches": [],
     "output": {},
     "order": [],
+    "blocks": {"rest": "keep", "list": []},          # the block layout (see blocks.py); compiled into the lists above
 }
 
 RULE_ACTIONS = ("keep", "drop", "pin_top", "pin_bottom")
@@ -103,6 +107,9 @@ SECTION_CHECKS = {
         "mode": (lambda v: v in ("engine", "proxy"), '"engine" or "proxy"'),
         "url": (_url_ok, "an http(s) URL or an empty string"),
         "raw_url": (_url_ok, "an http(s) URL or an empty string"),
+        "source": (lambda v: v in ("json", "raw"), '"json" or "raw"'),
+        "raw_mode": (lambda v: v in ("pass", "engine"), '"pass" or "engine"'),
+        "json_template": (lambda v: isinstance(v, dict) and (not v or isinstance(v.get("outbounds", []), list)), "an object (a client config)"),
         "clash_url": (_url_ok, "an http(s) URL or an empty string"),
         "page_url": (_url_ok, "an http(s) URL or an empty string"),
         "timeout": (lambda v: _is_num(v) and v > 0, "a number > 0"),
@@ -143,7 +150,7 @@ ITEM_KEYS = {
     "chains": {"id", "enabled", "exit_when", "split_by", "name", "entry", "choices", "through_exit",
                "remove_exit_from_output", "position", "mode", "exit", "endpoints", "pick", "entry_merge", "before"},
     "order": {"id", "enabled", "when", "rank"},
-    "patches": {"id", "enabled", "stage", "target", "when", "merge", "routing_prepend", "routing_append"},
+    "patches": {"id", "enabled", "stage", "target", "when", "merge", "random", "rename", "routing_prepend", "routing_append"},
 }
 
 
@@ -307,6 +314,11 @@ def _check_item(kind, item, where):
             p.append('%s.target: must be "config" or "outbound"' % where)
         if "merge" in item and not isinstance(item["merge"], dict):
             p.append("%s.merge: must be an object" % where)
+        if "rename" in item and not isinstance(item["rename"], str):
+            p.append("%s.rename: must be a string ({name}, {country}, {n})" % where)
+        rnd = item.get("random")
+        if rnd is not None and not (isinstance(rnd, dict) and all(isinstance(v, list) and v for v in rnd.values())):
+            p.append("%s.random: must be an object of non-empty lists (path -> choices)" % where)
         for k in ("routing_prepend", "routing_append"):
             if k in item and not (isinstance(item[k], list) and all(isinstance(r, dict) for r in item[k])):
                 p.append("%s.%s: must be a list of objects" % (where, k))
@@ -386,6 +398,15 @@ def normalize(raw):
                         "(python -m xraysubforge hash-password)")
     for kind in ("rules", "groups", "chains", "patches", "order"):
         _items(kind, raw.get(kind), conf, problems)
+    from .blocks import compile_blocks
+    conf["blocks"], made, bproblems = compile_blocks(raw.get("blocks"))
+    problems += bproblems
+    extra = {k: [] for k in made}
+    for kind, generated in made.items():   # checked like hand-written items; they run after your own ones
+        _items(kind, generated, extra, problems)
+    for kind in ("rules", "groups", "chains", "patches"):
+        conf[kind] += extra[kind]
+    conf["order"] = extra["order"] + conf["order"]
     out = raw.get("output")
     if out is not None:
         if not isinstance(out, dict):

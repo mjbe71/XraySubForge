@@ -54,6 +54,9 @@ The panel edits every other section of `config.json` but never shows or changes 
 |---|---|---|
 | `mode` | `"engine"` | `"engine"` applies your rules. `"proxy"` is a plain reverse proxy: the panel's reply (body, content type and `pass_headers`) is handed through unchanged and no rule, group, chain or patch runs. |
 | `url` | `""` | The panel's JSON-subscription URL; the id is appended. **Required** (without it the service answers 503). |
+| `source` | `"json"` | `"raw"`: build the JSON configs from the share links at `raw_url` (`vless`, `vmess`, `trojan`, `ss`), so the panel's JSON subscription is not needed. Each link goes into `json_template`. |
+| `json_template` | `{}` | With `source: "raw"`: the client config every link is put into (inbounds, DNS, routing, extra outbounds); the link's outbound comes first, tagged `proxy`. Empty = a built-in one (socks 10808, http 10809). |
+| `raw_mode` | `"pass"` | The raw route: `"pass"` hands the panel's links through; `"engine"` turns them into configs, applies your rules and blocks, and writes links again. A balancer becomes one link per member; what a link cannot carry (fragment, cipher suites, chains) is left out. |
 | `raw_url`, `clash_url` | `""` | The panel's raw and Clash subscription URLs (id appended). When set, the service passes these formats through unchanged at `server.raw_route` / `server.clash_route`, in both modes. |
 | `page_url` | `""` | Optional. If set, browsers (`Accept: text/html`) are redirected to `page_url` + id. |
 | `timeout` | `10` | Seconds. |
@@ -238,7 +241,43 @@ The program ships none of these.
 | `target` | `"config"` | `config`: merge into the whole config. `outbound`: merge into every non-`freedom`/`blackhole`/`dns` outbound of it. |
 | `when` | everything | Condition on the config. |
 | `merge` | none | Deep-merged: objects are merged, lists and values replaced, **`null` deletes** the key. |
+| `random` | none | `{"dotted.path": [choice, ...]}`: one random choice per config (or per outbound with `target: "outbound"`), e.g. a fragment profile or a cipher list. |
 | `routing_prepend`, `routing_append` | none | Lists of routing rules added before / after the existing ones. |
+
+## `blocks`: the final subscription as blocks
+
+The layout the admin panel's block editor writes. You can also write it by hand. Each block takes some **kinds** of
+configs (a kind is a condition, like a `when`); a config belongs to the **first** block from the top whose kinds match
+it, and the blocks come out in this order. The program turns the blocks into ordinary rules, groups, patches and
+order items (ids starting with `blk-`), placed after your own ones, so everything above still applies.
+
+```json
+"blocks": {
+  "rest": "keep",
+  "list": [
+    { "id": "fast", "name": "Fast", "type": "balancer", "per_country": true,
+      "kinds": [ { "remark": { "regex": "^fast-\\d+🇩🇪$" }, "network": "xhttp" } ],
+      "settings": { "fragment": ["tlshello-0-len", "tlshello-6-98"], "cipher": ["semi-python"],
+                    "fingerprint": "chrome", "strategy": "leastLoad", "pool": ["a.example.com", "b.example.com"] } },
+    { "id": "gone", "type": "drop", "kinds": [ { "remark": { "startswith": "Tunnel" } } ] }
+  ]
+}
+```
+
+| Key | Meaning |
+|---|---|
+| `rest` | `keep` (default): configs no block takes come last, as they are. `top`: they come first (for example the panel's info config). `hide`: they are removed. |
+| `list[].id` | Letters, digits, `-` and `_`. |
+| `list[].type` | `list` (default): the configs as they are. `balancer`: one balancer (or one per country with `per_country`). `drop`: removed. |
+| `list[].flagless` | Balancers with `per_country`: `own` (default) puts configs without a flag into one balancer of their own; `single` leaves them as they are. |
+| `list[].kinds` | A list of conditions; the block takes configs matching any of them. |
+| `list[].enabled` | `false` switches the block off; its configs go on to the next blocks. |
+| `settings.fragment` | One or more of `tlshello-0-len`, `tlshello-6-98`, or your own `"packets, lengths, delays[, maxSplit]"`. With several, each config (or member) gets one at random. |
+| `settings.cipher` | One or more of `semi-python`, `real-firefox`, or your own `TLS_…:TLS_…` list; random as above. TLS configs only. |
+| `settings.fingerprint` | `chrome`, `firefox`, `safari`, `ios`, `android`, `edge`, `360`, `qq`, `random`, `randomized`, `unsafe` (TLS and Reality). |
+| `settings.strategy` | Balancers: `leastLoad` (default), `leastPing`, `random`, `roundRobin`. `leastLoad` and `leastPing` get a default probe. |
+| `settings.pool` | Balancers: every member gets one copy per address in this list. |
+| `settings.name` | Balancers: the name, with `{block}`, `{country}` (the flag) and `{n}` (members). Default `{block} {country}` or `{block}`. |
 
 ## More options for `groups`
 

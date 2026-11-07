@@ -10,7 +10,8 @@ from .accounts import AccountStore
 from .config import ConfigStore
 from .engine import process
 from .matching import match
-from .panel import PanelError, fetch_panel, fetch_raw
+from .links import config_links, encode_raw
+from .panel import PanelError, fetch_panel, fetch_raw, raw_configs
 
 
 def needs_account(conf, configs):
@@ -57,10 +58,16 @@ def create_app(store=None):
         conf, panel, early = checked(subid)
         if early is not None:
             return early
-        if panel["mode"] != "proxy" and not panel["url"]:
-            return text("panel.url is not set in config.json", 503)
+        from_raw = panel["source"] == "raw"
+        if panel["mode"] != "proxy" and not (panel["raw_url"] if from_raw else panel["url"]):
+            return text("panel.%s is not set in config.json" % ("raw_url" if from_raw else "url"), 503)
         if panel["mode"] == "proxy":                     # each format is optional: an empty URL turns that format off
             try:
+                if from_raw:                             # the links, only turned into JSON
+                    if not panel["raw_url"]:
+                        return text("not found", 404)
+                    r, configs = raw_configs(panel, subid)
+                    return json_reply(panel, r, configs)
                 return pass_through(panel, fetch_raw(panel["url"], panel, subid))
             except PanelError as e:
                 return text(e.message, e.status)
@@ -77,7 +84,26 @@ def create_app(store=None):
                   % (type(e).__name__, e), file=sys.stderr, flush=True)
             out = configs
         body = out[0] if isinstance(data, dict) and len(out) == 1 else out
+        return json_reply(panel, r, body)
+
+    def json_reply(panel, r, body):
         resp = Response(json.dumps(body, ensure_ascii=False), mimetype="application/json")
+        for name in panel["pass_headers"]:
+            if name in r.headers:
+                resp.headers[name] = r.headers[name]
+        return resp
+
+    def raw_engine(conf, panel, subid):
+        """The raw format with the rules applied: links -> configs -> rules -> links (what a link cannot carry is left out)."""
+        r, configs = raw_configs(panel, subid)
+        try:
+            out, _ = process(configs, conf, subid=subid, accounts=accounts.get(), params=request.args.to_dict())
+            links = [x for c in out for x in config_links(c)]
+        except Exception as e:
+            print("[server] raw processing failed (%s: %s); passing the panel's links through" % (type(e).__name__, e),
+                  file=sys.stderr, flush=True)
+            return pass_through(panel, r)
+        resp = Response(encode_raw(links), mimetype="text/plain")
         for name in panel["pass_headers"]:
             if name in r.headers:
                 resp.headers[name] = r.headers[name]
@@ -89,6 +115,8 @@ def create_app(store=None):
             if early is not None:
                 return early
             try:
+                if url_key == "raw_url" and panel["mode"] != "proxy" and panel["raw_mode"] == "engine" and panel["raw_url"]:
+                    return raw_engine(conf, panel, subid)
                 return pass_through(panel, fetch_raw(panel[url_key], panel, subid))
             except PanelError as e:
                 return text(e.message, e.status)

@@ -25,7 +25,7 @@ client app ──► XraySubForge ──► your 3x-ui panel (JSON subscription)
                     └─ applies your rules, returns the result
 ```
 
-> Beta (v0.2). Covered by automated tests and in use on a real server, but not yet used by many people. An independent project, not affiliated with Xray or 3x-ui.
+> Beta (v0.3). Covered by automated tests and in use on a real server, but not yet used by many people. An independent project, not affiliated with Xray or 3x-ui.
 
 ## Install on a server (one command)
 
@@ -128,7 +128,7 @@ python -m xraysubforge hash-password        # asks for a password, prints a hash
 { "admin": { "password_hash": "<paste the hash here>" } }
 ```
 
-Then open `http://127.0.0.1:8080/admin` (path: `admin.path`) and log in. The **Start** page is a step-by-step setup guide that checks everything (is the panel reachable, does a test subscription work, HTTPS, accounts, settings) and can create common setups for you (hide configs, balance configs, route through WARP). The other tabs are forms for filters, balancers, chains, advanced edits and settings (plus a raw JSON editor). Conditions are written in plain words (a field such as the name, a kind such as "ends with", and one or more words), with values to pick from your own subscription and a count of how many of your configs each condition matches; patterns (regex) are only needed under "Advanced". Balancers and chains pick how to split from a list ("one for each country", "first word of the name", "part of the name after a text", ...). There is also a **live preview** that explains in words what happens to each config: enter a subscription id, fetch the panel's
+Then open `http://127.0.0.1:8080/admin` (path: `admin.path`) and log in. The **Blocks** page is the main editor: fetch a user's subscription, then drag its configs (grouped into kinds) into blocks of the final subscription (a list, a balancer, a WARP chain, or Removed), each with its own settings such as fragment and cipher presets, fingerprint, address pool and names. Items made the old way can be turned into blocks there, and Save shows what changes and how many configs users get before and after. The **Start** page is a step-by-step setup guide that checks everything (is the panel reachable, does a test subscription work, HTTPS, accounts, settings) and can create common setups for you (hide configs, balance configs, route through WARP). The other tabs are forms for filters, balancers, chains, advanced edits and settings (plus a raw JSON editor). Conditions are written in plain words (a field such as the name, a kind such as "ends with", and one or more words), with values to pick from your own subscription and a count of how many of your configs each condition matches; patterns (regex) are only needed under "Advanced". Balancers and chains pick how to split from a list ("one for each country", "first word of the name", "part of the name after a text", ...). There is also a **live preview** that explains in words what happens to each config: enter a subscription id, fetch the panel's
 real response, and watch what every config becomes as you edit. **Save** writes `config.json`; changes apply at once.
 English and Persian (right-to-left) are built in.
 

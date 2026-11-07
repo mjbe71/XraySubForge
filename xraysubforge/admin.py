@@ -23,6 +23,8 @@ from werkzeug.security import check_password_hash
 
 from .config import normalize, split_problems
 from .engine import process
+from . import __version__
+from .kinds import kinds_of
 from .matching import check_when, fields_of, match
 from .panel import PanelError, fetch_panel
 
@@ -138,12 +140,13 @@ def run_checks(app, conf, clean, problems, subid, secure_request):
     import requests
     out = []
     panel = clean["panel"]
-    if not panel["url"]:
+    address = panel["raw_url"] if panel["source"] == "raw" else panel["url"]
+    if not address:
         out.append(_check("panel_url", "fail", "The panel address is not set."))
     else:
         out.append(_check("panel_url", "ok", "The panel address is set."))
         try:
-            r = requests.get(panel["url"], headers=panel["headers"], timeout=min(float(panel["timeout"]), 8),
+            r = requests.get(address, headers=panel["headers"], timeout=min(float(panel["timeout"]), 8),
                              verify=panel["verify_tls"])
             if r.status_code >= 500:
                 out.append(_check("panel_reach", "warn", "The panel answered with an error (HTTP %d)." % r.status_code, code=r.status_code))
@@ -208,9 +211,57 @@ def run_checks(app, conf, clean, problems, subid, secure_request):
     return out
 
 
+def _unit_name():
+    """The systemd unit this process runs in ("x.service"), from /proc/self/cgroup, or None."""
+    try:
+        with open("/proc/self/cgroup", encoding="utf-8") as f:
+            for line in f:
+                part = line.strip().rsplit("/", 1)[-1]
+                if part.endswith(".service"):
+                    return part
+    except OSError:
+        pass
+    return None
+
+
+def git_commit():
+    """The short commit id of a git checkout this package runs from, or "" (installed copies have none)."""
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    git = os.path.join(root, ".git")
+    try:
+        with open(os.path.join(git, "HEAD"), encoding="utf-8") as f:
+            head = f.read().strip()
+        if not head.startswith("ref: "):
+            return head[:7]
+        ref = head[5:]
+        path = os.path.join(git, *ref.split("/"))
+        if os.path.isfile(path):
+            with open(path, encoding="utf-8") as f:
+                return f.read().strip()[:7]
+        with open(os.path.join(git, "packed-refs"), encoding="utf-8") as f:
+            for line in f:
+                if line.strip().endswith(" " + ref):
+                    return line.split()[0][:7]
+    except OSError:
+        pass
+    return ""
+
+
 def can_restart():
-    """True when this process is a service started by systemd (which restarts it after it exits: Restart=always)."""
-    return bool(os.environ.get("INVOCATION_ID")) and os.name == "posix" and os.getppid() > 1
+    """True only when systemd will start the service again after it exits (Restart=always or on-success).
+    Without that, stopping the service would leave it stopped."""
+    if not (os.environ.get("INVOCATION_ID") and os.name == "posix" and os.getppid() > 1):
+        return False
+    unit = _unit_name()
+    if not unit:
+        return False
+    import subprocess
+    try:
+        policy = subprocess.run(["systemctl", "show", "-p", "Restart", "--value", unit],
+                                capture_output=True, text=True, timeout=3).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return policy in ("always", "on-success")
 
 
 def _stop_master():
@@ -328,7 +379,8 @@ def register(app, store):
         _, problems = normalize(raw)
         errors, warnings = split_problems(problems)
         return reply({"config": raw, "errors": errors, "warnings": warnings, "file": os.path.basename(store.path),
-                      "route": conf["server"]["route"], "can_restart": can_restart()})
+                      "route": conf["server"]["route"], "can_restart": can_restart(),
+                      "version": __version__, "commit": git_commit()})
 
     @guarded
     def preview(conf, sess):
@@ -362,6 +414,13 @@ def register(app, store):
         except PanelError as e:
             return reply({"error": e.message}, 502 if e.status >= 500 else e.status)
         return reply({"configs": configs})
+
+    @guarded
+    def kinds(conf, sess):
+        """The sample grouped into kinds (see kinds.py), for the block editor."""
+        sample = body().get("configs")
+        sample = [c for c in sample if isinstance(c, dict)][:MAX_FACT_CONFIGS] if isinstance(sample, list) else []
+        return reply({"total": len(sample), "kinds": kinds_of(sample)})
 
     @guarded
     def facts(conf, sess):
@@ -415,7 +474,8 @@ def register(app, store):
     @guarded
     def restart(conf, sess):
         if not can_restart():
-            return reply({"error": "restart is only available when the service runs under systemd (use: sudo xraysubforge restart)"}, 400)
+            return reply({"error": "restart from here needs the service to run under systemd with Restart=always "
+                                   "(use: sudo systemctl restart <service>)"}, 400)
         threading.Thread(target=_stop_master, daemon=True).start()
         return reply({"ok": True})
 
@@ -445,7 +505,7 @@ def register(app, store):
 
     for name, fn, methods in (("login", login, ["POST"]), ("logout", logout, ["POST"]), ("me", me, ["GET"]),
                               ("state", state, ["GET"]), ("preview", preview, ["POST"]),
-                              ("sample", sample, ["POST"]), ("facts", facts, ["POST"]), ("save", save, ["POST"]),
+                              ("sample", sample, ["POST"]), ("facts", facts, ["POST"]), ("kinds", kinds, ["POST"]), ("save", save, ["POST"]),
                               ("register-account", register_account, ["POST"]), ("checks", checks, ["POST"]),
                               ("restart", restart, ["POST"])):
         app.add_url_rule("%s/api/%s" % (base, name), "admin_api_" + name, fn, methods=methods)

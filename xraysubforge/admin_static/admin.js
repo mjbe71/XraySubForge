@@ -92,6 +92,8 @@
     wizTitle: "Setup guide", wizIntro: "Follow the steps. Each one checks that things work. You can leave and come back at any time; nothing changes until you save.",
     step1: "Connect to your panel", step2: "Try a subscription", step3: "Choose what to change", step4: "Review and save",
     s1help: "Enter the JSON-subscription address of your 3x-ui panel, without the user's id at the end. In 3x-ui: Panel settings → Subscription → JSON.",
+    s1helpRaw: "Enter the normal (raw) subscription address of your 3x-ui panel, without the user's id at the end. In 3x-ui: Panel settings → Subscription. The JSON configs are built here, so the JSON subscription can stay off.",
+    rawUrlNeeded: "Panel raw subscription URL",
     checkConn: "Check connection", next: "Next", back: "Back", skip: "Skip",
     s2help: "Enter the subscription id of any real user (the last part of their link). We fetch it from the panel and show what it contains.",
     found: "Found {n} config(s):", more: "… and {n} more",
@@ -147,6 +149,8 @@
     wizTitle: "راهنمای راه‌اندازی", wizIntro: "مرحله‌به‌مرحله جلو بروید. هر مرحله بررسی می‌کند که همه‌چیز درست کار کند. هر وقت خواستید می‌توانید خارج شوید و برگردید؛ تا ذخیره نکنید چیزی عوض نمی‌شود.",
     step1: "اتصال به پنل", step2: "امتحان یک اشتراک", step3: "انتخاب تغییرات", step4: "بررسی و ذخیره",
     s1help: "آدرس ساب JSON پنل 3x-ui را وارد کنید، بدون شناسهٔ کاربر در انتها. در 3x-ui: تنظیمات پنل ← اشتراک ← JSON.",
+    s1helpRaw: "آدرس ساب معمولی (خام) پنل 3x-ui را وارد کنید، بدون شناسهٔ کاربر در انتها. در 3x-ui: تنظیمات پنل ← اشتراک. کانفیگ‌های JSON همین‌جا ساخته می‌شوند، پس ساب JSON می‌تواند خاموش بماند.",
+    rawUrlNeeded: "آدرس ساب خام پنل",
     checkConn: "بررسی اتصال", next: "بعدی", back: "قبلی", skip: "رد کردن",
     s2help: "شناسهٔ ساب یک کاربر واقعی را وارد کنید (بخش آخر لینک او). آن را از پنل می‌گیریم و محتوایش را نشان می‌دهیم.",
     found: "{n} کانفیگ پیدا شد:", more: "… و {n} مورد دیگر",
@@ -341,6 +345,101 @@
     sp_untilChar: "تا این نویسه (اختیاری)", sp_untilHint: "خالی = تا آخر نام",
     renameItem: "تغییر نام", renameHint: "نام فنی ذخیره‌شده در config.json. تغییرش فقط نام این مورد را عوض می‌کند.",
   });
+  Object.assign(STR.en, {
+    tabBlocks: "Blocks", bFromPanel: "From your panel", bKindsN: "{n} configs · {k} kinds",
+    bSourceHint: "Similar configs are grouped into kinds, so a block keeps working for every user and for servers added later. Drag a kind into a block, or press Pick and then Move here.",
+    bNoSample: "Fetch a user's subscription in the Preview panel (on the right) to see your configs here.",
+    bFinal: "Final subscription", bFinalHint: "Blocks run from top to bottom. A kind is in one list (or removed); several balancers may use the same kinds.",
+    sourceLabel: "Where the configs come from", sourceJson: "The panel's JSON subscription", sourceRaw: "The panel's raw links (JSON is built here)",
+    sourceHint: "With raw links you do not need the JSON subscription in 3x-ui; set the raw subscription URL above.",
+    rawModeLabel: "Raw link for users", rawPass: "The panel's links, unchanged", rawEngine: "With my rules and blocks",
+    rawModeHint: "Links carry fewer settings than JSON: balancers become their members, and fragment or cipher suites are left out.",
+    rawWarn: "The JSON subscription is the better source: it carries everything the panel knows (its DNS and routing, the hosts' fragment / Final Mask, mux, sockopt and more). Links carry only part of it, so those settings are lost unless you add them again here. Use raw links only when you cannot turn the JSON subscription on.",
+    versionTitle: "The version of this panel (and the git commit, for a git checkout)",
+    jsonTemplate: "Client config for links (JSON)", jsonTemplateHint: "Raw links only: inbounds, DNS and routing each built config gets. Empty = a built-in one.",
+    bNotPlaced: "not placed yet", bIn: "in {b}", bRemovedWhere: "removed", bPick: "Pick", bPicked: "Picked", bMoveHere: "Move here",
+    bDropHere: "Drop kinds here", bList: "List", bBalancer: "Balancer", bPerCountry: "One per country",
+    bUp: "Move block up", bDown: "Move block down", bDelete: "Delete block", bTakeOut: "Take out of this block", bBlockName: "Block name",
+    bAddList: "+ List block", bAddBalancer: "+ Balancer per country", bNewBlock: "Block {n}", bNewBalancer: "Balancer {n}",
+    bRest: "Everything else", bRestHint: "Kinds no block has taken. New inbounds you add later land here, so nothing gets lost unnoticed.",
+    bKeepEnd: "At the end", bKeepTop: "At the top", bHide: "Hide", bRestEmpty: "Nothing left over.",
+    bRemoved: "Removed", bRemovedHint: "Drop a kind here to take it out of everyone's subscription.", bRemove: "Remove", bBringBack: "Bring back",
+    bUndo: "Undo", bRedo: "Redo", bAddSetting: "+ Setting", bAllSettings: "Every setting for this block is already added.",
+    bDefault: "Back to default", bRandom: "random", bAddCustom: "Add custom", bAddAddress: "Add address",
+    bCustomFrag: "Your own: packets, lengths, delays (e.g. tlshello, 10-20, 1)", bCustomCipher: "Your own list: TLS_…:TLS_…", bAddressPh: "Address or domain",
+    bAddresses: "{n} addresses", bExample: "Example: {x}",
+    s_fragment: "Fragment", s_cipher: "Cipher suites", s_fingerprint: "Fingerprint", s_strategy: "Strategy", s_pool: "Address pool", s_name: "Name",
+    h_fragment: "Pick one or more. With several, each config gets one of them at random.",
+    h_cipher: "Pick one or more. With several, each config gets one of them at random. TLS configs only.",
+    h_fingerprint: "The browser the TLS handshake looks like.", h_strategy: "How the balancer picks a member.",
+    h_pool: "Each member gets one copy per address. Click an address to take it out.", h_name: "What users see in their app.",
+    bCustom: "custom", bOtherCond: "condition",
+    bTakes: "Takes {n} configs of this sample", bAdvancedKept: "Some settings of the old balancer are kept as they were (Advanced).",
+    bClassicTitle: "Made in the old tabs", bClassicHint: "These still work as before. Convert one to a block to edit it here; the old item is switched off, not deleted (Undo brings it back).",
+    bOldBalancer: "balancer", bOldDrop: "removes", bOldRule: "rule", bOldWarp: "WARP chain", bConvert: "Convert to block", bOpenOld: "Open",
+    bTakesNothing: "Takes no config of this sample.", bNoSampleShort: "Fetch a subscription to see what it takes.", bOldCond: "condition of {id}",
+    advRules: "Rules and order", advPatches: "Patches", advJson: "JSON",
+    bWarp: "WARP", bAddWarp: "+ WARP block", bNewWarp: "WARP {n}", s_warp: "Route", s_pick: "WARP endpoint",
+    h_warp: "WARP, then the exit server of the config; or WARP alone.", h_pick: "Which WARP endpoint each user gets.",
+    bWarpExit: "WARP, then the exit", bWarpOnly: "WARP only", bPickRandom: "random on every update", bPickUser: "fixed per user",
+    bAdvancedJson: "Advanced (JSON)", bAdvBalancer: "\"group\": extra balancer keys (params, probe, expand, …); \"member_patch\": extra steps for every member.",
+    bAdvList: "\"patches\": a list of patches (merge, random, routing_prepend, …) applied to this block's configs.",
+    bAdvWarp: "\"chain\": extra chain keys (entry, endpoints, exit, entry_merge, before, …).",
+    cancel: "Cancel", bEditCond: "Edit this condition", bDone: "Done",
+    sumTitle: "Save these changes?", sumNothing: "No visible changes.", sumBlockAdded: "New block: {x}", sumBlockChanged: "Changed block: {x}",
+    sumBlockRemoved: "Deleted block: {x}", sumRest: "\"Everything else\" changed", sumOldAdded: "New item in the old tabs: {x}",
+    sumOldOff: "Switched off (now a block): {x}", sumOldChanged: "Changed in the old tabs: {x}", sumOldRemoved: "Deleted from the old tabs: {x}",
+    sumSettings: "Settings changed: {x}", sumChecking: "Checking your sample…", sumNoSample: "Fetch a subscription in Preview to see the effect before saving.",
+    sumImpact: "Your sample: {n} configs from the panel; users got {a}, after saving they get {b}.", sumErrors: "{n} problem(s)",
+    bTestUsers: "Test on users", bTestPh: "Subscription ids, one per line (up to 10)",
+    bTestHint: "Runs the current, unsaved settings on these users' real subscriptions. The ids are not stored anywhere.",
+    bTestRun: "Run the test", bTestRow: "{id}: {a} configs → {b} · {u} not placed in any block", bTestErr: "{id}: {e}",
+    bCleanOld: "Delete switched-off old items ({n})", bNewCond: "New condition", bAddCond: "Add", bPlusCond: "+ Condition",
+  });
+  Object.assign(STR.fa, {
+    tabBlocks: "بلوک‌ها", bFromPanel: "از پنل شما", bKindsN: "{n} کانفیگ · {k} گونه",
+    bSourceHint: "کانفیگ‌های مشابه یک «گونه» می‌شوند تا بلوک برای همهٔ کاربران و سرورهای بعدی هم کار کند. گونه را داخل یک بلوک بکشید، یا «انتخاب» و بعد «انتقال به اینجا» را بزنید.",
+    bNoSample: "برای دیدن کانفیگ‌ها، ساب یک کاربر را در پنل پیش‌نمایش (سمت دیگر) بگیرید.",
+    bFinal: "اشتراک نهایی", bFinalHint: "بلوک‌ها از بالا به پایین اجرا می‌شوند. هر گونه در یک فهرست است (یا حذف‌شده)؛ چند بالانسر می‌توانند از یک گونه استفاده کنند.",
+    sourceLabel: "کانفیگ‌ها از کجا بیایند", sourceJson: "ساب JSON پنل", sourceRaw: "لینک‌های خام پنل (JSON همین‌جا ساخته می‌شود)",
+    sourceHint: "با لینک‌های خام لازم نیست ساب JSON را در 3x-ui روشن کنید؛ آدرس ساب خام را بالا بگذارید.",
+    rawWarn: "ساب JSON منبع بهتری است: هر چیزی که پنل می‌داند را دارد (DNS و routing پنل، fragment / Final Mask هاست‌ها، mux، sockopt و بیشتر). لینک‌ها فقط بخشی از این‌ها را دارند، پس آن تنظیمات از دست می‌روند مگر اینکه اینجا دوباره اضافه‌شان کنید. لینک خام را فقط وقتی انتخاب کنید که نمی‌توانید ساب JSON را روشن کنید.",
+    rawModeLabel: "لینک خام برای کاربران", rawPass: "لینک‌های پنل، بدون تغییر", rawEngine: "با قوانین و بلوک‌های من",
+    rawModeHint: "لینک‌ها تنظیمات کمتری از JSON دارند: بالانسر به اعضایش تبدیل می‌شود و fragment و cipher suites حذف می‌شوند.",
+    bNotPlaced: "هنوز جایی نیست", bIn: "در {b}", bRemovedWhere: "حذف‌شده", bPick: "انتخاب", bPicked: "انتخاب شد", bMoveHere: "انتقال به اینجا",
+    bDropHere: "گونه‌ها را اینجا رها کنید", bList: "فهرست", bBalancer: "بالانسر", bPerCountry: "یکی برای هر کشور",
+    bUp: "بالا بردن بلوک", bDown: "پایین بردن بلوک", bDelete: "حذف بلوک", bTakeOut: "بیرون آوردن از این بلوک", bBlockName: "نام بلوک",
+    bAddList: "+ بلوک فهرست", bAddBalancer: "+ بالانسر هر کشور", bNewBlock: "بلوک {n}", bNewBalancer: "بالانسر {n}",
+    bRest: "بقیه", bRestHint: "گونه‌هایی که هیچ بلوکی برنداشته. inbound‌های تازه هم اینجا می‌آیند تا چیزی بی‌خبر گم نشود.",
+    bKeepEnd: "در انتها", bKeepTop: "در ابتدا", bHide: "پنهان شوند", bRestEmpty: "چیزی باقی نمانده.",
+    bRemoved: "حذف‌شده", bRemovedHint: "گونه را اینجا رها کنید تا از ساب همه حذف شود.", bRemove: "حذف", bBringBack: "برگرداندن",
+    bUndo: "واگرد", bRedo: "ازنو", bAddSetting: "+ تنظیم", bAllSettings: "همهٔ تنظیم‌های این بلوک اضافه شده‌اند.",
+    bDefault: "برگشت به پیش‌فرض", bRandom: "تصادفی", bAddCustom: "افزودن دلخواه", bAddAddress: "افزودن آدرس", bAddressPh: "آدرس یا دامنه",
+    bAddresses: "{n} آدرس", bExample: "نمونه: {x}",
+    h_fragment: "یکی یا چند تا را انتخاب کنید. با چند تا، هر کانفیگ یکی را تصادفی می‌گیرد.",
+    h_cipher: "یکی یا چند تا را انتخاب کنید. با چند تا، هر کانفیگ یکی را تصادفی می‌گیرد. فقط کانفیگ‌های TLS.",
+    h_fingerprint: "دست‌دادن TLS شبیه کدام مرورگر باشد.", h_strategy: "بالانسر عضو را چطور انتخاب کند.",
+    h_pool: "هر عضو برای هر آدرس یک کپی می‌گیرد. روی آدرس بزنید تا حذف شود.", h_name: "نامی که کاربر در اپ می‌بیند.",
+    bCustom: "دلخواه", bOtherCond: "شرط",
+    bTakes: "{n} کانفیگ از این نمونه را برمی‌دارد", bAdvancedKept: "بخشی از تنظیمات بالانسر قدیمی همان‌طور که بود نگه داشته شده (پیشرفته).",
+    bClassicTitle: "ساخته‌شده در تب‌های قدیمی", bClassicHint: "این‌ها مثل قبل کار می‌کنند. برای ویرایش در اینجا به بلوک تبدیلشان کنید؛ مورد قدیمی خاموش می‌شود، نه پاک (با واگرد برمی‌گردد).",
+    bOldBalancer: "بالانسر", bOldDrop: "حذف", bOldRule: "قانون", bOldWarp: "زنجیرهٔ WARP", bConvert: "تبدیل به بلوک", bOpenOld: "باز کردن",
+    bTakesNothing: "هیچ کانفیگی از این نمونه را برنمی‌دارد.", bNoSampleShort: "برای دیدن، یک ساب بگیرید.", bOldCond: "شرط {id}",
+    advRules: "قوانین و ترتیب", advPatches: "پچ‌ها", advJson: "JSON",
+    bAddWarp: "+ بلوک WARP", bNewWarp: "WARP {n}", s_warp: "مسیر", s_pick: "endpoint وارپ",
+    h_warp: "اول WARP، بعد سرور خروجی کانفیگ؛ یا فقط WARP.", h_pick: "هر کاربر کدام endpoint وارپ را بگیرد.",
+    bWarpExit: "WARP، بعد خروجی", bWarpOnly: "فقط WARP", bPickRandom: "تصادفی در هر به‌روزرسانی", bPickUser: "ثابت برای هر کاربر",
+    cancel: "انصراف", bEditCond: "ویرایش این شرط", bDone: "تمام",
+    sumTitle: "این تغییرات ذخیره شوند؟", sumNothing: "تغییر قابل‌مشاهده‌ای نیست.", sumBlockAdded: "بلوک جدید: {x}", sumBlockChanged: "بلوک تغییرکرده: {x}",
+    sumBlockRemoved: "بلوک حذف‌شده: {x}", sumRest: "«بقیه» تغییر کرد", sumOldAdded: "مورد جدید در تب‌های قدیمی: {x}",
+    sumOldOff: "خاموش‌شده (حالا بلوک است): {x}", sumOldChanged: "تغییر در تب‌های قدیمی: {x}", sumOldRemoved: "حذف از تب‌های قدیمی: {x}",
+    sumSettings: "تنظیمات تغییرکرده: {x}", sumChecking: "در حال بررسی نمونه…", sumNoSample: "برای دیدن اثر پیش از ذخیره، در پیش‌نمایش یک ساب بگیرید.",
+    sumImpact: "نمونهٔ شما: {n} کانفیگ از پنل؛ کاربران {a} تا می‌گرفتند، بعد از ذخیره {b} تا می‌گیرند.", sumErrors: "{n} مشکل",
+    bTestUsers: "امتحان روی کاربران", bTestPh: "شناسه‌های ساب، هر کدام در یک خط (حداکثر ۱۰)",
+    bTestHint: "تنظیمات فعلی (ذخیره‌نشده) را روی ساب واقعی این کاربران اجرا می‌کند. شناسه‌ها جایی ذخیره نمی‌شوند.",
+    bTestRun: "اجرای امتحان", bTestRow: "{id}: {a} کانفیگ ← {b} · {u} تا در هیچ بلوکی نیست", bTestErr: "{id}: {e}",
+    bCleanOld: "حذف موارد قدیمی خاموش ({n})", bNewCond: "شرط جدید", bAddCond: "افزودن", bPlusCond: "+ شرط",
+  });
   const OPLABEL = {
     en: { equals: "is exactly", not_equals: "is not", contains: "contains", icontains: "contains (any case)", not_contains: "does not contain",
       startswith: "starts with", endswith: "ends with", regex: "matches pattern", iregex: "matches pattern (any case)", in: "is one of", not_in: "is none of",
@@ -398,6 +497,7 @@
   let savedSnapshot = "{}";
   let loadedRoute = "/sub/";
   let canRestart = false;
+  let appVersion = "";
   let loadedServer = "{}";
   const needsRestart = () => JSON.stringify(cfg.server || {}) !== loadedServer;
   let sample = null;
@@ -1013,6 +1113,10 @@
       detailsBox("sectPanelConn", h("div", {},
         h("p", { class: "hint" }, t("panelConnHint")),
         modeEditor(p, () => drawEditor()),
+        h("div", { class: "grid" },
+          field(t("sourceLabel"), bindSelect(p, "source", [["", t("sourceJson")], ["raw", t("sourceRaw")]]), t("sourceHint")),
+          field(t("rawModeLabel"), bindSelect(p, "raw_mode", [["", t("rawPass")], ["engine", t("rawEngine")]]), t("rawModeHint"))),
+        p.source === "raw" ? h("div", { class: "msg warn" }, t("rawWarn")) : null,
         p.mode === "proxy" ? h("p", { class: "hint" }, t("proxyHelp")) : null,
         field(t(p.mode === "proxy" ? "jsonUrl" : "panelUrl"), bindText(p, "url", { placeholder: "https://panel.example.com:2096/json/" }), null, true),
         formatFields(p),
@@ -1022,7 +1126,8 @@
             field(t("pageUrl"), bindText(p, "page_url"), null, true),
             field(t("timeout"), bindText(p, "timeout", { num: true, placeholder: "10" }))),
           field(t("headers"), bindJSON(p, "headers"), null, true),
-          field(t("passHeaders"), bindJSON(p, "pass_headers"), null, true))), true),
+          field(t("passHeaders"), bindJSON(p, "pass_headers"), null, true),
+          field(t("jsonTemplate"), bindJSON(p, "json_template", 8), t("jsonTemplateHint"), true))), true),
       detailsBox("sectSubServer", h("div", {},
         h("div", { class: "grid" },
           field(t("host"), bindText(s, "host", { placeholder: "127.0.0.1" })),
@@ -1106,15 +1211,26 @@
   const escapeRegex = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   // one text -> "contains"; several -> one case-insensitive pattern that matches any of them
   const nameCond = (items) => ({ remark: items.length === 1 ? { icontains: items[0] } : { iregex: items.map(escapeRegex).join("|") } });
+  function bUpsert(blk) {
+    if (!isObj(cfg.blocks) || !Array.isArray(cfg.blocks.list)) cfg.blocks = { rest: "keep", list: [] };
+    const list = cfg.blocks.list, i = list.findIndex((x) => x.id === blk.id);
+    if (i >= 0) list[i] = blk;
+    else if (blk.type === "drop") list.push(blk);
+    else { const firstOther = list.findIndex((x) => x.type !== "balancer"); if (firstOther < 0) list.push(blk); else list.splice(firstOther, 0, blk); }
+  }
+  function bDrop(id) { if (isObj(cfg.blocks) && Array.isArray(cfg.blocks.list)) cfg.blocks.list = cfg.blocks.list.filter((x) => x.id !== id); }
   function applyGoals() {
     const hide = wiz.hide.items, bal = wiz.bal.items, warp = wiz.warp.items;
-    if (wiz.hide.on && hide.length) upsert("rules", { id: "hide-configs", when: nameCond(hide), do: "drop" }); else dropWiz("rules", "hide-configs");
+    // the setup guide writes blocks (shown in the Blocks tab); WARP still uses a chain
+    if (wiz.hide.on && hide.length) bUpsert({ id: "wiz-hide", name: t("goalHide"), type: "drop", kinds: [nameCond(hide)] }); else bDrop("wiz-hide");
+    dropWiz("rules", "hide-configs");
     if (wiz.bal.on && bal.length) {
-      const g = { id: "balance-configs", when: nameCond(bal), type: wiz.bal.type, name: bal.join(" + ") };
-      if (wiz.bal.split.trim()) { g.split_by = { field: "remark", regex: wiz.bal.split.trim() }; g.name = "{split}"; }
-      if (g.type === "leastLoad" || g.type === "leastPing") g.probe = { destination: "https://www.gstatic.com/generate_204", interval: "30s", timeout: "5s", sampling: 2 };
-      upsert("groups", g);
-    } else dropWiz("groups", "balance-configs");
+      const blk = { id: "wiz-balance", name: bal.join(" + "), type: "balancer", kinds: [nameCond(bal)], settings: { strategy: wiz.bal.type } };
+      if (!["leastLoad", "leastPing", "random", "roundRobin"].includes(wiz.bal.type)) { delete blk.settings; }
+      if (wiz.bal.split.trim()) blk.advanced = { group: { split_by: { field: "remark", regex: wiz.bal.split.trim() }, name: "{split}" } };
+      bUpsert(blk);
+    } else bDrop("wiz-balance");
+    dropWiz("groups", "balance-configs");
     if (wiz.warp.on && warp.length) {
       const eps = wiz.warp.endpoints.split(/[\s,]+/).filter(Boolean);
       const chain = { id: "warp-chain", exit_when: nameCond(warp), entry: JSON.parse(JSON.stringify(WARP_ENTRY)) };
@@ -1217,9 +1333,19 @@
     if (wiz.step === 0) {
       const p = (cfg.panel = cfg.panel || {});
       const out = h("div", {}, wiz.connMsg || null);
-      body.append(modeEditor(p, () => drawEditor()), h("p", {}, t(proxyMode ? "proxyHelp" : "s1help")),
-        field(t(proxyMode ? "jsonUrl" : "panelUrl"), bindText(p, "url", { placeholder: "https://panel.example.com:2096/json/" }), null, true),
-        proxyMode ? formatFields(p) : null,
+      const fromRaw = p.source === "raw";
+      const srcBtn = (val, label) => h("button", { type: "button", class: (p.source || "") === val ? "on" : "", "aria-pressed": String((p.source || "") === val),
+        onclick: () => { if (val) p.source = val; else delete p.source; changed(); drawEditor(); } }, label);
+      const srcSel = h("div", { class: "seg big", role: "group", "aria-label": t("sourceLabel") }, srcBtn("", t("sourceJson")), srcBtn("raw", t("sourceRaw")));
+      const rawField = field(t(proxyMode ? "rawUrl" : "rawUrlNeeded"), bindText(p, "raw_url", { placeholder: "https://panel.example.com:2096/sub/" }), null, true);
+      body.append(modeEditor(p, () => drawEditor()),
+        h("div", { class: "src-pick" }, h("div", { class: "hint" }, t("sourceLabel")), srcSel),
+        ...(fromRaw && !proxyMode ? [h("div", { class: "msg warn" }, t("rawWarn"))] : []),
+        h("p", {}, t(proxyMode ? "proxyHelp" : fromRaw ? "s1helpRaw" : "s1help")),
+        proxyMode ? field(t("jsonUrl"), bindText(p, "url", { placeholder: "https://panel.example.com:2096/json/" }), null, true)
+          : fromRaw ? rawField
+          : field(t("panelUrl"), bindText(p, "url", { placeholder: "https://panel.example.com:2096/json/" }), null, true),
+        ...(proxyMode ? [formatFields(p)] : []),
         h("label", { class: "check" }, bindBool(p, "verify_tls", true), t("verifyTls")),
         h("div", { class: "row" }, h("button", { type: "button", onclick: async () => {
           out.replaceChildren(h("p", { class: "hint" }, t("running")));
@@ -1304,7 +1430,22 @@
   const previewEl = h("section", { class: "card preview" });
 
   function setStatus(text, cls) { statusEl.textContent = text; statusEl.className = "status " + (cls || ""); }
-  function isDirty() { return JSON.stringify(cfg) !== savedSnapshot; }
+  // editors create empty lists and objects just by being shown; those are not changes
+  const prune = (v) => {
+    if (Array.isArray(v)) return v.map(prune);
+    if (!v || typeof v !== "object") return v;
+    const o = {};
+    for (const [k, x] of Object.entries(v)) {
+      const y = prune(x);
+      if (Array.isArray(y) ? y.length : y && typeof y === "object" ? Object.keys(y).length : y !== undefined) o[k] = y;
+    }
+    return o;
+  };
+  let savedPruned = null, savedPrunedFor = null;
+  function isDirty() {
+    if (savedPrunedFor !== savedSnapshot) { savedPruned = JSON.stringify(prune(JSON.parse(savedSnapshot))); savedPrunedFor = savedSnapshot; }
+    return JSON.stringify(prune(cfg)) !== savedPruned;
+  }
   function changed() {
     updateRestartBtn();
     if (isDirty()) setStatus(t("unsaved"), "dirty"); else setStatus("", "");
@@ -1506,6 +1647,461 @@
     return box;
   }
 
+  // ---------- blocks: the drag-and-drop builder ----------
+  const B_SETTINGS = [
+    { key: "warp", kind: "one", options: ["exit", "only"], labels: { exit: "bWarpExit", only: "bWarpOnly" }, def: "exit", types: ["warp"] },
+    { key: "pick", kind: "one", options: ["random", "per_user"], labels: { random: "bPickRandom", per_user: "bPickUser" }, def: "random", types: ["warp"] },
+    { key: "fragment", kind: "multi", options: ["tlshello-0-len", "tlshello-6-98"], def: ["tlshello-0-len", "tlshello-6-98"], ph: "bCustomFrag", add: "bAddCustom", types: ["list", "balancer"] },
+    { key: "cipher", kind: "multi", options: ["semi-python", "real-firefox"], def: ["semi-python", "real-firefox"], ph: "bCustomCipher", add: "bAddCustom", types: ["list", "balancer"] },
+    { key: "fingerprint", kind: "one", options: ["chrome", "firefox", "safari", "ios", "android", "edge", "random", "randomized"], def: "chrome", types: ["list", "balancer"] },
+    { key: "strategy", kind: "one", options: ["leastLoad", "leastPing", "random", "roundRobin"], def: "leastLoad", types: ["balancer"] },
+    { key: "pool", kind: "list", def: ["a.example.com", "b.example.com"], ph: "bAddressPh", add: "bAddAddress", types: ["balancer"] },
+    { key: "name", kind: "text", def: "{block} {country}", types: ["list", "balancer", "warp"] },
+  ];
+  const bType = (blk) => blk.type || "list";
+  const bAllowed = (d, blk) => d.types.includes(bType(blk));
+  const bNameDefault = (blk) => (bType(blk) === "list" ? "{block} {n}" : blk.per_country ? "{block} {country}" : "{block}");
+  const bTokens = (blk) => (bType(blk) === "list" ? ["{block}", "{name}", "{country}", "{n}"] : ["{block}", "{country}", "{n}"]);
+  const bLabel = (d, v) => (d.labels && d.labels[v] ? t(d.labels[v]) : String(v));
+  const B_ADV_HINT = { balancer: "bAdvBalancer", list: "bAdvList", warp: "bAdvWarp" };
+  const B_DEF = Object.fromEntries(B_SETTINGS.map((x) => [x.key, x]));
+  const bEmpty = () => ({ rest: "keep", list: [] });
+  const bView = () => (isObj(cfg.blocks) && Array.isArray(cfg.blocks.list) ? cfg.blocks : bEmpty());
+  const condOnly = (w) => Object.fromEntries(Object.entries(w || {}).filter(([k]) => !k.startsWith("_")));
+  const kkey = (w) => canon(condOnly(w));
+  let bKinds = null, bKindsFor = null, bPick = null, bDrag = null, bOver = null, bOpen = null, bMenu = null, bDraft = "";
+  let bPast = [], bFuture = [];
+  const bNewCond = {};
+  let bTestOpen = false, bTestIds = "", bTestResult = null, bTestBusy = false;
+  const maskId = (x) => (x.length > 4 ? x.slice(0, 4) + "…" : x);
+  async function bRunTest() {
+    const ids = [...new Set(bTestIds.split(/[\s,]+/).filter(Boolean))].slice(0, 10);
+    if (!ids.length) return;
+    bTestBusy = true; bTestResult = []; drawEditor();
+    for (const id of ids) {
+      const row = { id: maskId(id) };
+      const sres = await api("sample", { subid: id, config: cfg });
+      if (!sres.ok) { row.error = sres.data.error || "error"; bTestResult.push(row); continue; }
+      const configs = sres.data.configs;
+      const p = await api("preview", { config: cfg, configs, subid: id });
+      if (!p.ok) { row.error = "preview failed"; bTestResult.push(row); continue; }
+      const rep = p.data.report || {};
+      row.in = configs.length; row.out = p.data.output.length;
+      row.errors = (p.data.errors || []).length + (rep.errors || []).length;
+      row.unplaced = (rep.configs || []).filter((c) => c.action !== "drop" && !c.rule && !(c.groups || []).length && !(c.chains || []).length).length;
+      bTestResult.push(row);
+    }
+    bTestBusy = false; drawEditor();
+  }
+  function bTestView() {
+    const ta = h("textarea", { rows: 3, spellcheck: "false", placeholder: t("bTestPh"), "aria-label": t("bTestPh") });
+    ta.value = bTestIds;
+    ta.addEventListener("input", () => { bTestIds = ta.value; });
+    return h("div", { class: "b-test" },
+      h("p", { class: "hint" }, t("bTestHint")), ta,
+      h("div", { class: "row" }, h("button", { type: "button", class: "primary", disabled: bTestBusy, onclick: bRunTest }, bTestBusy ? t("fetching") : t("bTestRun"))),
+      bTestResult && bTestResult.length ? h("ul", { class: "sum-list" }, bTestResult.map((r) => h("li", { class: r.error || r.errors ? "sum-del" : "sum-add" },
+        r.error ? t("bTestErr", { id: r.id, e: r.error })
+          : t("bTestRow", { id: r.id, a: r.in, b: r.out, u: r.unplaced }) + (r.errors ? " · " + t("sumErrors", { n: r.errors }) : "")))) : null);
+  }
+
+  function bLoadKinds() {
+    if (!sample || bKindsFor === sample) return;
+    const want = sample;
+    bKindsFor = sample;
+    api("kinds", { configs: sample }).then((r) => {
+      if (r.ok && want === sample) { bKinds = r.data.kinds; if (tab === "blocks") drawEditor(); }
+    });
+  }
+  document.addEventListener("xsf-sample", () => { if (tab === "blocks") bLoadKinds(); });
+
+  const B_SNAP = ["blocks", "groups", "rules", "chains"];
+  const bSnap = () => JSON.stringify(B_SNAP.map((k) => (cfg[k] === undefined ? null : cfg[k])));
+  function bChange(fn, keepOpen) {
+    bPast.push(bSnap());
+    if (bPast.length > 100) bPast.shift();
+    bFuture = [];
+    if (!isObj(cfg.blocks) || !Array.isArray(cfg.blocks.list)) cfg.blocks = bEmpty();
+    fn(cfg.blocks);
+    bPick = null; bOver = null; bDrag = null;
+    if (!keepOpen) bDraft = "";
+    changed(); drawEditor();
+  }
+  function bRestore(snap) {
+    JSON.parse(snap).forEach((v, n) => { const k = B_SNAP[n]; if (v === null) delete cfg[k]; else cfg[k] = v; });
+    changed(); drawEditor();
+  }
+  function bMove(cond, target, fromSource) {   // target: a block index, "trash" or "rest"
+    if (!cond) return;
+    const key = kkey(cond);
+    bChange((b) => {
+      const toBalancer = typeof target === "number" && b.list[target] && b.list[target].type === "balancer";
+      b.list.forEach((x, n) => {
+        if (fromSource && toBalancer && x.type === "balancer" && n !== target) return;   // a copy: the other balancers keep it
+        x.kinds = (x.kinds || []).filter((w) => kkey(w) !== key);
+      });
+      if (target === "rest") return;
+      let i = target;
+      if (target === "trash") {
+        i = b.list.findIndex((x) => x.type === "drop");
+        if (i < 0) { b.list.push({ id: nextId("removed", b.list), type: "drop", kinds: [] }); i = b.list.length - 1; }
+      }
+      b.list[i].kinds = (b.list[i].kinds || []).concat([JSON.parse(JSON.stringify(cond))]);
+    });
+  }
+  const bCond = (k) => Object.assign({ _label: (k.flag ? k.flag + " " : "") + k.label }, k.when);
+  let bDragSource = false;
+  function bDragProps(cond, fromSource) {
+    return { draggable: "true", ondragstart: (e) => { bDrag = cond; bDragSource = !!fromSource; try { e.dataTransfer.setData("text/plain", "kind"); e.dataTransfer.effectAllowed = "move"; } catch (x) { /* ignore */ } },
+      ondragend: () => { bDrag = null; if (bOver !== null) { bOver = null; drawEditor(); } } };
+  }
+  function bZone(target, el) {
+    el.addEventListener("dragover", (e) => { if (!bDrag) return; e.preventDefault(); if (bOver !== target) { bOver = target; el.classList.add("over"); } });
+    el.addEventListener("dragleave", (e) => { if (!el.contains(e.relatedTarget)) { el.classList.remove("over"); if (bOver === target) bOver = null; } });
+    el.addEventListener("drop", (e) => { e.preventDefault(); el.classList.remove("over"); const c = bDrag; bDrag = null; bMove(c, target, bDragSource); });
+    return el;
+  }
+  function bSummary(key, v) {
+    const d = B_DEF[key];
+    if (d.kind === "multi") return v.map((x) => (d.options.includes(x) ? x : t("bCustom"))).join(" · ") + (v.length > 1 ? ", " + t("bRandom") : "");
+    if (d.kind === "list") return t("bAddresses", { n: v.length }) + (v.length > 1 ? ", " + t("bRandom") : "");
+    return bLabel(d, v);
+  }
+  function bSettingEditor(blk, i, key) {
+    const d = B_DEF[key], v = blk.settings[key];
+    const put = (nv) => bChange((b) => { b.list[i].settings[key] = nv; }, true);
+    const box = h("div", { class: "b-editor" },
+      h("div", { class: "row" }, h("strong", {}, t("s_" + key)), h("span", { class: "hint", style: "flex:1" }, t("h_" + key)),
+        h("button", { type: "button", class: "small", onclick: () => put(d.key === "name" ? bNameDefault(blk) : JSON.parse(JSON.stringify(d.def))) }, t("bDefault"))));
+    if (d.kind === "multi" || d.kind === "one") {
+      const names = d.kind === "multi" ? d.options.concat(v.filter((x) => !d.options.includes(x))) : d.options;
+      box.append(h("div", { class: "b-opts" }, names.map((n) => {
+        const on = d.kind === "multi" ? v.includes(n) : v === n;
+        return h("button", { type: "button", class: "b-opt" + (on ? " on" : ""), "aria-pressed": String(on), onclick: () => {
+          if (d.kind === "one") return put(n);
+          if (on && v.length === 1) return;
+          put(on ? v.filter((x) => x !== n) : v.concat([n]));
+        } }, d.options.includes(n) ? bLabel(d, n) : t("bCustom") + ": " + n);
+      })));
+    }
+    if (d.kind === "list") {
+      box.append(h("div", { class: "b-opts" }, v.map((n) => h("button", { type: "button", class: "b-opt mono", onclick: () => { if (v.length > 1) put(v.filter((x) => x !== n)); } }, n, " ×"))));
+    }
+    if (d.kind === "multi" || d.kind === "list") {
+      const inp = h("input", { type: "text", value: bDraft, placeholder: t(d.ph), "aria-label": t(d.add), oninput: (e) => { bDraft = e.target.value; } });
+      const add = () => { const x = bDraft.trim(); if (!x || v.includes(x)) return; bDraft = ""; put(v.concat([x])); };
+      inp.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); add(); } });
+      box.append(h("div", { class: "row" }, inp, h("button", { type: "button", onclick: add }, t(d.add))));
+    }
+    if (d.kind === "text") {
+      const ex = h("span", { class: "hint" });
+      const showEx = (x) => { ex.textContent = t("bExample", { x: x.replace("{block}", blk.name || blk.id).replace("{name}", "Server 1🇩🇪").replace("{country}", "🇩🇪").replace("{n}", "3") }); };
+      const inp = h("input", { type: "text", value: v, "aria-label": t("s_name"), oninput: (e) => { blk.settings[key] = e.target.value; showEx(e.target.value); changed(); } });
+      showEx(v);
+      box.append(h("div", { class: "row" }, inp, ...bTokens(blk).map((tk) => h("button", { type: "button", class: "small mono", onclick: () => put((blk.settings[key] || "") + (/\s$/.test(blk.settings[key] || "") ? "" : " ") + tk) }, tk))), ex);
+    }
+    return box;
+  }
+  const PREFIX_BLK = "blk-";
+  let bPickSource = false;
+  function bBlockCard(blk, i, all, names, counts) {
+    const isBal = blk.type === "balancer";
+    const s = blk.settings || {};
+    const id = blk.id;
+    const nameIn = h("input", { type: "text", class: "b-name", value: blk.name || "", placeholder: prettyId(id), "aria-label": t("bBlockName"),
+      oninput: (e) => { blk.name = e.target.value; changed(); } });
+    const typeBtn = (k, label) => h("button", { type: "button", class: blk.type === k || (!blk.type && k === "list") ? "on" : "", "aria-pressed": String(blk.type === k),
+      onclick: () => bChange((b) => {
+        const x = b.list[i];
+        if (bType(x) === k) return;
+        x.type = k;
+        if (k === "list") delete x.per_country; else if (x.per_country === undefined) x.per_country = true;
+        if (x.settings) {
+          Object.keys(x.settings).forEach((q) => { if (!B_DEF[q] || !bAllowed(B_DEF[q], x)) delete x.settings[q]; });
+          if (!Object.keys(x.settings).length) delete x.settings;
+        }
+        if (k === "warp" && !(x.settings && x.settings.warp)) x.settings = Object.assign({ warp: "exit" }, x.settings || {});
+        delete x.advanced;                          // its keys depend on the type
+      }) }, label);
+    const head = h("div", { class: "b-head" }, nameIn,
+      h("div", { class: "seg", role: "group" }, typeBtn("list", t("bList")), typeBtn("balancer", t("bBalancer")), typeBtn("warp", t("bWarp"))),
+      isBal || blk.type === "warp" ? h("label", { class: "check small b-pc" }, h("input", { type: "checkbox", checked: !!blk.per_country, onchange: () => bChange((b) => { b.list[i].per_country = !b.list[i].per_country; }) }), t("bPerCountry")) : null,
+      h("button", { type: "button", class: "icon", "aria-label": t("bUp"), title: t("bUp"), onclick: () => { const prev = all[all.indexOf(i) - 1]; if (prev !== undefined) bChange((b) => { const x = b.list.splice(i, 1)[0]; b.list.splice(prev, 0, x); }); } }, "↑"),
+      h("button", { type: "button", class: "icon", "aria-label": t("bDown"), title: t("bDown"), onclick: () => { const next = all[all.indexOf(i) + 1]; if (next !== undefined) bChange((b) => { const x = b.list.splice(i, 1)[0]; b.list.splice(next, 0, x); }); } }, "↓"),
+      h("button", { type: "button", class: "icon danger", "aria-label": t("bDelete"), title: t("bDelete"), onclick: () => bChange((b) => { b.list.splice(i, 1); }) }, "×"));
+    const keys = B_SETTINGS.filter((d) => s[d.key] !== undefined && bAllowed(d, blk)).map((d) => d.key);
+    const pills = h("div", { class: "b-pills" }, keys.map((key) => {
+      const open = bOpen === id + ":" + key;
+      return h("span", { class: "b-pill" + (open ? " open" : "") },
+        h("button", { type: "button", "aria-expanded": String(open), onclick: () => { bOpen = open ? null : id + ":" + key; bDraft = ""; drawEditor(); } },
+          h("strong", {}, t("s_" + key)), " ", h("span", { class: "dim" }, bSummary(key, s[key])), open ? " ▴" : " ▾"),
+        h("button", { type: "button", class: "x", "aria-label": t("remove"), onclick: () => bChange((b) => { delete b.list[i].settings[key]; if (!Object.keys(b.list[i].settings).length) delete b.list[i].settings; }) }, "×"));
+    }), blk.advanced ? (() => {
+      const open = bOpen === id + ":advanced";
+      return h("span", { class: "b-pill adv" + (open ? " open" : "") },
+        h("button", { type: "button", "aria-expanded": String(open), onclick: () => { bOpen = open ? null : id + ":advanced"; drawEditor(); } },
+          h("strong", {}, t("bAdvancedJson")), " ", h("span", { class: "dim" }, Object.keys(blk.advanced).join(", ") || "—"), open ? " ▴" : " ▾"),
+        h("button", { type: "button", class: "x", "aria-label": t("remove"), onclick: () => bChange((b) => { delete b.list[i].advanced; }) }, "×"));
+    })() : null, h("button", { type: "button", class: "b-add", "aria-expanded": String(bMenu === id), onclick: () => { bMenu = bMenu === id ? null : id; drawEditor(); } }, t("bAddSetting")));
+    const menu = bMenu === id ? (() => {
+      const avail = B_SETTINGS.filter((d) => s[d.key] === undefined && bAllowed(d, blk));
+      const items = avail.map((d) => h("button", { type: "button", onclick: () => bChange((b) => {
+        const x = b.list[i]; x.settings = x.settings || {}; x.settings[d.key] = d.key === "name" ? bNameDefault(x) : JSON.parse(JSON.stringify(d.def));
+      }, true) }, t("s_" + d.key)));
+      if (!blk.advanced) items.push(h("button", { type: "button", onclick: () => { bChange((b) => { b.list[i].advanced = {}; }, true); bOpen = id + ":advanced"; bMenu = null; drawEditor(); } }, t("bAdvancedJson")));
+      return h("div", { class: "b-menu" }, items.length ? items : h("span", { class: "hint" }, t("bAllSettings")));
+    })() : null;
+    const openKey = keys.find((key) => bOpen === id + ":" + key);
+    let extraEditor = null;
+    if (bOpen === id + ":advanced" && blk.advanced) {
+      const ta = h("textarea", { rows: 10, spellcheck: "false" });
+      ta.value = JSON.stringify(blk.advanced, null, 2);
+      ta.addEventListener("input", () => {
+        let v;
+        try { v = ta.value.trim() ? JSON.parse(ta.value) : {}; } catch (e) { ta.classList.add("bad"); return; }
+        if (!isObj(v)) { ta.classList.add("bad"); return; }
+        ta.classList.remove("bad");
+        blk.advanced = v; changed();
+      });
+      ta.addEventListener("change", () => drawEditor());
+      extraEditor = h("div", { class: "b-editor" }, h("div", { class: "row" }, h("strong", {}, t("bAdvancedJson")),
+        h("span", { class: "hint", style: "flex:1" }, t(B_ADV_HINT[bType(blk)] || "bAdvList"))), ta);
+    }
+    const kindOpen = (blk.kinds || []).findIndex((w, j) => bOpen === id + ":kind:" + j);
+    if (kindOpen >= 0) {
+      const j = kindOpen;
+      const cur = () => cfg.blocks.list[i].kinds[j];
+      const holder = new Proxy({}, {
+        get: (o, k) => (k === "when" ? condOnly(cur()) : undefined),
+        set: (o, k, v) => { if (k === "when") cfg.blocks.list[i].kinds[j] = Object.assign({}, v || {}); return true; },
+        deleteProperty: (o, k) => { if (k === "when") cfg.blocks.list[i].kinds[j] = {}; return true; },
+        has: (o, k) => k === "when",
+      });
+      extraEditor = h("div", { class: "b-editor" }, h("div", { class: "row" }, h("strong", { style: "flex:1" }, t("bEditCond")),
+        h("button", { type: "button", class: "small", onclick: () => { bOpen = null; drawEditor(); } }, t("bDone"))), whenEditor(holder));
+    }
+    if (bOpen === id + ":newcond") {
+      const holder = bNewCond[id] = bNewCond[id] || {};
+      extraEditor = h("div", { class: "b-editor" }, h("div", { class: "row" }, h("strong", { style: "flex:1" }, t("bNewCond"))),
+        whenEditor(holder), h("div", { class: "row" },
+          h("button", { type: "button", class: "primary", onclick: () => {
+            const w = holder.when;
+            if (!w || !Object.keys(condOnly(w)).length) return;
+            delete bNewCond[id]; bOpen = null;
+            bChange((b) => { b.list[i].kinds = (b.list[i].kinds || []).concat([JSON.parse(JSON.stringify(w))]); });
+          } }, t("bAddCond")),
+          h("button", { type: "button", onclick: () => { delete bNewCond[id]; bOpen = null; drawEditor(); } }, t("cancel"))));
+    }
+    const zone = bZone(i, h("div", { class: "b-zone" },
+      (blk.kinds || []).map((w, j) => bChip(w, names, () => bMove(w, "rest"), t("bTakeOut"), "", false,
+        () => { bOpen = bOpen === id + ":kind:" + j ? null : id + ":kind:" + j; drawEditor(); })),
+      (blk.kinds || []).length ? null : h("span", { class: "hint" }, t("bDropHere")),
+      h("button", { type: "button", class: "b-cond", onclick: () => { bOpen = id + ":newcond"; drawEditor(); } }, t("bPlusCond")),
+      bPick ? h("button", { type: "button", class: "b-movehere", onclick: () => bMove(bPick, i, bPickSource) }, t("bMoveHere")) : null));
+    const n = counts[PREFIX_BLK + id] || 0;
+    return h("div", { class: "b-block" + (blk.type === "warp" ? " warp" : "") }, head, h("p", { class: "hint b-takes" }, sample ? t("bTakes", { n }) : ""),
+      pills, menu, openKey ? bSettingEditor(blk, i, openKey) : extraEditor, zone);
+  }
+  function bChip(w, names, onX, xLabel, cls, fromSource, onEdit) {
+    const info = names[kkey(w)];
+    const text = w._label || (info && info.label) || describeWhen(condOnly(w)) || t("bOtherCond");
+    return h("span", Object.assign({ class: "b-chip " + (cls || "") }, bDragProps(w, fromSource)),
+      onEdit ? h("button", { type: "button", class: "b-chip-edit", title: t("bEditCond"), onclick: onEdit }, text) : h("span", {}, text),
+      info ? h("span", { class: "dim" }, "×" + info.count) : null,
+      onX ? h("button", { type: "button", class: "x", "aria-label": xLabel, title: xLabel, onclick: onX }, cls === "gone" ? t("bBringBack") : "×") : null);
+  }
+  function blocksView() {
+    bLoadKinds();
+    const v = bView();
+    const names = {};
+    (bKinds || []).forEach((k) => { names[kkey(k.when)] = { label: (k.flag ? k.flag + " " : "") + k.label, count: k.count }; });
+    const place = {};
+    v.list.forEach((b, i) => (b.kinds || []).forEach((w) => { const key = kkey(w); if (!(key in place)) place[key] = i; }));
+    // what really happens to each sample config, from the last preview: block or classic item ids
+    const rep = lastPreview && lastPreview.report && Array.isArray(lastPreview.report.configs) && sample && lastPreview.report.configs.length === sample.length ? lastPreview.report.configs : null;
+    const usedBy = (c) => {
+      const ids = [];
+      if (c.rule && (c.action === "drop" || c.action === "pin_top" || c.action === "pin_bottom" || !c.rule.startsWith("blk-"))) ids.push(c.rule);
+      (c.groups || []).forEach((g) => ids.push(g.replace(/--noflag$/, "")));
+      (c.chains || []).forEach((x) => ids.push(x));
+      return ids;
+    };
+    const counts = {}, kindIds = {};
+    if (rep) rep.forEach((c) => usedBy(c).forEach((id) => { counts[id] = (counts[id] || 0) + 1; }));
+    (bKinds || []).forEach((k) => {
+      const ids = [];
+      (k.indexes || []).forEach((n) => { if (rep && rep[n]) usedBy(rep[n]).forEach((id) => { if (!ids.includes(id)) ids.push(id); }); });
+      kindIds[kkey(k.when)] = ids;
+    });
+    const where = (key) => {
+      const ids = kindIds[key];
+      if (ids && ids.length) return t("bIn", { b: ids.map(idName).join(", ") });
+      const i = place[key];
+      if (i === undefined) return t("bNotPlaced");
+      const b = v.list[i];
+      return b.type === "drop" ? t("bRemovedWhere") : t("bIn", { b: b.name || prettyId(b.id) });
+    };
+    const isPlaced = (key) => key in place || (kindIds[key] || []).length > 0;
+
+    const toolbar = h("div", { class: "row b-tools" },
+      h("button", { type: "button", "aria-expanded": String(bTestOpen), onclick: () => { bTestOpen = !bTestOpen; drawEditor(); } }, t("bTestUsers")),
+      h("button", { type: "button", disabled: !bPast.length, onclick: () => { bFuture.unshift(bSnap()); bRestore(bPast.pop()); } }, t("bUndo")),
+      h("button", { type: "button", disabled: !bFuture.length, onclick: () => { bPast.push(bSnap()); bRestore(bFuture.shift()); } }, t("bRedo")));
+
+    let source;
+    if (!bKinds) source = h("p", { class: "hint" }, t("bNoSample"));
+    else {
+      const total = bKinds.reduce((a, k) => a + k.count, 0);
+      source = h("div", {},
+        h("p", { class: "hint" }, t("bKindsN", { n: total, k: bKinds.length })),
+        h("div", { class: "b-kinds" }, bKinds.map((k) => {
+          const cond = bCond(k), key = kkey(k.when), picked = bPick && kkey(bPick) === key;
+          return h("div", Object.assign({ class: "b-kind" + (isPlaced(key) ? " placed" : "") + (picked ? " picked" : "") }, bDragProps(cond, true)),
+            h("span", { class: "b-cc" }, k.flag || "·"),
+            h("div", { class: "b-kind-text" }, h("div", { class: "b-kind-label", title: k.remarks.join("\n") }, k.label), h("div", { class: "hint" }, k.count + " · " + where(key))),
+            h("button", { type: "button", class: "small" + (picked ? " primary" : ""), "aria-pressed": String(!!picked), onclick: () => { bPick = picked ? null : cond; bPickSource = true; drawEditor(); } }, picked ? t("bPicked") : t("bPick")));
+        })));
+    }
+
+    const order = v.list.map((b, i) => i).filter((i) => v.list[i].type !== "drop");
+    const blocks = order.map((i) => bBlockCard(v.list[i], i, order, names, counts));
+    const nb = (type) => bChange((b) => {
+      const n = b.list.filter((x) => x.type !== "drop").length + 1;
+      const item = { id: nextId("block", b.list), name: t(type === "balancer" ? "bNewBalancer" : type === "warp" ? "bNewWarp" : "bNewBlock", { n }), type, kinds: [] };
+      if (type === "balancer") { item.per_country = true; item.settings = { strategy: "leastLoad" }; }
+      if (type === "warp") { item.per_country = true; item.settings = { warp: "exit" }; }
+      const firstDrop = b.list.findIndex((x) => x.type === "drop");
+      if (firstDrop < 0) b.list.push(item); else b.list.splice(firstDrop, 0, item);
+    });
+    const restKinds = (bKinds || []).filter((k) => !isPlaced(kkey(k.when)));
+    const seg = (val, label) => h("button", { type: "button", class: (v.rest || "keep") === val ? "on" : "", "aria-pressed": String((v.rest || "keep") === val), onclick: () => bChange((b) => { b.rest = val; }) }, label);
+    const rest = bZone("rest", h("div", { class: "b-block b-rest" + ((v.rest || "keep") === "hide" ? " hidden-rest" : "") },
+      h("div", { class: "b-head" }, h("strong", { style: "flex:1" }, t("bRest")), h("div", { class: "seg", role: "group" }, seg("top", t("bKeepTop")), seg("keep", t("bKeepEnd")), seg("hide", t("bHide")))),
+      h("p", { class: "hint" }, t("bRestHint")),
+      h("div", { class: "b-zone plain" }, restKinds.map((k) => bChip(bCond(k), names, null, null, "", true)), restKinds.length || !bKinds ? null : h("span", { class: "hint" }, t("bRestEmpty")))));
+    const gone = [];
+    v.list.forEach((b) => { if (b.type === "drop") (b.kinds || []).forEach((w) => gone.push(w)); });
+    const trash = bZone("trash", h("div", { class: "b-block b-trash" },
+      h("div", { class: "b-head" }, h("strong", { class: "danger-text" }, "🗑 " + t("bRemoved")), h("span", { class: "hint", style: "flex:1" }, t("bRemovedHint")),
+        bPick ? h("button", { type: "button", class: "danger", onclick: () => bMove(bPick, "trash", bPickSource) }, t("bRemove")) : null),
+      gone.length ? h("div", { class: "b-zone plain" }, gone.map((w) => bChip(w, names, () => bMove(w, "rest"), t("bBringBack"), "gone"))) : null));
+
+    // the items made in the old tabs, shown as locked blocks with the kinds they take
+    const classic = [];
+    const kindsOf = (id) => (bKinds || []).filter((k) => (kindIds[kkey(k.when)] || []).includes(id));
+    (cfg.groups || []).forEach((g, gi) => { if (g.enabled !== false) classic.push({ id: g.id, kind: "group", label: t("bOldBalancer"), convert: () => bConvertGroup(gi), open: "groups" }); });
+    (cfg.rules || []).forEach((r, ri) => { if (r.enabled !== false) classic.push({ id: r.id, kind: "rule", label: r.do === "drop" ? t("bOldDrop") : t("bOldRule"), convert: r.do === "drop" ? () => bConvertRule(ri) : null, open: "list" }); });
+    (cfg.chains || []).forEach((c, ci) => { if (c.enabled !== false) classic.push({ id: c.id, kind: "chain", label: t("bOldWarp"), convert: c.mode === "exit_first" ? () => bConvertChain(ci) : null, open: "chains" }); });
+    const offOld = ["groups", "rules", "chains"].reduce((n, k) => n + (cfg[k] || []).filter((x) => x.enabled === false).length, 0);
+    const cleanBtn = offOld ? h("button", { type: "button", class: "small", onclick: () => bChange(() => {
+      ["groups", "rules", "chains"].forEach((k) => { if (Array.isArray(cfg[k])) cfg[k] = cfg[k].filter((x) => x.enabled !== false); });
+    }) }, t("bCleanOld", { n: offOld })) : null;
+    const classicBox = classic.length || offOld ? h("div", { class: "b-classic" },
+      h("div", { class: "row" }, h("h3", { style: "flex:1" }, t("bClassicTitle")), cleanBtn),
+      classic.length ? h("p", { class: "hint" }, t("bClassicHint")) : null,
+      classic.map((it) => {
+        const ks = kindsOf(it.id);
+        return h("div", { class: "b-block locked" },
+          h("div", { class: "b-head" }, h("span", { class: "b-lock", "aria-hidden": "true" }, "🔒"), h("strong", { style: "flex:1" }, prettyId(it.id)), h("span", { class: "chip" }, it.label),
+            it.convert ? h("button", { type: "button", class: "primary small", onclick: it.convert }, t("bConvert")) : null,
+            h("button", { type: "button", class: "small", onclick: () => { tab = "advanced"; advTab = it.open; drawEditor(); } }, t("bOpenOld"))),
+          h("div", { class: "b-zone plain" }, ks.length ? ks.map((k) => h("span", { class: "b-chip" }, (k.flag ? k.flag + " " : "") + k.label, h("span", { class: "dim" }, "×" + k.count)))
+            : h("span", { class: "hint" }, sample ? t("bTakesNothing") : t("bNoSampleShort"))));
+      })) : null;
+
+    const testBox = bTestOpen ? bTestView() : null;
+    return h("div", { class: "builder" },
+      h("section", { class: "b-source" }, h("h2", {}, t("bFromPanel")), h("p", { class: "hint" }, t("bSourceHint")), source),
+      h("section", { class: "b-final" },
+        h("div", { class: "row" }, h("h2", { style: "flex:1;margin:0" }, t("bFinal")), toolbar),
+        h("p", { class: "hint" }, t("bFinalHint")),
+        testBox,
+        classicBox,
+        ...blocks,
+        h("div", { class: "row" }, h("button", { type: "button", class: "b-new", onclick: () => nb("list") }, t("bAddList")), h("button", { type: "button", class: "b-new", onclick: () => nb("balancer") }, t("bAddBalancer")),
+          h("button", { type: "button", class: "b-new", onclick: () => nb("warp") }, t("bAddWarp"))),
+        rest, trash));
+  }
+
+
+  // turn a classic group / drop rule into a block; the classic item is switched off (not deleted)
+  const B_FRAG_PATH = "streamSettings.finalmask.tcp", B_CS_PATH = "streamSettings.tlsSettings.cipherSuites";
+  const presetName = (v, known) => Object.keys(known).find((k) => canon(known[k]) === canon(v));
+  const B_ADV_GROUP = ["params", "probe", "probe_kind", "member_cost", "min_members", "remove_members_from_output", "position",
+    "expand", "include_balanced", "member_position", "catchall_rules"];
+  function bConvertGroup(gi) {
+    const g = cfg.groups[gi];
+    bChange((b) => {
+      const settings = {}, advGroup = {}, rest = [];
+      if (["leastLoad", "leastPing", "random", "roundRobin"].includes(g.type)) settings.strategy = g.type;
+      const perCountry = !!(g.split_by && g.split_by.field === "flag" && g.split_by.regex === "(.+)");
+      if (g.split_by && !perCountry) advGroup.split_by = JSON.parse(JSON.stringify(g.split_by));
+      const name = g.name || (g.split_by ? "{split}" : g.id);
+      if (perCountry) settings.name = name.replace(/\{split\}/g, "{country}").replace(/\{group\}/g, "{block}");
+      else advGroup.name = name;
+      B_ADV_GROUP.forEach((k) => { if (g[k] !== undefined) advGroup[k] = JSON.parse(JSON.stringify(g[k])); });
+      (g.member_patch || []).forEach((step) => {
+        const st = JSON.parse(JSON.stringify(step));
+        if (!st.when && isObj(st.random)) {
+          const fr = st.random[B_FRAG_PATH];
+          if (Array.isArray(fr) && fr.length && fr.every((x) => Array.isArray(x) && x.length && x.every(isObj))) {
+            settings.fragment = fr.map((x) => presetName(x, FRAG_PRESETS) || x); delete st.random[B_FRAG_PATH];
+          }
+          const cs = st.random[B_CS_PATH];
+          if (Array.isArray(cs) && cs.length && cs.every((x) => typeof x === "string" && /^[A-Z0-9_:]+$/.test(x))) {
+            settings.cipher = cs.map((x) => presetName(x, CS_PRESETS) || x); delete st.random[B_CS_PATH];
+          }
+          if (!Object.keys(st.random).length) delete st.random;
+        }
+        if (Object.keys(st).some((k) => k !== "when")) rest.push(st);
+      });
+      const block = { id: nextId("block", b.list), name: prettyId(g.id), type: "balancer",
+        kinds: [Object.assign({ _label: t("bOldCond", { id: prettyId(g.id) }) }, g.when || {})] };
+      if (perCountry) { block.per_country = true; block.flagless = "single"; }      // as the old group did
+      if (Object.keys(settings).length) block.settings = settings;
+      const adv = {};
+      if (Object.keys(advGroup).length) adv.group = advGroup;
+      if (rest.length) adv.member_patch = rest;
+      if (Object.keys(adv).length) block.advanced = adv;
+      const firstOther = b.list.findIndex((x) => x.type !== "balancer");
+      if (firstOther < 0) b.list.push(block); else b.list.splice(firstOther, 0, block);
+      cfg.groups[gi].enabled = false;
+    });
+  }
+  const B_ADV_CHAIN = ["exit", "entry_merge", "before", "choices", "remove_exit_from_output", "position"];
+  function bConvertChain(ci) {
+    const c = cfg.chains[ci];
+    bChange((b) => {
+      const settings = {}, adv = {};
+      const perCountry = !!(c.split_by && c.split_by.field === "flag" && c.split_by.regex === "(.+)");
+      if (c.split_by && !perCountry) adv.split_by = JSON.parse(JSON.stringify(c.split_by));
+      if (c.exit === false) settings.warp = "only"; else settings.warp = "exit";
+      if (c.pick === "per_user") settings.pick = "per_user";
+      const name = c.name || (c.split_by ? "{split}" : c.id);
+      if (perCountry || !c.split_by) settings.name = name.replace(/\{split\}/g, "{country}").replace(/\{group\}/g, "{block}");
+      else adv.name = name;
+      if (c.entry !== "{account.masque.outbound}") adv.entry = JSON.parse(JSON.stringify(c.entry));
+      if (c.endpoints !== "{account.masque.endpoints}") adv.endpoints = JSON.parse(JSON.stringify(c.endpoints === undefined ? null : c.endpoints));
+      if (adv.endpoints === null) delete adv.endpoints;
+      B_ADV_CHAIN.forEach((k) => { if (c[k] !== undefined && !(k === "exit" && c[k] === false)) adv[k] = JSON.parse(JSON.stringify(c[k])); });
+      const block = { id: nextId("block", b.list), name: prettyId(c.id), type: "warp",
+        kinds: [Object.assign({ _label: t("bOldCond", { id: prettyId(c.id) }) }, c.exit_when || {})], settings };
+      if (perCountry) block.per_country = true;
+      if (Object.keys(adv).length) block.advanced = { chain: adv };
+      const firstDrop = b.list.findIndex((x) => x.type === "drop");
+      if (firstDrop < 0) b.list.push(block); else b.list.splice(firstDrop, 0, block);
+      cfg.chains[ci].enabled = false;
+    });
+  }
+  function bConvertRule(ri) {
+    const r = cfg.rules[ri];
+    bChange((b) => {
+      let i = b.list.findIndex((x) => x.type === "drop");
+      if (i < 0) { b.list.push({ id: nextId("removed", b.list), type: "drop", kinds: [] }); i = b.list.length - 1; }
+      b.list[i].kinds = (b.list[i].kinds || []).concat([Object.assign({ _label: t("bOldCond", { id: prettyId(r.id) }) }, r.when || {})]);
+      cfg.rules[ri].enabled = false;
+    });
+  }
   // ---------- output tab ----------
   const OUT_DEFAULTS = {
     dedicated_dns: () => ({ ip: "8.8.8.8", tag: "dedicated-dns" }),
@@ -1662,21 +2258,31 @@
     ],
   };
   const sect = (titleKey, ...kids) => h("div", { class: "sect-plain" }, h("h2", {}, t(titleKey)), ...kids);
+  let advTab = "list";
   function drawEditor() {
-    if (tab === "rules" || tab === "order") tab = "list";
-    if (tab === "patches" || tab === "raw" || tab === "output") tab = tab === "output" ? "settings" : "advanced";
-    const tabs = [["start", t("start")], ["list", t("tabList")], ["groups", t("tabGroups")], ["chains", t("tabWarp")], ["settings", t("tabSettings")], ["advanced", t("tabAdvanced")]];
+    if (tab === "rules" || tab === "order") { tab = "advanced"; advTab = "list"; }
+    if (tab === "list" || tab === "groups" || tab === "chains") { advTab = tab; tab = "advanced"; }
+    if (tab === "patches" || tab === "raw") { advTab = tab === "raw" ? "raw" : "patches"; tab = "advanced"; }
+    if (tab === "output") tab = "settings";
+    const tabs = [["start", t("start")], ["blocks", t("tabBlocks")], ["settings", t("tabSettings")], ["advanced", t("tabAdvanced")]];
     let body;
+    const mainEl = document.querySelector("main");
+    if (mainEl) mainEl.classList.toggle("wide", tab === "blocks");
     if (tab === "start") body = wizardView();
-    else if (tab === "list") body = h("div", {},
-      sect("sectFilter", listEditor("rules", "rulesHint", (items) => ({ id: nextId("rule", items), when: {}, do: "drop" }), ruleBody, TEMPLATES.rules)),
-      sect("sectSort", listEditor("order", "orderHint", (items) => ({ id: nextId("order", items), rank: 30 }), orderBody, TEMPLATES.order)));
-    else if (tab === "groups") body = listEditor("groups", "groupsHint", (items) => ({ id: nextId("group", items), type: "leastLoad", when: {} }), groupBody, TEMPLATES.groups);
-    else if (tab === "chains") body = listEditor("chains", "chainsHint", (items) => ({ id: nextId("chain", items), exit_when: {}, entry: {} }), chainBody, TEMPLATES.chains);
+    else if (tab === "blocks") body = blocksView();
     else if (tab === "settings") body = h("div", {}, settingsEditor(), detailsBox("sectOutput", outputEditor()), h("p", { class: "hint" }, t("adminNote")));
-    else body = h("div", {},
-      detailsBox("sectPatches", listEditor("patches", "patchesHint", (items) => ({ id: nextId("patch", items), merge: {} }), patchBody)),
-      detailsBox("sectJson", rawEditor()));
+    else {
+      const subs = [["list", t("advRules")], ["groups", t("tabGroups")], ["chains", t("tabWarp")], ["patches", t("advPatches")], ["raw", t("advJson")]];
+      let inner;
+      if (advTab === "groups") inner = listEditor("groups", "groupsHint", (items) => ({ id: nextId("group", items), type: "leastLoad", when: {} }), groupBody, TEMPLATES.groups);
+      else if (advTab === "chains") inner = listEditor("chains", "chainsHint", (items) => ({ id: nextId("chain", items), exit_when: {}, entry: {} }), chainBody, TEMPLATES.chains);
+      else if (advTab === "patches") inner = listEditor("patches", "patchesHint", (items) => ({ id: nextId("patch", items), merge: {} }), patchBody);
+      else if (advTab === "raw") inner = rawEditor();
+      else inner = h("div", {},
+        sect("sectFilter", listEditor("rules", "rulesHint", (items) => ({ id: nextId("rule", items), when: {}, do: "drop" }), ruleBody, TEMPLATES.rules)),
+        sect("sectSort", listEditor("order", "orderHint", (items) => ({ id: nextId("order", items), rank: 30 }), orderBody, TEMPLATES.order)));
+      body = h("div", {}, h("div", { class: "tabs sub" }, subs.map(([k, label]) => h("button", { type: "button", class: advTab === k ? "on" : "", onclick: () => { advTab = k; drawEditor(); } }, label))), inner);
+    }
     const banner = (cfg.panel || {}).mode === "proxy" && tab !== "start" && tab !== "settings" ? h("div", { class: "msg warn" }, t("proxyOnBanner")) : null;
     editorEl.replaceChildren(
       h("div", { class: "tabs" }, tabs.map(([k, label]) => h("button", { type: "button", class: tab === k ? "on" : "", onclick: () => { tab = k; drawEditor(); } }, label))),
@@ -1693,19 +2299,30 @@
     if (!r.ok) return;
     lastPreview = r.data;
     drawPreviewResult();
+    const ae = document.activeElement;
+    if (tab === "blocks" && !(ae && editorEl.contains(ae) && /^(INPUT|TEXTAREA)$/.test(ae.tagName))) drawEditor();
   }
   const resultEl = h("div");
   const sampleInfo = h("p", { class: "hint" });
   function drawSampleInfo() { sampleInfo.textContent = sample ? t("sampleN", { n: sample.length }) : t("noSample"); }
 
+  function blockName(id) {                 // "blk-fast--noflag" -> the block's own name
+    if (!id || !id.startsWith("blk-")) return null;
+    const v = isObj(cfg.blocks) && Array.isArray(cfg.blocks.list) ? cfg.blocks.list : [];
+    const base = id.slice(4).replace(/--noflag$/, "");
+    const b = v.find((x) => x.id === base);
+    if (b) return b.type === "drop" ? t("bRemoved") : (b.name || prettyId(b.id));
+    return base === "rest" ? t("bRest") : null;
+  }
+  const idName = (id) => blockName(id) || prettyId(id || "");
   function explain(c) {
     const bits = [];
-    const rule = prettyId(c.rule || "");
+    const rule = idName(c.rule || "");
     if (c.action === "drop") bits.push(rule ? t("exp_drop_rule", { rule }) : t("exp_drop"));
     else if (c.action === "pin_top") bits.push(t("exp_top", { rule }));
     else if (c.action === "pin_bottom") bits.push(t("exp_bottom", { rule }));
     else if (c.action === "keep" && rule) bits.push(t("exp_keep_rule", { rule }));
-    (c.groups || []).forEach((g) => bits.push(t("exp_group", { g: prettyId(g) })));
+    (c.groups || []).forEach((g) => bits.push(t("exp_group", { g: idName(g) })));
     (c.chains || []).forEach((x) => bits.push(t("exp_chain", { c: prettyId(x) })));
     return bits.length ? bits.join(" · ") : t("exp_kept");
   }
@@ -1764,7 +2381,56 @@
   }
   let autoFetched = false;
 
-  async function save() {
+  function changeSummary() {
+    const old = prune(JSON.parse(savedSnapshot)), cur = prune(cfg);
+    const lines = [];
+    const byId = (a) => Object.fromEntries((Array.isArray(a) ? a : []).map((x) => [x.id, x]));
+    const same = (a, b) => canon(a) === canon(b);
+    const ob = byId((old.blocks || {}).list), nb = byId((cur.blocks || {}).list);
+    const bname = (x) => (x.type === "drop" ? t("bRemoved") : x.name || prettyId(x.id));
+    Object.keys(nb).forEach((id) => { if (!ob[id]) lines.push(["add", t("sumBlockAdded", { x: bname(nb[id]) })]); else if (!same(ob[id], nb[id])) lines.push(["chg", t("sumBlockChanged", { x: bname(nb[id]) })]); });
+    Object.keys(ob).forEach((id) => { if (!nb[id]) lines.push(["del", t("sumBlockRemoved", { x: bname(ob[id]) })]); });
+    if (((old.blocks || {}).rest || "keep") !== ((cur.blocks || {}).rest || "keep")) lines.push(["chg", t("sumRest")]);
+    ["rules", "groups", "chains", "patches", "order"].forEach((kind) => {
+      const o = byId(old[kind]), n = byId(cur[kind]);
+      Object.keys(n).forEach((id) => {
+        if (!o[id]) lines.push(["add", t("sumOldAdded", { x: prettyId(id) })]);
+        else if (o[id].enabled !== false && n[id].enabled === false) lines.push(["off", t("sumOldOff", { x: prettyId(id) })]);
+        else if (!same(o[id], n[id])) lines.push(["chg", t("sumOldChanged", { x: prettyId(id) })]);
+      });
+      Object.keys(o).forEach((id) => { if (!n[id]) lines.push(["del", t("sumOldRemoved", { x: prettyId(id) })]); });
+    });
+    const sections = [...new Set([...Object.keys(old), ...Object.keys(cur)])].filter((k) => !["blocks", "rules", "groups", "chains", "patches", "order"].includes(k) && !same(old[k], cur[k]));
+    if (sections.length) lines.push(["chg", t("sumSettings", { x: sections.join(", ") })]);
+    return lines;
+  }
+  function save() {
+    if (tab === "start" || !isDirty()) return doSave();
+    const lines = changeSummary();
+    const impact = h("p", { class: "hint" }, sample ? t("sumChecking") : t("sumNoSample"));
+    const close = () => overlay.remove();
+    const overlay = h("div", { class: "overlay", role: "dialog", "aria-modal": "true", "aria-label": t("sumTitle") },
+      h("div", { class: "card sum" },
+        h("h2", {}, t("sumTitle")),
+        lines.length ? h("ul", { class: "sum-list" }, lines.map(([k, x]) => h("li", { class: "sum-" + k }, x))) : h("p", {}, t("sumNothing")),
+        impact,
+        h("div", { class: "row" },
+          h("button", { type: "button", class: "primary", onclick: () => { close(); doSave(); } }, t("save")),
+          h("button", { type: "button", onclick: close }, t("cancel")))));
+    overlay.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
+    document.body.append(overlay);
+    overlay.querySelector("button.primary").focus();
+    if (sample) {
+      Promise.all([api("preview", { config: JSON.parse(savedSnapshot), configs: sample, subid: lastSubid }), api("preview", { config: cfg, configs: sample, subid: lastSubid })])
+        .then(([a, b]) => {
+          if (!a.ok || !b.ok) { impact.textContent = ""; return; }
+          impact.textContent = t("sumImpact", { n: sample.length, a: a.data.output.length, b: b.data.output.length });
+          const errs = (b.data.errors || []).length + ((b.data.report || {}).errors || []).length;
+          if (errs) impact.append(h("span", { class: "danger-text" }, " " + t("sumErrors", { n: errs })));
+        });
+    }
+  }
+  async function doSave() {
     const r = await api("save", { config: cfg });
     if (r.ok) {
       savedSnapshot = JSON.stringify(cfg);
@@ -1806,7 +2472,7 @@
   function drawMain() {
     const saveBtn = h("button", { type: "button", class: "primary", onclick: save }, t("save"));
     root.replaceChildren(
-      h("header", {}, h("h1", {}, t("title")), statusEl, themeToggle(), langToggle(),
+      h("header", {}, h("h1", {}, t("title"), appVersion ? h("span", { class: "ver", title: t("versionTitle") }, appVersion) : null), statusEl, themeToggle(), langToggle(),
         h("button", { type: "button", onclick: () => { if (!isDirty() || confirm(t("revert") + "?")) start(); } }, t("revert")), saveBtn,
         canRestart ? restartHeaderBtn : null,
         h("button", { type: "button", onclick: async () => { await api("logout", {}); drawLogin(); } }, t("logout"))),
@@ -1836,10 +2502,13 @@
     if (!r.ok) { root.replaceChildren(h("div", { class: "card login" }, h("p", {}, t("disabled")))); return; }
     cfg = r.data.config || {};
     const hasWork = ["rules", "groups", "chains", "patches"].some((k) => (cfg[k] || []).length);
-    tab = (cfg.panel && cfg.panel.url && hasWork) ? "list" : "start";
+    const hasBlocks = isObj(cfg.blocks) && Array.isArray(cfg.blocks.list) && cfg.blocks.list.length;
+    const hasPanel = cfg.panel && (cfg.panel.url || (cfg.panel.source === "raw" && cfg.panel.raw_url));
+    tab = (hasPanel && (hasBlocks || hasWork)) ? "blocks" : "start";
     savedSnapshot = JSON.stringify(cfg);
     loadedRoute = r.data.route;
     canRestart = !!r.data.can_restart;
+    appVersion = r.data.version ? "v" + r.data.version + (r.data.commit ? " · " + r.data.commit : "") : "";
     loadedServer = JSON.stringify(cfg.server || {});
     lastPreview = { errors: r.data.errors, warnings: r.data.warnings };
     applyLang();

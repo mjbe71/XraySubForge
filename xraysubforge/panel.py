@@ -27,8 +27,22 @@ def fetch_raw(url, panel, subid):
     return r
 
 
+def raw_configs(panel, subid):
+    """-> (response, configs built from the links of the raw subscription). Raises PanelError."""
+    from .links import link_to_config, parse_raw
+    if not panel.get("raw_url"):
+        raise PanelError("panel.raw_url is not set in config.json", 503)
+    r = fetch_raw(panel["raw_url"], panel, subid)
+    configs = [c for c in (link_to_config(x, panel.get("json_template")) for x in parse_raw(r.content)) if c]
+    return r, configs
+
+
 def fetch_panel(panel, subid):
-    """-> (response, list of configs, parsed JSON). Raises PanelError. Never prints the URL: it holds the secret id."""
+    """-> (response, list of configs, parsed JSON). Raises PanelError. Never prints the URL: it holds the secret id.
+    With panel.source "raw" the configs are built from the raw subscription's links."""
+    if panel.get("source") == "raw":
+        r, configs = raw_configs(panel, subid)
+        return r, configs, configs
     if not panel["url"]:
         raise PanelError("panel.url is not set in config.json", 503)
     r = fetch_raw(panel["url"], panel, subid)
