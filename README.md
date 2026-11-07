@@ -2,8 +2,9 @@
 
 [فارسی](README.fa.md) · English
 
-An **advanced add-on for 3x-ui**: a small Flask service that sits between your 3x-ui panel and your users' VPN apps.
-It reads the panel's JSON subscription and reshapes it with **conditional rules** you write, matching configs by
+An **advanced add-on for 3x-ui** and other Xray-core panels: a small Flask service that sits between your panel and
+your users' VPN apps. It reads the panel's subscription (Xray JSON, or the usual `vless://`, `vmess://`, `trojan://`,
+`ss://` links) and reshapes it with **conditional rules** you write, matching configs by
 condition or regular expression on any field (remark, protocol, security, port, ...).
 
 What it adds on top of the panel:
@@ -24,6 +25,9 @@ With no rules it returns the panel's subscription unchanged.
 client app ──► XraySubForge ──► your 3x-ui panel (JSON subscription)
                     └─ applies your rules, returns the result
 ```
+
+> Made and tested with 3x-ui. Other panels that give Xray JSON or standard links (Marzban, Remnawave, ...) should
+> work too: put `{id}` in the panel address where the subscription id goes. Please report how it goes.
 
 > Beta (v0.3). Covered by automated tests and in use on a real server, but not yet used by many people. An independent project, not affiliated with Xray or 3x-ui.
 

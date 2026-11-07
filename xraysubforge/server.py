@@ -11,7 +11,7 @@ from .config import ConfigStore
 from .engine import process
 from .matching import match
 from .links import config_links, encode_raw
-from .panel import PanelError, fetch_panel, fetch_raw, raw_configs
+from .panel import PanelError, fetch_panel, fetch_raw, raw_configs, with_id
 
 
 def needs_account(conf, configs):
@@ -51,7 +51,7 @@ def create_app(store=None):
             return conf, None, text("not found", 404)
         panel = conf["panel"]
         if panel["page_url"] and "text/html" in request.headers.get("Accept", ""):
-            return conf, panel, redirect(panel["page_url"].rstrip("/") + "/" + subid, code=302)
+            return conf, panel, redirect(with_id(panel["page_url"], subid), code=302)
         return conf, panel, None
 
     def sub(subid):

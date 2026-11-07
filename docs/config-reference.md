@@ -53,7 +53,7 @@ The panel edits every other section of `config.json` but never shows or changes 
 | Key | Default | Meaning |
 |---|---|---|
 | `mode` | `"engine"` | `"engine"` applies your rules. `"proxy"` is a plain reverse proxy: the panel's reply (body, content type and `pass_headers`) is handed through unchanged and no rule, group, chain or patch runs. |
-| `url` | `""` | The panel's JSON-subscription URL; the id is appended. **Required** (without it the service answers 503). |
+| `url` | `""` | The panel's JSON-subscription URL; the id is appended, or put where `{id}` is (for panels whose address goes on after the id, e.g. `https://panel.example.com/sub/{id}/v2ray-json`). **Required** (without it the service answers 503). The same `{id}` works in `raw_url`, `clash_url` and `page_url`. |
 | `source` | `"json"` | `"raw"`: build the JSON configs from the share links at `raw_url` (`vless`, `vmess`, `trojan`, `ss`), so the panel's JSON subscription is not needed. Each link goes into `json_template`. Other link types (masque, hysteria2, tuic, wireguard) are left out, and what links cannot carry (the panel's DNS and routing, Final Mask / fragment, mux, sockopt) is lost: the JSON subscription is the better source when you can turn it on. |
 | `json_template` | `{}` | With `source: "raw"`: the client config every link is put into (inbounds, DNS, routing, extra outbounds); the link's outbound comes first, tagged `proxy`. Empty = a built-in one (socks 10808, http 10809). |
 | `raw_mode` | `"pass"` | The raw route: `"pass"` hands the panel's links through; `"engine"` turns them into configs, applies your rules and blocks, and writes links again. A balancer becomes one link per member; what a link cannot carry (fragment, cipher suites, chains) is left out. |

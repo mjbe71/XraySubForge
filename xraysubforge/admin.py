@@ -146,7 +146,7 @@ def run_checks(app, conf, clean, problems, subid, secure_request):
     else:
         out.append(_check("panel_url", "ok", "The panel address is set."))
         try:
-            r = requests.get(address, headers=panel["headers"], timeout=min(float(panel["timeout"]), 8),
+            r = requests.get(address.replace("{id}", ""), headers=panel["headers"], timeout=min(float(panel["timeout"]), 8),
                              verify=panel["verify_tls"])
             if r.status_code >= 500:
                 out.append(_check("panel_reach", "warn", "The panel answered with an error (HTTP %d)." % r.status_code, code=r.status_code))

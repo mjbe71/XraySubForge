@@ -97,6 +97,15 @@ class Proxy(unittest.TestCase):
             self.assertEqual(c.get("/raw/abcd1234").status_code, 502)
             self.assertEqual(c.get("/sub/abcd1234").status_code, 502)
 
+    def test_id_inside_the_address(self):
+        from xraysubforge.panel import with_id
+        self.assertEqual(with_id("https://p.example/sub/{id}/v2ray-json", "ab cd"), "https://p.example/sub/ab%20cd/v2ray-json")
+        self.assertEqual(with_id("https://p.example/json", "abcd"), "https://p.example/json/abcd")
+        c = make({"url": "https://p.example/json/{id}?format=x", "mode": "proxy"})
+        with mock.patch("xraysubforge.panel.requests.get", side_effect=panel_get) as g:
+            self.assertEqual(c.get("/sub/abcd1234").data, JSON_BODY)
+        self.assertEqual(g.call_args[0][0], "https://p.example/json/abcd1234?format=x")
+
     def test_browsers_are_redirected_on_every_format(self):
         c = make({"raw_url": "https://p.example/sub/", "page_url": "https://p.example/page"})
         r = c.get("/raw/abcd1234", headers={"Accept": "text/html"})

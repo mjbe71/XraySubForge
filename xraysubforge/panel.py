@@ -1,6 +1,8 @@
 """Fetching a user's subscription from the panel (shared by the public route and the admin preview)."""
 import sys
 
+from urllib.parse import quote
+
 import requests
 
 
@@ -10,13 +12,20 @@ class PanelError(Exception):
         self.message, self.status = message, status
 
 
+def with_id(url, subid):
+    """The panel address for this id: "{id}" in the address is replaced by it, otherwise it is appended."""
+    if "{id}" in url:
+        return url.replace("{id}", quote(subid, safe=""))
+    return (url if url.endswith("/") else url + "/") + subid
+
+
 def fetch_raw(url, panel, subid):
     """The panel's reply for this id at `url` (any format) -> requests.Response. Raises PanelError. Never prints the URL."""
     if not url:
         raise PanelError("not found", 404)
-    base = url if url.endswith("/") else url + "/"
+    target = with_id(url, subid)
     try:
-        r = requests.get(base + subid, headers=panel["headers"], timeout=panel["timeout"], verify=panel["verify_tls"])
+        r = requests.get(target, headers=panel["headers"], timeout=panel["timeout"], verify=panel["verify_tls"])
     except requests.RequestException as e:
         print("[panel] unreachable: %s" % type(e).__name__, file=sys.stderr, flush=True)
         raise PanelError("panel unreachable", 502)
