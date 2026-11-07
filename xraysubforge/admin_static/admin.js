@@ -1095,7 +1095,7 @@
 
   // the mode choice and the pass-through formats; used by the wizard and by Settings
   function modeEditor(p, onMode) {
-    const sel = h("select", { onchange: () => { if (sel.value === "proxy") p.mode = "proxy"; else delete p.mode; changed(); onMode(); } },
+    const sel = h("select", { onchange: () => { if (sel.value === "proxy") { p.mode = "proxy"; delete p.source; delete p.raw_mode; } else delete p.mode; changed(); onMode(); } },
       h("option", { value: "" }, t("modeEngine")), h("option", { value: "proxy" }, t("modeProxy")));
     sel.value = p.mode === "proxy" ? "proxy" : "";
     return h("div", {}, field(t("modeTitle"), sel, p.mode === "proxy" ? t("modeProxyHelp") : null, true));
@@ -1113,7 +1113,7 @@
       detailsBox("sectPanelConn", h("div", {},
         h("p", { class: "hint" }, t("panelConnHint")),
         modeEditor(p, () => drawEditor()),
-        h("div", { class: "grid" },
+        p.mode === "proxy" ? null : h("div", { class: "grid" },
           field(t("sourceLabel"), bindSelect(p, "source", [["", t("sourceJson")], ["raw", t("sourceRaw")]]), t("sourceHint")),
           field(t("rawModeLabel"), bindSelect(p, "raw_mode", [["", t("rawPass")], ["engine", t("rawEngine")]]), t("rawModeHint"))),
         p.source === "raw" ? h("div", { class: "msg warn" }, t("rawWarn")) : null,
@@ -1339,7 +1339,7 @@
       const srcSel = h("div", { class: "seg big", role: "group", "aria-label": t("sourceLabel") }, srcBtn("", t("sourceJson")), srcBtn("raw", t("sourceRaw")));
       const rawField = field(t(proxyMode ? "rawUrl" : "rawUrlNeeded"), bindText(p, "raw_url", { placeholder: "https://panel.example.com:2096/sub/" }), null, true);
       body.append(modeEditor(p, () => drawEditor()),
-        h("div", { class: "src-pick" }, h("div", { class: "hint" }, t("sourceLabel")), srcSel),
+        ...(proxyMode ? [] : [h("div", { class: "src-pick" }, h("div", { class: "hint" }, t("sourceLabel")), srcSel)]),
         ...(fromRaw && !proxyMode ? [h("div", { class: "msg warn" }, t("rawWarn"))] : []),
         h("p", {}, t(proxyMode ? "proxyHelp" : fromRaw ? "s1helpRaw" : "s1help")),
         proxyMode ? field(t("jsonUrl"), bindText(p, "url", { placeholder: "https://panel.example.com:2096/json/" }), null, true)
