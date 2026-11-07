@@ -19,12 +19,15 @@ DEFAULTS = {
     "server": {
         "host": "127.0.0.1", "port": 8080,
         "route": "/sub/",                        # public path; the subscription id is appended
+        "raw_route": "/raw/", "clash_route": "/clash/",  # public paths of the pass-through formats (empty = off)
         "subid_regex": r"^[A-Za-z0-9_-]{4,64}$",  # ids that don't match get a 404 without asking the panel
         "workers": 2, "threads": 4,              # used by gunicorn.conf.py
         "tls_cert": "", "tls_key": "",           # serve HTTPS directly: paths of the certificate (fullchain) and key
     },
     "panel": {
+        "mode": "engine",                        # "engine": apply your rules; "proxy": hand the panel's reply through unchanged
         "url": "",                               # JSON-subscription URL of your panel, the id is appended
+        "raw_url": "", "clash_url": "",          # the panel's raw / clash subscription URLs; when set they are passed through as they are
         "page_url": "",                          # optional: browsers (Accept: text/html) are redirected here
         "timeout": 10, "verify_tls": True, "headers": {},
         "pass_headers": ["Profile-Title", "Profile-Update-Interval", "Subscription-Userinfo",
@@ -88,6 +91,8 @@ SECTION_CHECKS = {
         "host": (lambda v: isinstance(v, str) and v != "", "a non-empty string"),
         "port": (lambda v: _is_int(v) and 1 <= v <= 65535, "an integer 1-65535"),
         "route": (lambda v: isinstance(v, str) and v.startswith("/"), "a string starting with /"),
+        "raw_route": (lambda v: isinstance(v, str) and (v == "" or v.startswith("/")), "a string starting with / (or empty)"),
+        "clash_route": (lambda v: isinstance(v, str) and (v == "" or v.startswith("/")), "a string starting with / (or empty)"),
         "subid_regex": (_regex_ok, "a valid regular expression"),
         "workers": (lambda v: _is_int(v) and v >= 1, "an integer >= 1"),
         "threads": (lambda v: _is_int(v) and v >= 1, "an integer >= 1"),
@@ -95,7 +100,10 @@ SECTION_CHECKS = {
         "tls_key": (lambda v: isinstance(v, str), "a file path (string)"),
     },
     "panel": {
+        "mode": (lambda v: v in ("engine", "proxy"), '"engine" or "proxy"'),
         "url": (_url_ok, "an http(s) URL or an empty string"),
+        "raw_url": (_url_ok, "an http(s) URL or an empty string"),
+        "clash_url": (_url_ok, "an http(s) URL or an empty string"),
         "page_url": (_url_ok, "an http(s) URL or an empty string"),
         "timeout": (lambda v: _is_num(v) and v > 0, "a number > 0"),
         "verify_tls": (lambda v: isinstance(v, bool), "true or false"),
@@ -350,6 +358,14 @@ def normalize(raw):
     _section("panel", raw.get("panel"), conf, problems)
     _section("admin", raw.get("admin"), conf, problems)
     _section("accounts", raw.get("accounts"), conf, problems)
+    taken = {conf["server"]["route"].rstrip("/"), conf["admin"]["path"].rstrip("/")}
+    for key in ("raw_route", "clash_route"):                       # each public path must be its own
+        path = conf["server"][key].rstrip("/")
+        if path and path in taken:
+            problems.append("server.%s: already used by another path; this format stays off" % key)
+            conf["server"][key] = ""
+        elif path:
+            taken.add(path)
     reg = dict(DEFAULTS["accounts"]["register"])
     if isinstance(conf["accounts"]["register"], dict) and conf["accounts"]["register"] is not DEFAULTS["accounts"]["register"]:
         for k, v in conf["accounts"]["register"].items():

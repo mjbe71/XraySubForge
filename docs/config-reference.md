@@ -29,6 +29,7 @@ panel response ──► patches (stage "source") ──► rules ──► grou
 | `host` | `"127.0.0.1"` | Address to listen on (`0.0.0.0` for all). The Docker image overrides it with the env var `XRAYSUBFORGE_HOST`. |
 | `port` | `8080` | Port. |
 | `route` | `"/sub/"` | Public path; the subscription id is appended. Needs a restart to change. |
+| `raw_route`, `clash_route` | `"/raw/"`, `"/clash/"` | Public paths of the raw and Clash subscriptions, served only while `panel.raw_url` / `panel.clash_url` is set. Empty = off. Must differ from `route` and `admin.path`. Needs a restart to change. |
 | `subid_regex` | `"^[A-Za-z0-9_-]{4,64}$"` | Ids not matching this get a 404 without contacting the panel. |
 | `workers`, `threads` | `2`, `4` | Used by gunicorn (`gunicorn.conf.py`). |
 | `tls_cert`, `tls_key` | `""` | Serve HTTPS directly: paths of the certificate (full chain) and the private key; set both or neither. The service user must be able to read them (the installer keeps copies in `/etc/xraysubforge/certs`). Needs a restart. |
@@ -51,7 +52,9 @@ The panel edits every other section of `config.json` but never shows or changes 
 
 | Key | Default | Meaning |
 |---|---|---|
+| `mode` | `"engine"` | `"engine"` applies your rules. `"proxy"` is a plain reverse proxy: the panel's reply (body, content type and `pass_headers`) is handed through unchanged and no rule, group, chain or patch runs. |
 | `url` | `""` | The panel's JSON-subscription URL; the id is appended. **Required** (without it the service answers 503). |
+| `raw_url`, `clash_url` | `""` | The panel's raw and Clash subscription URLs (id appended). When set, the service passes these formats through unchanged at `server.raw_route` / `server.clash_route`, in both modes. |
 | `page_url` | `""` | Optional. If set, browsers (`Accept: text/html`) are redirected to `page_url` + id. |
 | `timeout` | `10` | Seconds. |
 | `verify_tls` | `true` | Check the panel's TLS certificate. |

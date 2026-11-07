@@ -10,7 +10,7 @@ from .accounts import AccountStore
 from .config import ConfigStore
 from .engine import process
 from .matching import match
-from .panel import PanelError, fetch_panel
+from .panel import PanelError, fetch_panel, fetch_raw
 
 
 def needs_account(conf, configs):
@@ -34,15 +34,36 @@ def create_app(store=None):
     def healthz():
         return text("ok", 200)
 
-    def sub(subid):
+    def pass_through(panel, r):
+        """The panel's reply exactly as it came (body and content type), plus the headers listed in panel.pass_headers."""
+        resp = Response(r.content, status=200)
+        resp.headers["Content-Type"] = r.headers.get("Content-Type", "application/octet-stream")
+        for name in panel["pass_headers"]:
+            if name in r.headers:
+                resp.headers[name] = r.headers[name]
+        return resp
+
+    def checked(subid):
+        """-> (conf, panel, error response or None): the id check and the browser redirect shared by every format."""
         conf = store.get()
         if not re.search(conf["server"]["subid_regex"], subid):
-            return text("not found", 404)
+            return conf, None, text("not found", 404)
         panel = conf["panel"]
-        if not panel["url"]:
-            return text("panel.url is not set in config.json", 503)
         if panel["page_url"] and "text/html" in request.headers.get("Accept", ""):
-            return redirect(panel["page_url"].rstrip("/") + "/" + subid, code=302)
+            return conf, panel, redirect(panel["page_url"].rstrip("/") + "/" + subid, code=302)
+        return conf, panel, None
+
+    def sub(subid):
+        conf, panel, early = checked(subid)
+        if early is not None:
+            return early
+        if panel["mode"] != "proxy" and not panel["url"]:
+            return text("panel.url is not set in config.json", 503)
+        if panel["mode"] == "proxy":                     # each format is optional: an empty URL turns that format off
+            try:
+                return pass_through(panel, fetch_raw(panel["url"], panel, subid))
+            except PanelError as e:
+                return text(e.message, e.status)
         try:
             r, configs, data = fetch_panel(panel, subid)
         except PanelError as e:
@@ -62,7 +83,22 @@ def create_app(store=None):
                 resp.headers[name] = r.headers[name]
         return resp
 
+    def other_format(url_key):
+        def view(subid):
+            conf, panel, early = checked(subid)
+            if early is not None:
+                return early
+            try:
+                return pass_through(panel, fetch_raw(panel[url_key], panel, subid))
+            except PanelError as e:
+                return text(e.message, e.status)
+        return view
+
     app.add_url_rule(route.rstrip("/") + "/<subid>", "sub", sub)
+    for key, url_key in (("raw_route", "raw_url"), ("clash_route", "clash_url")):   # fixed at startup; 404 while the panel URL is empty
+        path = store.get()["server"][key].rstrip("/")
+        if path:
+            app.add_url_rule(path + "/<subid>", key, other_format(url_key))
     admin.register(app, store)
     app.store = store
     app.accounts = accounts

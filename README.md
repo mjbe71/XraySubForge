@@ -135,6 +135,14 @@ English and Persian (right-to-left) are built in.
 Use it only over HTTPS (or through an SSH tunnel): the password travels in the login request. Login settings
 (`admin.*`) can only be changed in `config.json`, never from the panel.
 
+## Just a reverse proxy
+
+With no rules, the JSON subscription passes through unchanged, and you can go one step further: set `panel.mode` to `"proxy"`
+(or pick "Only forward my panel's subscriptions" in the admin panel's Start page) and the panel's reply is handed to the app
+byte for byte. Set `panel.raw_url` and `panel.clash_url` and those two formats are forwarded as well, at `/raw/<id>` and
+`/clash/<id>`. Your users get their subscriptions from your own domain, with HTTPS, while the 3x-ui panel itself can stay
+on localhost or a private network. Add rules later without changing anyone's link.
+
 ## Configuring
 
 Everything is in `config.json`, and changes apply without a restart. See **[docs/config-reference.md](docs/config-reference.md)**

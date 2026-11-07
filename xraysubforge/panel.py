@@ -10,11 +10,11 @@ class PanelError(Exception):
         self.message, self.status = message, status
 
 
-def fetch_panel(panel, subid):
-    """-> (response, list of configs, parsed JSON). Raises PanelError. Never prints the URL: it holds the secret id."""
-    if not panel["url"]:
-        raise PanelError("panel.url is not set in config.json", 503)
-    base = panel["url"] if panel["url"].endswith("/") else panel["url"] + "/"
+def fetch_raw(url, panel, subid):
+    """The panel's reply for this id at `url` (any format) -> requests.Response. Raises PanelError. Never prints the URL."""
+    if not url:
+        raise PanelError("not found", 404)
+    base = url if url.endswith("/") else url + "/"
     try:
         r = requests.get(base + subid, headers=panel["headers"], timeout=panel["timeout"], verify=panel["verify_tls"])
     except requests.RequestException as e:
@@ -24,6 +24,14 @@ def fetch_panel(panel, subid):
         raise PanelError("not found", 404)
     if r.status_code != 200:
         raise PanelError("panel returned %d" % r.status_code, 502)
+    return r
+
+
+def fetch_panel(panel, subid):
+    """-> (response, list of configs, parsed JSON). Raises PanelError. Never prints the URL: it holds the secret id."""
+    if not panel["url"]:
+        raise PanelError("panel.url is not set in config.json", 503)
+    r = fetch_raw(panel["url"], panel, subid)
     try:
         data = r.json()
     except ValueError:

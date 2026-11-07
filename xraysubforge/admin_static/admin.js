@@ -129,6 +129,14 @@
     c_accounts_fail_unwritable: "Automatic accounts need a folder the service can write to for the accounts file",
   });
   Object.assign(STR.fa, {
+    modeTitle: "چه کاری انجام شود؟", modeEngine: "ساب‌ها با قوانین من بازسازی شوند (پیشرفته)", modeProxy: "فقط ساب‌های پنل من را عبور بده (ریورس‌پروکسی ساده)",
+    modeProxyHelp: "کاربران ساب پنل را بدون تغییر از دامنهٔ شما می‌گیرند. خود پنل می‌تواند روی localhost بماند. قوانین، بالانسر و زنجیره اعمال نمی‌شوند.",
+    proxyHelp: "آدرس هر ساب را که می‌خواهید عبور کند همان‌طور که در 3x-ui هست (تنظیمات پنل ← اشتراک) وارد کنید، بدون شناسهٔ کاربر در انتها. فرمتی که خالی بماند خاموش است.",
+    jsonUrl: "آدرس ساب JSON (اختیاری)", doneLinkJson: "لینک ساب JSON:",
+    doneLinkRaw: "لینک ساب Raw:", doneLinkClash: "لینک ساب Clash:",
+    proxyOnBanner: "حالت پروکسی روشن است: قوانین، بالانسر، زنجیره و پچ اعمال نمی‌شوند. از «شروع» یا «تنظیمات» عوضش کنید.",
+  });
+  Object.assign(STR.fa, {
     start: "شروع", rules: "فیلتر و ترتیب", groups: "بالانسر", chains: "عبور از مسیر دیگر (مثل WARP)", patches: "ویرایش پیشرفته", settings: "تنظیمات",
     rulesHint: "مشخص می‌کند کاربران کدام کانفیگ‌ها را بگیرند. قانون‌ها از بالا به پایین بررسی می‌شوند و اولین قانونِ مطابق تصمیم می‌گیرد. مثال: اگر نام شامل «test» بود ← حذف شود.",
     groupsHint: "چند کانفیگ را در یک کانفیگ هوشمند ادغام می‌کند که خودش بهترین سرور را انتخاب می‌کند (بالانس بار). مثال: همهٔ کانفیگ‌هایی که نامشان «Germany-…» است تبدیل به یک کانفیگ «Germany» می‌شوند.",
@@ -211,6 +219,15 @@
     memberPosition: "Member position (JSON list)", memberPositionHint: "[{\"when\": {...}, \"at\": \"first\"|\"last\"}]",
     catchall: "Catch-all rules (JSON list)", catchallHint: "Routing rules sent to this balancer; the balancer tag is filled in.",
     memberPatch: "Member patches (JSON list)", memberPatchHint: "[{\"when\": {...}, \"merge\": {...}, \"random\": {...}}]",
+    modeTitle: "What should it do?", modeEngine: "Reshape subscriptions with my rules (advanced)", modeProxy: "Only forward my panel's subscriptions (simple reverse proxy)",
+    modeProxyHelp: "Users get the panel's subscriptions unchanged, from your domain. The panel itself can stay on localhost. Rules, balancers and chains are not applied.",
+    rawUrl: "Raw subscription URL (optional)", clashUrl: "Clash subscription URL (optional)",
+    formatUrlHint: "As in 3x-ui, without the user's id at the end. Leave empty to turn this format off.",
+    rawRoute: "Public path for raw", clashRoute: "Public path for Clash",
+    doneLinkRaw: "Raw subscription link:", doneLinkClash: "Clash subscription link:",
+    proxyHelp: "Enter the address of each subscription you want to forward, as in 3x-ui (Panel settings → Subscription), without the user's id at the end. Leave a format empty to turn it off.",
+    jsonUrl: "JSON subscription URL (optional)", doneLinkJson: "JSON subscription link:",
+    proxyOnBanner: "Proxy mode is on: rules, balancers, chains and patches are not applied. Change this in Start or Settings.",
     mpTitle: "Member patches", mpHint: "Changes applied to every config that joins this balancer. Patches run in order.",
     mpPatch: "Patch", mpAll: "every member", mpAdd: "+ Patch", mpMerge: "Merge (JSON)", mpMergeHint: "Always applied, e.g. fingerprint, alpn, sockopt.",
     mpRandom: "Random choice", mpRandomHint: "Each config gets one of the presets, picked at random.",
@@ -976,6 +993,17 @@
     return box;
   }
 
+  // the mode choice and the pass-through formats; used by the wizard and by Settings
+  function modeEditor(p, onMode) {
+    const sel = h("select", { onchange: () => { if (sel.value === "proxy") p.mode = "proxy"; else delete p.mode; changed(); onMode(); } },
+      h("option", { value: "" }, t("modeEngine")), h("option", { value: "proxy" }, t("modeProxy")));
+    sel.value = p.mode === "proxy" ? "proxy" : "";
+    return h("div", {}, field(t("modeTitle"), sel, p.mode === "proxy" ? t("modeProxyHelp") : null, true));
+  }
+  const formatFields = (p) => h("div", {},
+    field(t("rawUrl"), bindText(p, "raw_url", { placeholder: "https://panel.example.com:2096/sub/" }), t("formatUrlHint"), true),
+    field(t("clashUrl"), bindText(p, "clash_url", { placeholder: "https://panel.example.com:2096/clash/" }), null, true));
+
   function settingsEditor() {
     const s = (cfg.server = cfg.server || {});
     const p = (cfg.panel = cfg.panel || {});
@@ -984,7 +1012,10 @@
     return h("div", {},
       detailsBox("sectPanelConn", h("div", {},
         h("p", { class: "hint" }, t("panelConnHint")),
-        field(t("panelUrl"), bindText(p, "url", { placeholder: "https://panel.example.com:2096/json/" }), null, true),
+        modeEditor(p, () => drawEditor()),
+        p.mode === "proxy" ? h("p", { class: "hint" }, t("proxyHelp")) : null,
+        field(t(p.mode === "proxy" ? "jsonUrl" : "panelUrl"), bindText(p, "url", { placeholder: "https://panel.example.com:2096/json/" }), null, true),
+        formatFields(p),
         h("label", { class: "check" }, bindBool(p, "verify_tls", true), t("verifyTls")),
         moreBox(
           h("div", { class: "grid" },
@@ -996,7 +1027,9 @@
         h("div", { class: "grid" },
           field(t("host"), bindText(s, "host", { placeholder: "127.0.0.1" })),
           field(t("port"), bindText(s, "port", { num: true, placeholder: "8080" })),
-          field(t("route"), bindText(s, "route", { placeholder: "/sub/" }))),
+          field(t("route"), bindText(s, "route", { placeholder: "/sub/" })),
+          field(t("rawRoute"), bindText(s, "raw_route", { placeholder: "/raw/" })),
+          field(t("clashRoute"), bindText(s, "clash_route", { placeholder: "/clash/" }))),
         h("h3", {}, t("httpsTitle")),
         h("p", { class: "hint" }, t("httpsHint")),
         h("div", { class: "grid" },
@@ -1153,7 +1186,9 @@
   }
 
   function wizardView() {
-    const names = [t("step1"), t("step2"), t("step3"), t("step4")];
+    const proxyMode = (cfg.panel || {}).mode === "proxy";
+    if (proxyMode) wiz.step = 0;
+    const names = proxyMode ? [t("step1")] : [t("step1"), t("step2"), t("step3"), t("step4")];
     const nav = h("div", { class: "steps" }, names.map((n, i) => h("button", { type: "button", class: "step" + (i === wiz.step ? " on" : i < wiz.step ? " past" : ""),
       onclick: () => goStep(i) }, h("b", {}, i + 1), " ", n)));
     const body = h("div", { class: "wiz" });
@@ -1164,7 +1199,14 @@
     if (wiz.done) {
       const route = ((cfg.server && cfg.server.route) || loadedRoute || "/sub/");
       const link = location.origin + route.replace(/\/?$/, "/") + "<id>";
-      body.append(h("h2", {}, t("doneTitle")), h("p", {}, t("doneLink")), h("pre", {}, link),
+      const extra = [];
+      if (proxyMode) {
+        for (const [urlKey, routeKey, def, label] of [["url", "route", "/sub/", "doneLinkJson"], ["raw_url", "raw_route", "/raw/", "doneLinkRaw"], ["clash_url", "clash_route", "/clash/", "doneLinkClash"]]) {
+          const rt = (cfg.server && cfg.server[routeKey] !== undefined) ? cfg.server[routeKey] : (routeKey === "route" ? route : def);
+          if ((cfg.panel || {})[urlKey] && rt) extra.push(h("p", {}, t(label)), h("pre", {}, location.origin + rt.replace(/\/?$/, "/") + "<id>"));
+        }
+      }
+      body.append(h("h2", {}, t("doneTitle")), ...(proxyMode ? extra : [h("p", {}, t("doneLink")), h("pre", {}, link)]),
         h("div", { class: "row" }, h("button", { type: "button", onclick: async (ev) => {
           try { await navigator.clipboard.writeText(link); ev.target.textContent = t("copied"); } catch (e) { /* ignore */ }
         } }, t("copy"))), h("p", { class: "hint" }, t("goTabs")),
@@ -1175,8 +1217,9 @@
     if (wiz.step === 0) {
       const p = (cfg.panel = cfg.panel || {});
       const out = h("div", {}, wiz.connMsg || null);
-      body.append(h("p", {}, t("s1help")),
-        field(t("panelUrl"), bindText(p, "url", { placeholder: "https://panel.example.com:2096/json/" }), null, true),
+      body.append(modeEditor(p, () => drawEditor()), h("p", {}, t(proxyMode ? "proxyHelp" : "s1help")),
+        field(t(proxyMode ? "jsonUrl" : "panelUrl"), bindText(p, "url", { placeholder: "https://panel.example.com:2096/json/" }), null, true),
+        proxyMode ? formatFields(p) : null,
         h("label", { class: "check" }, bindBool(p, "verify_tls", true), t("verifyTls")),
         h("div", { class: "row" }, h("button", { type: "button", onclick: async () => {
           out.replaceChildren(h("p", { class: "hint" }, t("running")));
@@ -1184,7 +1227,7 @@
           const rows = (r.data.checks || []).filter((c) => c.id.startsWith("panel"));
           wiz.connMsg = h("div", { class: "checks" }, rows.map((c) => h("div", { class: "check-row " + c.status }, h("span", { class: "ci" }, { ok: "✓", warn: "!", fail: "✗", skip: "–" }[c.status]), h("div", {}, checkText(c)))));
           out.replaceChildren(wiz.connMsg);
-        } }, t("checkConn"))), out, buttons());
+        } }, t("checkConn"))), out, proxyMode ? h("div", { class: "row" }, h("button", { type: "button", class: "primary", onclick: save }, t("saveFinish"))) : buttons());
     } else if (wiz.step === 1) {
       const subid = h("input", { type: "text", value: lastSubid, placeholder: t("subid"), "aria-label": t("subid"), autocomplete: "off" });
       const note = h("div", {});
@@ -1634,9 +1677,10 @@
     else body = h("div", {},
       detailsBox("sectPatches", listEditor("patches", "patchesHint", (items) => ({ id: nextId("patch", items), merge: {} }), patchBody)),
       detailsBox("sectJson", rawEditor()));
+    const banner = (cfg.panel || {}).mode === "proxy" && tab !== "start" && tab !== "settings" ? h("div", { class: "msg warn" }, t("proxyOnBanner")) : null;
     editorEl.replaceChildren(
       h("div", { class: "tabs" }, tabs.map(([k, label]) => h("button", { type: "button", class: tab === k ? "on" : "", onclick: () => { tab = k; drawEditor(); } }, label))),
-      body);
+      ...(banner ? [banner] : []), body);
   }
 
   // ---------- preview ----------
@@ -1727,7 +1771,7 @@
       setStatus(t("saved") + (needsRestart() ? " " + t("restartNeeded") : ""), "ok"); updateRestartBtn();
       lastPreview = Object.assign(lastPreview || {}, { errors: [], warnings: r.data.warnings || [] });
       runPreview();
-      if (tab === "start" && wiz.step === 3) { wiz.done = true; drawEditor(); }
+      if (tab === "start" && (wiz.step === 3 || (cfg.panel || {}).mode === "proxy")) { wiz.done = true; drawEditor(); }
     } else {
       setStatus((r.data.errors || [r.data.error || "error"]).length + " ✗", "err");
       lastPreview = Object.assign(lastPreview || {}, { errors: r.data.errors || [r.data.error || "error"], warnings: r.data.warnings || [] });
