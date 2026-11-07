@@ -1145,7 +1145,7 @@
           field(t("workers"), bindText(s, "workers", { num: true })),
           field(t("threads"), bindText(s, "threads", { num: true })))),
         restartBlock())),
-      detailsBox("sectAccountsWarp", registerEditor(a, [
+      (cfg.panel || {}).mode === "proxy" ? null : detailsBox("sectAccountsWarp", registerEditor(a, [
         field(t("accountFile"), bindText(a, "file", { placeholder: "accounts.json" }), t("accountHint"), true),
         field(t("accountDefault"), bindJSON(a, "default"), null, true)])));
   }
@@ -2264,15 +2264,20 @@
     if (tab === "list" || tab === "groups" || tab === "chains") { advTab = tab; tab = "advanced"; }
     if (tab === "patches" || tab === "raw") { advTab = tab === "raw" ? "raw" : "patches"; tab = "advanced"; }
     if (tab === "output") tab = "settings";
-    const tabs = [["start", t("start")], ["blocks", t("tabBlocks")], ["settings", t("tabSettings")], ["advanced", t("tabAdvanced")]];
+    const proxyOnly = (cfg.panel || {}).mode === "proxy";
+    // a plain reverse proxy has no rules: only the setup guide, the settings and the raw JSON stay
+    const tabs = proxyOnly ? [["start", t("start")], ["settings", t("tabSettings")], ["advanced", t("tabAdvanced")]]
+      : [["start", t("start")], ["blocks", t("tabBlocks")], ["settings", t("tabSettings")], ["advanced", t("tabAdvanced")]];
+    if (proxyOnly && tab === "blocks") tab = "start";
+    if (proxyOnly && tab === "advanced") advTab = "raw";
     let body;
     const mainEl = document.querySelector("main");
     if (mainEl) mainEl.classList.toggle("wide", tab === "blocks");
     if (tab === "start") body = wizardView();
     else if (tab === "blocks") body = blocksView();
-    else if (tab === "settings") body = h("div", {}, settingsEditor(), detailsBox("sectOutput", outputEditor()), h("p", { class: "hint" }, t("adminNote")));
+    else if (tab === "settings") body = h("div", {}, settingsEditor(), proxyOnly ? null : detailsBox("sectOutput", outputEditor()), h("p", { class: "hint" }, t("adminNote")));
     else {
-      const subs = [["list", t("advRules")], ["groups", t("tabGroups")], ["chains", t("tabWarp")], ["patches", t("advPatches")], ["raw", t("advJson")]];
+      const subs = proxyOnly ? [["raw", t("advJson")]] : [["list", t("advRules")], ["groups", t("tabGroups")], ["chains", t("tabWarp")], ["patches", t("advPatches")], ["raw", t("advJson")]];
       let inner;
       if (advTab === "groups") inner = listEditor("groups", "groupsHint", (items) => ({ id: nextId("group", items), type: "leastLoad", when: {} }), groupBody, TEMPLATES.groups);
       else if (advTab === "chains") inner = listEditor("chains", "chainsHint", (items) => ({ id: nextId("chain", items), exit_when: {}, entry: {} }), chainBody, TEMPLATES.chains);
