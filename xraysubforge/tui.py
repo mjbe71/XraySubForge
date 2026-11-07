@@ -221,8 +221,8 @@ class Menu:
         say("\n=== XraySubForge ===")
         say("config: %s" % self.path)
         say("listens on %s://%s:%s%s   panel: %s" % (scheme, s["host"], s["port"], s["route"], p["url"] or "(not set)"))
-        say("rules %d, groups %d, chains %d, patches %d   web admin: %s" % (
-            len(conf["rules"]), len(conf["groups"]), len(conf["chains"]), len(conf["patches"]),
+        say("blocks %d   old-style items: rules %d, groups %d, chains %d, patches %d   web admin: %s" % (
+            len(conf["blocks"]["list"]), len(conf["rules"]), len(conf["groups"]), len(conf["chains"]), len(conf["patches"]),
             "on" if (conf["admin"]["password"] or conf["admin"]["password_hash"]) else "off (no password)"))
 
     def main(self):
@@ -230,7 +230,8 @@ class Menu:
                  ("Panel and subscription link", self.panel_menu),
                  ("Network and HTTPS", self.network_menu),
                  ("Web admin panel (password)", self.admin_menu),
-                 ("Rules, groups, chains, patches", self.items_menu),
+                 ("Blocks (the final subscription, as JSON in your editor)", self.blocks_menu),
+                 ("Rules, groups, chains, patches (the old way)", self.items_menu),
                  ("Preview the result for a subscription id", self.preview),
                  ("WARP accounts", self.accounts_menu),
                  ("Edit the whole config.json in your editor", self.edit_all),
@@ -265,6 +266,9 @@ class Menu:
             scheme = "https" if s["tls_cert"] else "http"
             i = choose("Panel and subscription", [
                 "Show the subscription link format", "Panel JSON-subscription URL: %s" % (p["url"] or "(not set)"),
+                "Panel raw-subscription URL: %s" % (p["raw_url"] or "(not set)"),
+                "Where the configs come from: %s" % ("the raw links (JSON built here)" if p["source"] == "raw" else "the JSON subscription"),
+                "Raw link for users: %s" % ("with the rules and blocks" if p["raw_mode"] == "engine" else "the panel's links, unchanged"),
                 "Verify the panel's TLS certificate: %s" % ("yes" if p["verify_tls"] else "no"),
                 "Panel timeout: %ss" % p["timeout"], "Test the panel with a subscription id"])
             if i is None:
@@ -275,9 +279,21 @@ class Menu:
                 v = ask("New URL (e.g. https://panel.example.com:2096/json/)", p["url"])
                 self.update(lambda r: r.setdefault("panel", {}).__setitem__("url", v))
             elif i == 2:
+                v = ask("New URL (e.g. https://panel.example.com:2096/sub/), empty = off", p["raw_url"])
+                self.update(lambda r: r.setdefault("panel", {}).__setitem__("raw_url", v))
+            elif i == 3:
+                say("  The JSON subscription is the better source: it carries everything the panel knows. Raw links lose")
+                say("  fragment / Final Mask, mux, sockopt and the panel's DNS and routing, and some types (masque, hysteria2,")
+                say("  tuic, wireguard) are not read at all. Use raw links only when you cannot turn the JSON subscription on.")
+                v = "raw" if yes("Build the JSON from the raw links?", p["source"] == "raw") else "json"
+                self.update(lambda r: r.setdefault("panel", {}).__setitem__("source", v))
+            elif i == 4:
+                v = "engine" if yes("Apply the rules and blocks to the raw link too?", p["raw_mode"] == "engine") else "pass"
+                self.update(lambda r: r.setdefault("panel", {}).__setitem__("raw_mode", v))
+            elif i == 5:
                 v = yes("Verify the certificate?", p["verify_tls"])
                 self.update(lambda r: r.setdefault("panel", {}).__setitem__("verify_tls", v))
-            elif i == 3:
+            elif i == 6:
                 v = ask("Timeout in seconds", p["timeout"])
                 try:
                     num = float(v)
@@ -285,7 +301,7 @@ class Menu:
                     say("A number is needed.")
                     continue
                 self.update(lambda r: r.setdefault("panel", {}).__setitem__("timeout", int(num) if num == int(num) else num))
-            elif i == 4:
+            elif i == 7:
                 sid = ask("Subscription id")
                 if sid:
                     try:
@@ -526,6 +542,23 @@ class Menu:
             return
         self.run_ctl("uninstall", "--yes", *(["--purge"] if i == 1 else []))
         raise Quit()
+
+    def blocks_menu(self):
+        blocks = self.store().get()["blocks"]
+        say("\nBlocks, from the top (the web admin panel's Blocks tab edits them with drag and drop):")
+        for b in blocks["list"]:
+            say("  %-10s %-24s %d kind(s)%s" % (b.get("type", "list"), b.get("name") or b["id"], len(b.get("kinds") or []),
+                                                "  [off]" if b.get("enabled") is False else ""))
+        if not blocks["list"]:
+            say("  (none)")
+        say("  everything else: %s" % blocks["rest"])
+        if not yes("Edit them as JSON?", False):
+            return
+        raw = self.raw()
+        new = self.edit_json(raw.get("blocks", {"rest": "keep", "list": []}), "The block layout (see docs/config-reference.md, `blocks`).")
+        if isinstance(new, dict):
+            raw["blocks"] = new
+            self.save(raw)
 
     def edit_all(self):
         new = self.edit_json(self.raw(), "Editing the whole config.json (the admin section included).")
