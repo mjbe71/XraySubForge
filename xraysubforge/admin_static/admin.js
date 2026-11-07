@@ -1220,7 +1220,7 @@
   }
   function bDrop(id) { if (isObj(cfg.blocks) && Array.isArray(cfg.blocks.list)) cfg.blocks.list = cfg.blocks.list.filter((x) => x.id !== id); }
   function applyGoals() {
-    const hide = wiz.hide.items, bal = wiz.bal.items, warp = wiz.warp.items;
+    const hide = wiz.hide.items, bal = wiz.bal.items;
     // the setup guide writes blocks (shown in the Blocks tab); WARP still uses a chain
     if (wiz.hide.on && hide.length) bUpsert({ id: "wiz-hide", name: t("goalHide"), type: "drop", kinds: [nameCond(hide)] }); else bDrop("wiz-hide");
     dropWiz("rules", "hide-configs");
@@ -1231,17 +1231,6 @@
       bUpsert(blk);
     } else bDrop("wiz-balance");
     dropWiz("groups", "balance-configs");
-    if (wiz.warp.on && warp.length) {
-      const eps = wiz.warp.endpoints.split(/[\s,]+/).filter(Boolean);
-      const chain = { id: "warp-chain", exit_when: nameCond(warp), entry: JSON.parse(JSON.stringify(WARP_ENTRY)) };
-      if (eps.length) chain.choices = { endpoint: eps }; else chain.entry.settings.address = "";
-      upsert("chains", chain);
-      if (wiz.warp.auto) {
-        const a = (cfg.accounts = cfg.accounts || {});
-        if (!a.file) a.file = "accounts.json";
-        a.register = Object.assign({}, a.register, { enabled: true });
-      }
-    } else dropWiz("chains", "warp-chain");
     changed();
   }
   const matchCount = (items) => {
@@ -1393,11 +1382,6 @@
           field(t("balType"), (() => { const sel = h("select", { onchange: (e) => { wiz.bal.type = e.target.value; } },
             ["leastLoad", "leastPing", "random", "roundRobin"].map((x) => h("option", { value: x }, x))); sel.value = wiz.bal.type; return sel; })()),
           h("p", { class: "hint" }, t("balNote")))),
-        goal("warp", t("goalWarp"), t("goalWarpHelp"), () => h("div", {},
-          field(t("warpEndpoint"), (() => { const ta = h("textarea", { rows: 4, spellcheck: "false" }); ta.value = wiz.warp.endpoints;
-            ta.addEventListener("input", () => { wiz.warp.endpoints = ta.value; }); return ta; })(), t("warpEndpointHint"), true),
-          h("label", { class: "check" }, h("input", { type: "checkbox", checked: wiz.warp.auto, onchange: (e) => { wiz.warp.auto = e.target.checked; } }), t("warpAuto")),
-          h("p", { class: "hint" }, t("warpNote")))),
         buttons());
     } else {
       body.append(h("p", {}, t("s4help")));

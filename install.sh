@@ -513,9 +513,6 @@ do_install() {
     warn "A previous installation was not finished. Continuing it."
   fi
   say "XraySubForge installer"
-  if [ ! -f "$CONFIG" ] && [ -f /etc/magdsubforge/config.json ]; then
-    warn "Settings of an older install were found in /etc/magdsubforge. They are not used by this version; copy config.json to $CONF_DIR if you want to keep them."
-  fi
   ensure_prereqs
   fetch_code
   setup_venv
