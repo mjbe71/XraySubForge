@@ -1,0 +1,455 @@
+[
+  {
+    "remarks": "info",
+    "outbounds": [
+      {
+        "tag": "info",
+        "protocol": "socks",
+        "settings": {}
+      }
+    ]
+  },
+  {
+    "remarks": "fast-berlin-1",
+    "dns": {
+      "servers": [
+        "8.8.8.8"
+      ],
+      "queryStrategy": "UseIP"
+    },
+    "inbounds": [
+      {
+        "tag": "socks",
+        "port": 10808,
+        "protocol": "socks",
+        "listen": "127.0.0.1"
+      }
+    ],
+    "outbounds": [
+      {
+        "tag": "proxy",
+        "protocol": "vless",
+        "settings": {
+          "address": "b1.example.com",
+          "port": 443,
+          "id": "11111111-1111-1111-1111-111111111111",
+          "encryption": "none"
+        },
+        "streamSettings": {
+          "network": "xhttp",
+          "security": "tls",
+          "tlsSettings": {
+            "serverName": "a.example.com",
+            "fingerprint": "chrome"
+          },
+          "xhttpSettings": {
+            "host": "a.example.com",
+            "path": "/x",
+            "mode": "auto"
+          }
+        }
+      },
+      {
+        "tag": "direct",
+        "protocol": "freedom",
+        "settings": {}
+      },
+      {
+        "tag": "block",
+        "protocol": "blackhole",
+        "settings": {}
+      }
+    ],
+    "routing": {
+      "domainStrategy": "AsIs",
+      "rules": [
+        {
+          "type": "field",
+          "outboundTag": "direct",
+          "domain": [
+            "geosite:private"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "remarks": "fast-berlin-2",
+    "dns": {
+      "servers": [
+        "8.8.8.8"
+      ],
+      "queryStrategy": "UseIP"
+    },
+    "inbounds": [
+      {
+        "tag": "socks",
+        "port": 10808,
+        "protocol": "socks",
+        "listen": "127.0.0.1"
+      }
+    ],
+    "outbounds": [
+      {
+        "tag": "proxy",
+        "protocol": "vless",
+        "settings": {
+          "address": "b2.example.com",
+          "port": 443,
+          "id": "11111111-1111-1111-1111-111111111111",
+          "encryption": "none"
+        },
+        "streamSettings": {
+          "network": "xhttp",
+          "security": "tls",
+          "tlsSettings": {
+            "serverName": "a.example.com",
+            "fingerprint": "chrome"
+          },
+          "xhttpSettings": {
+            "host": "a.example.com",
+            "path": "/x",
+            "mode": "auto"
+          }
+        }
+      },
+      {
+        "tag": "direct",
+        "protocol": "freedom",
+        "settings": {}
+      },
+      {
+        "tag": "block",
+        "protocol": "blackhole",
+        "settings": {}
+      }
+    ],
+    "routing": {
+      "domainStrategy": "AsIs",
+      "rules": [
+        {
+          "type": "field",
+          "outboundTag": "direct",
+          "domain": [
+            "geosite:private"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "remarks": "fast-berlin-3",
+    "dns": {
+      "servers": [
+        "8.8.8.8"
+      ],
+      "queryStrategy": "UseIP"
+    },
+    "inbounds": [
+      {
+        "tag": "socks",
+        "port": 10808,
+        "protocol": "socks",
+        "listen": "127.0.0.1"
+      }
+    ],
+    "outbounds": [
+      {
+        "tag": "proxy",
+        "protocol": "vless",
+        "settings": {
+          "address": "b3.example.com",
+          "port": 443,
+          "id": "11111111-1111-1111-1111-111111111111",
+          "encryption": "none"
+        },
+        "streamSettings": {
+          "network": "tcp",
+          "security": "tls",
+          "tlsSettings": {
+            "serverName": "a.example.com",
+            "fingerprint": "chrome"
+          }
+        }
+      },
+      {
+        "tag": "direct",
+        "protocol": "freedom",
+        "settings": {}
+      },
+      {
+        "tag": "block",
+        "protocol": "blackhole",
+        "settings": {}
+      }
+    ],
+    "routing": {
+      "domainStrategy": "AsIs",
+      "rules": [
+        {
+          "type": "field",
+          "outboundTag": "direct",
+          "domain": [
+            "geosite:private"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "remarks": "fast-tokyo-1",
+    "dns": {
+      "servers": [
+        "8.8.8.8"
+      ],
+      "queryStrategy": "UseIP"
+    },
+    "inbounds": [
+      {
+        "tag": "socks",
+        "port": 10808,
+        "protocol": "socks",
+        "listen": "127.0.0.1"
+      }
+    ],
+    "outbounds": [
+      {
+        "tag": "proxy",
+        "protocol": "vless",
+        "settings": {
+          "address": "t1.example.com",
+          "port": 443,
+          "id": "11111111-1111-1111-1111-111111111111",
+          "encryption": "none"
+        },
+        "streamSettings": {
+          "network": "xhttp",
+          "security": "tls",
+          "tlsSettings": {
+            "serverName": "a.example.com",
+            "fingerprint": "chrome"
+          },
+          "xhttpSettings": {
+            "host": "a.example.com",
+            "path": "/x",
+            "mode": "auto"
+          }
+        }
+      },
+      {
+        "tag": "direct",
+        "protocol": "freedom",
+        "settings": {}
+      },
+      {
+        "tag": "block",
+        "protocol": "blackhole",
+        "settings": {}
+      }
+    ],
+    "routing": {
+      "domainStrategy": "AsIs",
+      "rules": [
+        {
+          "type": "field",
+          "outboundTag": "direct",
+          "domain": [
+            "geosite:private"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "remarks": "fast-tokyo-2",
+    "dns": {
+      "servers": [
+        "8.8.8.8"
+      ],
+      "queryStrategy": "UseIP"
+    },
+    "inbounds": [
+      {
+        "tag": "socks",
+        "port": 10808,
+        "protocol": "socks",
+        "listen": "127.0.0.1"
+      }
+    ],
+    "outbounds": [
+      {
+        "tag": "proxy",
+        "protocol": "vless",
+        "settings": {
+          "address": "t2.example.com",
+          "port": 443,
+          "id": "11111111-1111-1111-1111-111111111111",
+          "encryption": "none"
+        },
+        "streamSettings": {
+          "network": "xhttp",
+          "security": "tls",
+          "tlsSettings": {
+            "serverName": "a.example.com",
+            "fingerprint": "chrome"
+          },
+          "xhttpSettings": {
+            "host": "a.example.com",
+            "path": "/x",
+            "mode": "auto"
+          }
+        }
+      },
+      {
+        "tag": "direct",
+        "protocol": "freedom",
+        "settings": {}
+      },
+      {
+        "tag": "block",
+        "protocol": "blackhole",
+        "settings": {}
+      }
+    ],
+    "routing": {
+      "domainStrategy": "AsIs",
+      "rules": [
+        {
+          "type": "field",
+          "outboundTag": "direct",
+          "domain": [
+            "geosite:private"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "remarks": "test-node",
+    "dns": {
+      "servers": [
+        "8.8.8.8"
+      ],
+      "queryStrategy": "UseIP"
+    },
+    "inbounds": [
+      {
+        "tag": "socks",
+        "port": 10808,
+        "protocol": "socks",
+        "listen": "127.0.0.1"
+      }
+    ],
+    "outbounds": [
+      {
+        "tag": "proxy",
+        "protocol": "vless",
+        "settings": {
+          "address": "x.example.com",
+          "port": 443,
+          "id": "11111111-1111-1111-1111-111111111111",
+          "encryption": "none"
+        },
+        "streamSettings": {
+          "network": "xhttp",
+          "security": "tls",
+          "tlsSettings": {
+            "serverName": "a.example.com",
+            "fingerprint": "chrome"
+          },
+          "xhttpSettings": {
+            "host": "a.example.com",
+            "path": "/x",
+            "mode": "auto"
+          }
+        }
+      },
+      {
+        "tag": "direct",
+        "protocol": "freedom",
+        "settings": {}
+      },
+      {
+        "tag": "block",
+        "protocol": "blackhole",
+        "settings": {}
+      }
+    ],
+    "routing": {
+      "domainStrategy": "AsIs",
+      "rules": [
+        {
+          "type": "field",
+          "outboundTag": "direct",
+          "domain": [
+            "geosite:private"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "remarks": "backup-oslo",
+    "dns": {
+      "servers": [
+        "8.8.8.8"
+      ],
+      "queryStrategy": "UseIP"
+    },
+    "inbounds": [
+      {
+        "tag": "socks",
+        "port": 10808,
+        "protocol": "socks",
+        "listen": "127.0.0.1"
+      }
+    ],
+    "outbounds": [
+      {
+        "tag": "proxy",
+        "protocol": "vless",
+        "settings": {
+          "address": "o1.example.com",
+          "port": 443,
+          "id": "11111111-1111-1111-1111-111111111111",
+          "encryption": "none"
+        },
+        "streamSettings": {
+          "network": "xhttp",
+          "security": "tls",
+          "tlsSettings": {
+            "serverName": "a.example.com",
+            "fingerprint": "chrome"
+          },
+          "xhttpSettings": {
+            "host": "a.example.com",
+            "path": "/x",
+            "mode": "auto"
+          }
+        }
+      },
+      {
+        "tag": "direct",
+        "protocol": "freedom",
+        "settings": {}
+      },
+      {
+        "tag": "block",
+        "protocol": "blackhole",
+        "settings": {}
+      }
+    ],
+    "routing": {
+      "domainStrategy": "AsIs",
+      "rules": [
+        {
+          "type": "field",
+          "outboundTag": "direct",
+          "domain": [
+            "geosite:private"
+          ]
+        }
+      ]
+    }
+  }
+]

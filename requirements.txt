@@ -1,0 +1,6 @@
+Flask>=3.0,<4
+requests>=2.31,<3
+# only used by the optional automatic WARP account registration
+cryptography>=42
+# production server (the Dockerfile uses it); not needed for `python app.py`
+gunicorn>=22.0

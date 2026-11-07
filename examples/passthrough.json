@@ -1,0 +1,4 @@
+{
+  "_comment": "No rules: subscriptions are returned exactly as the panel made them. Only the panel address is set.",
+  "panel": { "url": "https://panel.example.com:2096/json/" }
+}

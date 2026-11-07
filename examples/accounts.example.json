@@ -1,0 +1,6 @@
+{
+  "_comment": "PLACEHOLDER VALUES. Names are yours to choose; they are what {account.<name>} refers to. Copy to accounts.json (never commit it).",
+  "privateKey": "REPLACE_ME",
+  "publicKey": "REPLACE_ME",
+  "address": ["172.16.0.2"]
+}

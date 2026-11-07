@@ -1,0 +1,33 @@
+{
+  "_comment": "A made-up naming scheme for the sample panel: nodes called fast-<city>-<n> are balanced per city.",
+  "server": { "host": "127.0.0.1", "port": 8080, "route": "/sub/" },
+  "panel": { "url": "https://panel.example.com:2096/json/" },
+
+  "rules": [
+    { "id": "hide-test", "when": { "remark": { "startswith": "test" } }, "do": "drop" },
+    { "id": "info-first", "when": { "protocol": "socks" }, "do": "pin_top" }
+  ],
+
+  "groups": [
+    {
+      "id": "fast",
+      "when": { "remark": { "regex": "^fast-" } },
+      "split_by": { "field": "remark", "regex": "^fast-([^-]+)" },
+      "name": "{split} (balanced, {n})",
+      "type": "leastLoad",
+      "params": { "expected": 2, "maxRTT": "1s", "tolerance": 0.01 },
+      "probe": { "destination": "https://www.gstatic.com/generate_204", "interval": "30s", "timeout": "5s", "sampling": 2 },
+      "member_cost": [ { "when": { "address": { "startswith": "b1." } }, "value": 5 } ]
+    }
+  ],
+
+  "patches": [
+    {
+      "id": "bigger-fragment",
+      "_comment": "any JSON you want merged into matching configs; null deletes a key",
+      "stage": "source", "target": "outbound",
+      "when": { "network": "xhttp" },
+      "merge": { "streamSettings": { "xhttpSettings": { "mode": "auto" } } }
+    }
+  ]
+}

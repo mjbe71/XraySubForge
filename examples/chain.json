@@ -1,0 +1,20 @@
+{
+  "_comment": "Illustration: for every city, dial a second hop (your own outbound) through that city's first fast-* config. The entry below is only an example shape; copy the real outbound from your client app or panel and put {account.*} placeholders where your own values go.",
+  "panel": { "url": "https://panel.example.com:2096/json/" },
+  "accounts": { "file": "accounts.json" },
+  "chains": [
+    {
+      "id": "second-hop",
+      "exit_when": { "remark": { "startswith": "fast-" } },
+      "split_by": { "field": "remark", "regex": "^fast-([^-]+)" },
+      "name": "{split} + second hop",
+      "entry": {
+        "protocol": "masque",
+        "settings": { "address": "gate.example.com", "port": 443 },
+        "streamSettings": {
+          "masqueSettings": { "warp": { "privateKey": "{account.privateKey}", "publicKey": "{account.publicKey}", "address": "{account.address}" } }
+        }
+      }
+    }
+  ]
+}
