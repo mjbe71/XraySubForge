@@ -23,6 +23,7 @@ DEFAULTS = {
         "subid_regex": r"^[A-Za-z0-9_-]{4,64}$",  # ids that don't match get a 404 without asking the panel
         "workers": 2, "threads": 4,              # used by gunicorn.conf.py
         "tls_cert": "", "tls_key": "",           # serve HTTPS directly: paths of the certificate (fullchain) and key
+        "domains": [],                           # more names, each with its own certificate: [{"name", "cert", "key"}] (see tlsctx.py)
     },
     "panel": {
         "mode": "engine",                        # "engine": apply your rules; "proxy": hand the panel's reply through unchanged
@@ -102,6 +103,11 @@ SECTION_CHECKS = {
         "threads": (lambda v: _is_int(v) and v >= 1, "an integer >= 1"),
         "tls_cert": (lambda v: isinstance(v, str), "a file path (string)"),
         "tls_key": (lambda v: isinstance(v, str), "a file path (string)"),
+        "domains": (lambda v: isinstance(v, list) and all(
+            isinstance(d, dict) and isinstance(d.get("name"), str) and re.fullmatch(r"(\*\.)?[A-Za-z0-9.-]+", d["name"] or "")
+            and set(d) <= {"name", "cert", "key"} and bool(d.get("cert")) == bool(d.get("key"))
+            and all(isinstance(d.get(k, ""), str) for k in ("cert", "key")) for d in v),
+            'a list of {"name": "sub.example.com", "cert": "...", "key": "..."} (cert and key both or neither)'),
     },
     "panel": {
         "mode": (lambda v: v in ("engine", "proxy"), '"engine" or "proxy"'),

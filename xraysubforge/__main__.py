@@ -201,7 +201,8 @@ def main(argv=None):
     if a.cmd == "serve":
         logging.getLogger("werkzeug").setLevel(logging.ERROR)   # the URL contains the secret id: no request log
         srv = store.get()["server"]
-        tls = (srv["tls_cert"], srv["tls_key"]) if srv["tls_cert"] else None
+        from .tlsctx import server_context
+        tls = server_context(srv)
         create_app(store).run(host=os.environ.get("XRAYSUBFORGE_HOST") or srv["host"], port=srv["port"], threaded=True,
                               ssl_context=tls)
         return 0

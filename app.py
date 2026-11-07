@@ -9,5 +9,6 @@ app = create_app()
 if __name__ == "__main__":      # development server
     logging.getLogger("werkzeug").setLevel(logging.ERROR)   # URLs contain secret ids: no request log
     server = app.store.get()["server"]
-    tls = (server["tls_cert"], server["tls_key"]) if server["tls_cert"] else None
+    from xraysubforge.tlsctx import server_context
+    tls = server_context(server)
     app.run(host=os.environ.get("XRAYSUBFORGE_HOST") or server["host"], port=server["port"], threaded=True, ssl_context=tls)

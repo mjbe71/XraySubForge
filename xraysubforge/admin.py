@@ -181,6 +181,20 @@ def run_checks(app, conf, clean, problems, subid, secure_request):
         out.append(_check("https", "ok", "Reached over HTTPS (probably through a reverse proxy).", kind="proxy"))
     else:
         out.append(_check("https", "warn", "Users would reach the subscription over plain HTTP. Set up HTTPS: run 'sudo xraysubforge tls'.", kind="off"))
+    for d in srv.get("domains") or []:          # every extra domain's own certificate
+        if not d.get("cert"):
+            continue
+        from . import xui
+        info = xui.cert_info(d["cert"]) if os.path.isfile(d["cert"]) else None
+        name = d["name"]
+        if not info:
+            out.append(_check("https_domain", "fail", "%s: the certificate file cannot be read." % name, name=name, kind="unreadable"))
+        elif not xui.covers(info["names"], name.lstrip("*.")) and not any(n == name.lower() for n in info["names"]):
+            out.append(_check("https_domain", "warn", "%s: the certificate does not cover this name." % name, name=name, kind="name"))
+        elif info["days"] is not None and info["days"] < 15:
+            out.append(_check("https_domain", "warn", "%s: the certificate expires in %d day(s)." % (name, info["days"]), name=name, days=info["days"]))
+        else:
+            out.append(_check("https_domain", "ok", "%s: certificate valid for %s more days." % (name, info["days"]), name=name, days=info["days"]))
     a = conf["admin"]
     if a["password"] and not a["password_hash"]:
         out.append(_check("admin_pw", "warn", "The admin password is stored as plain text. Set it again with 'sudo xraysubforge set-admin-password'."))

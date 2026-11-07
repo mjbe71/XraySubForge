@@ -227,3 +227,10 @@ header h1 .ver { font-size: 12px; font-weight: 500; color: var(--muted); margin-
 .seg.big { display: flex; flex-wrap: wrap; }
 .seg.big button { flex: 1 1 220px; padding: 10px 14px; font-size: 14px; }
 .src-pick { margin: 6px 0 10px; } .src-pick .hint { margin-bottom: 4px; }
+.b-grip { cursor: grab; color: var(--muted); font-size: 16px; padding: 0 4px; user-select: none; }
+.b-grip:active { cursor: grabbing; }
+.b-block.drop-before { box-shadow: 0 -3px 0 0 var(--accent); }
+.b-block.drop-after { box-shadow: 0 3px 0 0 var(--accent); }
+.domains { margin: 10px 0; }
+.domain-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) minmax(0, 1.3fr) auto; gap: 6px; margin-bottom: 6px; }
+@media (max-width: 760px) { .domain-row { grid-template-columns: minmax(0, 1fr) auto; } }

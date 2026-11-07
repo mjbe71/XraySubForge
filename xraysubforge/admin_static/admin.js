@@ -385,7 +385,9 @@
     bAdvancedJson: "Advanced (JSON)", bAdvBalancer: "\"group\": extra balancer keys (params, probe, expand, …); \"member_patch\": extra steps for every member.",
     bAdvList: "\"patches\": a list of patches (merge, random, routing_prepend, …) applied to this block's configs.",
     bAdvWarp: "\"chain\": extra chain keys (entry, endpoints, exit, entry_merge, before, …).",
-    cancel: "Cancel", bEditCond: "Edit this condition", bDone: "Done",
+    domainsTitle: "More domains", domainsHint: "Each domain gets its own certificate, chosen by the name the app connects to (for example one behind Cloudflare with Cloudflare's Origin certificate, one behind another CDN). Point every domain at this server. Needs a restart.",
+    dom_name: "Domain", dom_cert: "Certificate (fullchain)", dom_key: "Private key", domainAdd: "+ Domain",
+    cancel: "Cancel", bEditCond: "Edit this condition", bDone: "Done", bDragBlock: "Drag to move this block",
     sumTitle: "Save these changes?", sumNothing: "No visible changes.", sumBlockAdded: "New block: {x}", sumBlockChanged: "Changed block: {x}",
     sumBlockRemoved: "Deleted block: {x}", sumRest: "\"Everything else\" changed", sumOldAdded: "New item in the old tabs: {x}",
     sumOldOff: "Switched off (now a block): {x}", sumOldChanged: "Changed in the old tabs: {x}", sumOldRemoved: "Deleted from the old tabs: {x}",
@@ -429,7 +431,9 @@
     bAddWarp: "+ بلوک WARP", bNewWarp: "WARP {n}", s_warp: "مسیر", s_pick: "endpoint وارپ",
     h_warp: "اول WARP، بعد سرور خروجی کانفیگ؛ یا فقط WARP.", h_pick: "هر کاربر کدام endpoint وارپ را بگیرد.",
     bWarpExit: "WARP، بعد خروجی", bWarpOnly: "فقط WARP", bPickRandom: "تصادفی در هر به‌روزرسانی", bPickUser: "ثابت برای هر کاربر",
-    cancel: "انصراف", bEditCond: "ویرایش این شرط", bDone: "تمام",
+    domainsTitle: "دامنه‌های بیشتر", domainsHint: "هر دامنه گواهی خودش را دارد و بر اساس نامی که اپ به آن وصل می‌شود انتخاب می‌شود (مثلاً یکی پشت Cloudflare با گواهی Origin کلادفلر، یکی پشت یک CDN دیگر). همهٔ دامنه‌ها باید به این سرور اشاره کنند. نیاز به راه‌اندازی دوباره دارد.",
+    dom_name: "دامنه", dom_cert: "گواهی (fullchain)", dom_key: "کلید خصوصی", domainAdd: "+ دامنه",
+    cancel: "انصراف", bEditCond: "ویرایش این شرط", bDone: "تمام", bDragBlock: "برای جابه‌جایی بلوک بکشید",
     sumTitle: "این تغییرات ذخیره شوند؟", sumNothing: "تغییر قابل‌مشاهده‌ای نیست.", sumBlockAdded: "بلوک جدید: {x}", sumBlockChanged: "بلوک تغییرکرده: {x}",
     sumBlockRemoved: "بلوک حذف‌شده: {x}", sumRest: "«بقیه» تغییر کرد", sumOldAdded: "مورد جدید در تب‌های قدیمی: {x}",
     sumOldOff: "خاموش‌شده (حالا بلوک است): {x}", sumOldChanged: "تغییر در تب‌های قدیمی: {x}", sumOldRemoved: "حذف از تب‌های قدیمی: {x}",
@@ -1104,6 +1108,25 @@
     field(t("rawUrl"), bindText(p, "raw_url", { placeholder: "https://panel.example.com:2096/sub/" }), t("formatUrlHint"), true),
     field(t("clashUrl"), bindText(p, "clash_url", { placeholder: "https://panel.example.com:2096/clash/" }), null, true));
 
+  // more domain names, each with its own certificate (picked by the name the app asks for)
+  function domainsEditor(s) {
+    const box = h("div", { class: "domains" });
+    const draw = () => {
+      const list = Array.isArray(s.domains) ? s.domains : [];
+      const set = () => { if (list.length) s.domains = list; else delete s.domains; changed(); };
+      box.replaceChildren(h("h3", {}, t("domainsTitle")), h("p", { class: "hint" }, t("domainsHint")),
+        ...list.map((d, i) => {
+          const inp = (key, ph) => h("input", { type: "text", value: d[key] || "", placeholder: ph, "aria-label": t("dom_" + key),
+            oninput: (e) => { if (e.target.value) d[key] = e.target.value; else delete d[key]; set(); } });
+          return h("div", { class: "domain-row" }, inp("name", "sub2.example.com"), inp("cert", "/path/fullchain.pem"), inp("key", "/path/privkey.pem"),
+            h("button", { type: "button", class: "icon danger", "aria-label": t("remove"), onclick: () => { list.splice(i, 1); set(); draw(); } }, "×"));
+        }),
+        h("button", { type: "button", onclick: () => { list.push({ name: "" }); s.domains = list; draw(); } }, t("domainAdd")));
+    };
+    draw();
+    return box;
+  }
+
   function settingsEditor() {
     const s = (cfg.server = cfg.server || {});
     const p = (cfg.panel = cfg.panel || {});
@@ -1140,6 +1163,7 @@
         h("div", { class: "grid" },
           field(t("tlsCert"), bindText(s, "tls_cert", { placeholder: "/etc/xraysubforge/certs/fullchain.pem" })),
           field(t("tlsKey"), bindText(s, "tls_key", { placeholder: "/etc/xraysubforge/certs/privkey.pem" }))),
+        domainsEditor(s),
         moreBox(h("div", { class: "grid" },
           field(t("subidRegex"), bindText(s, "subid_regex")),
           field(t("workers"), bindText(s, "workers", { num: true })),
@@ -1788,6 +1812,7 @@
   }
   const PREFIX_BLK = "blk-";
   let bPickSource = false;
+  let bBlockDrag = null;
   function bBlockCard(blk, i, all, names, counts) {
     const isBal = blk.type === "balancer";
     const s = blk.settings || {};
@@ -1807,7 +1832,10 @@
         if (k === "warp" && !(x.settings && x.settings.warp)) x.settings = Object.assign({ warp: "exit" }, x.settings || {});
         delete x.advanced;                          // its keys depend on the type
       }) }, label);
-    const head = h("div", { class: "b-head" }, nameIn,
+    const grip = h("span", { class: "b-grip", draggable: "true", title: t("bDragBlock"), "aria-hidden": "true",
+      ondragstart: (e) => { bBlockDrag = i; try { e.dataTransfer.setData("text/plain", "block"); e.dataTransfer.effectAllowed = "move"; } catch (x) { /* ignore */ } },
+      ondragend: () => { bBlockDrag = null; } }, "⠿");
+    const head = h("div", { class: "b-head" }, grip, nameIn,
       h("div", { class: "seg", role: "group" }, typeBtn("list", t("bList")), typeBtn("balancer", t("bBalancer")), typeBtn("warp", t("bWarp"))),
       isBal || blk.type === "warp" ? h("label", { class: "check small b-pc" }, h("input", { type: "checkbox", checked: !!blk.per_country, onchange: () => bChange((b) => { b.list[i].per_country = !b.list[i].per_country; }) }), t("bPerCountry")) : null,
       h("button", { type: "button", class: "icon", "aria-label": t("bUp"), title: t("bUp"), onclick: () => { const prev = all[all.indexOf(i) - 1]; if (prev !== undefined) bChange((b) => { const x = b.list.splice(i, 1)[0]; b.list.splice(prev, 0, x); }); } }, "↑"),
@@ -1883,8 +1911,31 @@
       h("button", { type: "button", class: "b-cond", onclick: () => { bOpen = id + ":newcond"; drawEditor(); } }, t("bPlusCond")),
       bPick ? h("button", { type: "button", class: "b-movehere", onclick: () => bMove(bPick, i, bPickSource) }, t("bMoveHere")) : null));
     const n = counts[PREFIX_BLK + id] || 0;
-    return h("div", { class: "b-block" + (blk.type === "warp" ? " warp" : "") }, head, h("p", { class: "hint b-takes" }, sample ? t("bTakes", { n }) : ""),
+    const card = h("div", { class: "b-block" + (blk.type === "warp" ? " warp" : "") }, head, h("p", { class: "hint b-takes" }, sample ? t("bTakes", { n }) : ""),
       pills, menu, openKey ? bSettingEditor(blk, i, openKey) : extraEditor, zone);
+    // blocks move by dragging their grip onto another block (it goes before or after, by where it is dropped)
+    card.addEventListener("dragover", (e) => {
+      if (bBlockDrag === null || bBlockDrag === i) return;
+      e.preventDefault();
+      const r = card.getBoundingClientRect(), after = e.clientY > r.top + r.height / 2;
+      card.classList.toggle("drop-before", !after); card.classList.toggle("drop-after", after);
+    });
+    card.addEventListener("dragleave", (e) => { if (!card.contains(e.relatedTarget)) card.classList.remove("drop-before", "drop-after"); });
+    card.addEventListener("drop", (e) => {
+      if (bBlockDrag === null) return;
+      e.preventDefault(); e.stopPropagation();
+      const from = bBlockDrag, after = card.classList.contains("drop-after");
+      card.classList.remove("drop-before", "drop-after");
+      bBlockDrag = null;
+      if (from === i) return;
+      bChange((b) => {
+        const x = b.list.splice(from, 1)[0];
+        let to = b.list.findIndex((y) => y.id === blk.id);
+        if (after) to += 1;
+        b.list.splice(to, 0, x);
+      });
+    });
+    return card;
   }
   function bChip(w, names, onX, xLabel, cls, fromSource, onEdit) {
     const info = names[kkey(w)];
