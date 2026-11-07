@@ -122,7 +122,7 @@ python -m xraysubforge hash-password        # رمز می‌پرسد و یک has
 
 ## هنوز نیست
 
-ثبت خودکار حساب WARP برای هر کاربر (`accounts.register`، پیش‌فرض خاموش، با API غیررسمی Cloudflare؛ فقط روی API شبیه‌سازی‌شده تست شده، نه واقعی).
+ثبت خودکار حساب WARP برای هر کاربر (`accounts.register`، پیش‌فرض خاموش، با API غیررسمی Cloudflare که ممکن است بی‌خبر عوض شود؛ ثبت‌نام با API واقعی امتحان شده).
 
 ## مجوز
 

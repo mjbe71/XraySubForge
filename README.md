@@ -165,7 +165,7 @@ for all options and `examples/` for ready examples:
 
 ## Not included (yet)
 
-Automatic per-user WARP account registration (`accounts.register`, off by default, uses Cloudflare's unofficial API; tested against a simulated API only, not the real one).
+Automatic per-user WARP account registration (`accounts.register`, off by default, uses Cloudflare's unofficial API, which can change without notice; registration has been tested against the real API).
 
 ## Similar projects (not affiliated)
 
