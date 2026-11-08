@@ -23,6 +23,7 @@ DEFAULTS = {
         "subid_regex": r"^[A-Za-z0-9_-]{4,64}$",  # ids that don't match get a 404 without asking the panel
         "workers": 2, "threads": 4,              # used by gunicorn.conf.py
         "tls_cert": "", "tls_key": "",           # serve HTTPS directly: paths of the certificate (fullchain) and key
+        "hosts": [],                             # host names that choose this profile when several profiles share a path (see profiles.py)
         "domains": [],                           # more names, each with its own certificate: [{"name", "cert", "key"}] (see tlsctx.py)
     },
     "panel": {
@@ -103,6 +104,8 @@ SECTION_CHECKS = {
         "threads": (lambda v: _is_int(v) and v >= 1, "an integer >= 1"),
         "tls_cert": (lambda v: isinstance(v, str), "a file path (string)"),
         "tls_key": (lambda v: isinstance(v, str), "a file path (string)"),
+        "hosts": (lambda v: isinstance(v, list) and all(isinstance(x, str) and re.fullmatch(r"[A-Za-z0-9.-]+", x) for x in v),
+                  "a list of host names"),
         "domains": (lambda v: isinstance(v, list) and all(
             isinstance(d, dict) and isinstance(d.get("name"), str) and re.fullmatch(r"(\*\.)?[A-Za-z0-9.-]+", d["name"] or "")
             and set(d) <= {"name", "cert", "key"} and bool(d.get("cert")) == bool(d.get("key"))

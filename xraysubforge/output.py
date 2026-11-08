@@ -22,8 +22,8 @@ DIRECT_RULES = [
 
 SNIFFING = {"destOverride": ["http", "tls", "quic", "fakedns"], "enabled": True, "routeOnly": False}
 
-KEYS = {"enabled", "when", "dns_out", "split_inbounds", "block_udp_443", "quic_domains", "base_rules",
-        "dedicated_dns", "direct_dns", "remark_rewrite", "decoy", "sampling", "panel_balancers", "replace_routing", "domain_strategy"}
+KEYS = {"enabled", "when", "dns_out", "split_inbounds", "block_udp_443", "quic_domains", "sniff_override", "route_only", "socks_port", "http_port", "base_rules",
+        "dedicated_dns", "direct_dns", "remark_rewrite", "sampling", "panel_balancers", "replace_routing", "domain_strategy"}
 
 
 def _int(v):
@@ -41,6 +41,13 @@ def check_output(raw):
         if k in raw and not isinstance(raw[k], bool):
             p.append("output.%s: must be true or false" % k)
     p += check_when(raw.get("when"), "output.when")
+    if "sniff_override" in raw and not (isinstance(raw["sniff_override"], list) and all(isinstance(x, str) for x in raw["sniff_override"])):
+        p.append("output.sniff_override: must be a list of strings (http, tls, quic, fakedns)")
+    if "route_only" in raw and not isinstance(raw["route_only"], bool):
+        p.append("output.route_only: must be true or false")
+    for k in ("socks_port", "http_port"):
+        if k in raw and not (_int(raw[k]) and 1 <= raw[k] <= 65535):
+            p.append("output.%s: must be a port number 1-65535" % k)
     if "quic_domains" in raw and not (isinstance(raw["quic_domains"], list) and all(isinstance(x, str) for x in raw["quic_domains"])):
         p.append("output.quic_domains: must be a list of strings")
     br = raw.get("base_rules")
@@ -61,21 +68,6 @@ def check_output(raw):
                 if not (isinstance(e, dict) and _regex_ok(e.get("regex")) and isinstance(e.get("replace", ""), str)
                         and _regex_ok(e.get("if", "x"))):
                     p.append('output.remark_rewrite[%d]: needs {"regex": "...", "replace": "...", "if": "..."} with valid regexes' % i)
-    dc = raw.get("decoy")
-    if dc is not None:
-        if not isinstance(dc, dict):
-            p.append("output.decoy: must be an object")
-        else:
-            for k in dc:
-                if k not in ("param", "default", "when", "ping_url") and not k.startswith("_"):
-                    p.append("output.decoy.%s: unknown key; ignored" % k)
-            if "default" in dc and not isinstance(dc["default"], bool):
-                p.append("output.decoy.default: must be true or false")
-            if "param" in dc and not (isinstance(dc["param"], str) and dc["param"]):
-                p.append("output.decoy.param: must be a non-empty string (the URL parameter, e.g. decoy)")
-            if "ping_url" in dc and not isinstance(dc["ping_url"], str):
-                p.append("output.decoy.ping_url: must be a string")
-            p += check_when(dc.get("when"), "output.decoy.when")
     if "domain_strategy" in raw and not isinstance(raw["domain_strategy"], str):
         p.append("output.domain_strategy: must be a string")
     sp = raw.get("sampling")
@@ -230,45 +222,19 @@ def apply_output(cfg, out, ours):
     if out.get("split_inbounds"):
         old = [i for i in cfg.get("inbounds") or [] if isinstance(i, dict)]
         port = next((i.get("port") for i in old if i.get("protocol") == "mixed"), None)
-        socks = next((i.get("port") for i in old if i.get("protocol") == "socks"), port or 10808)
-        http = next((i.get("port") for i in old if i.get("protocol") == "http"), (port + 1) if isinstance(port, int) else 10809)
+        socks = out.get("socks_port") or next((i.get("port") for i in old if i.get("protocol") == "socks"), port or 10808)
+        http = out.get("http_port") or next((i.get("port") for i in old if i.get("protocol") == "http"), (port + 1) if isinstance(port, int) else 10809)
+        sniffing = copy.deepcopy(SNIFFING)
+        if "sniff_override" in out:
+            sniffing["destOverride"] = list(out["sniff_override"])
+        if "route_only" in out:
+            sniffing["routeOnly"] = out["route_only"]
         cfg["inbounds"] = [
             {"listen": "127.0.0.1", "port": socks, "protocol": "socks", "tag": "socks",
-             "settings": {"auth": "noauth", "udp": True}, "sniffing": copy.deepcopy(SNIFFING)},
+             "settings": {"auth": "noauth", "udp": True}, "sniffing": copy.deepcopy(sniffing)},
             {"listen": "127.0.0.1", "port": http, "protocol": "http", "tag": "http",
-             "settings": {}, "sniffing": copy.deepcopy(SNIFFING)},
+             "settings": {}, "sniffing": copy.deepcopy(sniffing)},
         ]
-
-
-def decoy_on(spec, params):
-    """?decoy=1 turns it on, ?decoy=0 off; without the parameter `default` decides."""
-    v = (params or {}).get(spec.get("param", "decoy"))
-    if v is None:
-        return bool(spec.get("default", False))
-    return v == "1"
-
-
-def apply_decoy(cfg, ours, spec):
-    """A harmless `freedom` outbound tagged "decoy" as the FIRST outbound, for apps that ping only the first outbound
-    (it then really answers instead of showing -1). Real traffic keeps its routing: when the config has no catch-all
-    balancer rule, one rule sends everything to the previous first outbound."""
-    obs = cfg.get("outbounds")
-    if not isinstance(obs, list):
-        return
-    rest = [o for o in obs if not (isinstance(o, dict) and o.get("tag") == "decoy")]
-    if not rest or not isinstance(rest[0], dict) or not rest[0].get("tag"):
-        return
-    routing = cfg.get("routing") if isinstance(cfg.get("routing"), dict) else {}
-    rules = routing.get("rules") if isinstance(routing.get("rules"), list) else []
-    if not any(isinstance(r, dict) and ("balancerTag" in r or (r.get("network") == "tcp,udp" and set(r) <= {"type", "network", "outboundTag", "_keep"}))
-               for r in rules):  # a catch-all (balancer or plain) already decides where traffic goes
-        rules.append({"type": "field", "network": "tcp,udp", "outboundTag": rest[0]["tag"]})
-        routing["rules"] = rules
-        cfg["routing"] = routing
-    obs[:] = [{"protocol": "freedom", "tag": "decoy", "settings": {}}] + rest
-    pc = (cfg.get("burstObservatory") or {}).get("pingConfig") if ours else None
-    if isinstance(pc, dict) and spec.get("ping_url"):
-        pc["destination"] = spec["ping_url"]
 
 
 def run(configs, out, params, ours_ids):
@@ -277,8 +243,3 @@ def run(configs, out, params, ours_ids):
     for c in configs:
         if match(out.get("when"), c):
             apply_output(c, out, id(c) in ours_ids)
-    dc = out.get("decoy")
-    if dc and decoy_on(dc, params):
-        for c in configs:
-            if match(dc.get("when"), c):
-                apply_decoy(c, id(c) in ours_ids, dc)

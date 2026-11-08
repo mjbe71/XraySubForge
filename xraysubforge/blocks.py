@@ -18,6 +18,7 @@ Balancer blocks do not reserve their kinds: several balancers may use the same c
 servers once plain and once with fragment); a list block further down does not get configs an earlier list or
 drop block took.
 """
+import copy
 import re
 
 from .matching import check_when
@@ -29,7 +30,11 @@ ADVANCED_GROUP_KEYS = {"params", "probe", "probe_kind", "member_cost", "min_memb
                        "expand", "include_balanced", "member_position", "catchall_rules", "name", "split_by"}
 LIST_SETTINGS = {"fragment", "cipher", "fingerprint", "name"}
 BALANCER_SETTINGS = LIST_SETTINGS | {"strategy", "pool"}
-WARP_SETTINGS = {"warp", "pick", "name"}
+WARP_SETTINGS = {"warp", "pick", "name", "decoy"}
+# "decoy": "vless" puts an unused vless+TLS outbound in front of a WARP-only entry (some apps only load a masque config then)
+WARP_DECOY = [{"protocol": "vless", "tag": "decoy",
+               "settings": {"address": "{entry.address}", "port": "{entry.port}", "id": "{user.id}", "encryption": "none"},
+               "streamSettings": {"network": "tcp", "security": "tls", "tlsSettings": {"serverName": "www.cloudflare.com"}}}]
 # chain keys a WARP block may carry as they are (kept when a classic chain is turned into a block)
 ADVANCED_CHAIN_KEYS = {"entry", "endpoints", "exit", "entry_merge", "before", "choices", "remove_exit_from_output", "position", "name", "split_by"}
 PATCH_KEYS = {"stage", "target", "when", "merge", "random", "routing_prepend", "routing_append"}
@@ -166,6 +171,8 @@ def _check_block(b, where):
         p.append("%s.settings.name: must be a string" % where)
     if "warp" in s and s["warp"] not in ("exit", "only"):
         p.append('%s.settings.warp: must be "exit" (WARP, then the exit) or "only" (WARP alone)' % where)
+    if "decoy" in s and s["decoy"] != "vless":
+        p.append('%s.settings.decoy: must be "vless"' % where)
     if "pick" in s and s["pick"] not in ("random", "per_user"):
         p.append('%s.settings.pick: must be "random" or "per_user"' % where)
     return p
@@ -270,6 +277,8 @@ def compile_blocks(raw):
                 chain["split_by"] = {"field": "flag", "regex": "(.+)"}
             if s.get("warp") == "only":
                 chain["exit"] = False
+                if s.get("decoy") == "vless":
+                    chain["before"] = copy.deepcopy(WARP_DECOY)
             chain.update((b.get("advanced") or {}).get("chain") or {})
             out["chains"].append(chain)
             gtag = re.escape(re.sub(r"[^A-Za-z0-9]+", "-", gid).strip("-"))

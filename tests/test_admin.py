@@ -253,7 +253,7 @@ class Restart(unittest.TestCase):
 
     def test_refused_when_systemd_would_not_start_it_again(self):
         with mock.patch.dict(os.environ, {"INVOCATION_ID": "x"}), mock.patch("os.getppid", return_value=4242), \
-                mock.patch("xraysubforge.admin._unit_name", return_value="sub-engine.service"), self.policy("no"), \
+                mock.patch("xraysubforge.admin._unit_name", return_value="subforge.service"), self.policy("no"), \
                 mock.patch("os.kill") as kill:
             self.assertFalse(self.c.get("/admin/api/state").get_json()["can_restart"])
             self.assertEqual(self.post().status_code, 400)
@@ -261,7 +261,7 @@ class Restart(unittest.TestCase):
 
     def test_signals_the_master_under_systemd(self):
         with mock.patch.dict(os.environ, {"INVOCATION_ID": "x"}), mock.patch("os.getppid", return_value=4242), \
-                mock.patch("xraysubforge.admin._unit_name", return_value="sub-engine.service"), self.policy("always"), \
+                mock.patch("xraysubforge.admin._unit_name", return_value="subforge.service"), self.policy("always"), \
                 mock.patch("xraysubforge.admin.time.sleep"), mock.patch("os.kill") as kill:
             self.assertTrue(self.c.get("/admin/api/state").get_json()["can_restart"])
             r = self.post()

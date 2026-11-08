@@ -6,12 +6,12 @@ import sys
 from flask import Flask, Response, redirect, request
 
 from . import admin
-from .accounts import AccountStore
 from .config import ConfigStore
 from .engine import process
 from .matching import match
 from .links import config_links, encode_raw
 from .panel import PanelError, fetch_panel, fetch_raw, raw_configs, with_id
+from .profiles import Resolver, load_profiles
 
 
 def needs_account(conf, configs):
@@ -20,13 +20,14 @@ def needs_account(conf, configs):
     return any(match(c.get("exit_when"), cfg) for c in chains for cfg in configs if isinstance(cfg, dict))
 
 
-def create_app(store=None):
+def create_app(store=None, resolver=None):
     store = store or ConfigStore()
-    accounts = AccountStore(store)
+    profiles = load_profiles(store)                 # the default profile (config.json) first, then profiles/*.json
+    resolver = resolver or Resolver()
+    accounts = profiles[0].accounts
     app = Flask(__name__)
     app.config["JSON_AS_ASCII"] = False
     app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024
-    route = store.get()["server"]["route"]          # the route is fixed at startup (restart to change it)
 
     def text(msg, code):
         return Response(msg + "\n", status=code, mimetype="text/plain")
@@ -44,9 +45,14 @@ def create_app(store=None):
                 resp.headers[name] = r.headers[name]
         return resp
 
-    def checked(subid):
+    def choose(candidates, subid):
+        host = request.host.split(":")[0].lower()
+        bound = [p for p in candidates if host in p.hosts()]
+        return resolver.pick(bound or candidates, subid)
+
+    def checked(prof, subid):
         """-> (conf, panel, error response or None): the id check and the browser redirect shared by every format."""
-        conf = store.get()
+        conf = prof.store.get()
         if not re.search(conf["server"]["subid_regex"], subid):
             return conf, None, text("not found", 404)
         panel = conf["panel"]
@@ -54,8 +60,9 @@ def create_app(store=None):
             return conf, panel, redirect(with_id(panel["page_url"], subid), code=302)
         return conf, panel, None
 
-    def sub(subid):
-        conf, panel, early = checked(subid)
+    def sub(prof, subid):
+        accounts = prof.accounts
+        conf, panel, early = checked(prof, subid)
         if early is not None:
             return early
         from_raw = panel["source"] == "raw"
@@ -93,7 +100,8 @@ def create_app(store=None):
                 resp.headers[name] = r.headers[name]
         return resp
 
-    def raw_engine(conf, panel, subid):
+    def raw_engine(prof, conf, panel, subid):
+        accounts = prof.accounts
         """The raw format with the rules applied: links -> configs -> rules -> links (what a link cannot carry is left out)."""
         r, configs = raw_configs(panel, subid)
         try:
@@ -110,24 +118,40 @@ def create_app(store=None):
         return resp
 
     def other_format(url_key):
-        def view(subid):
-            conf, panel, early = checked(subid)
+        def view(prof, subid):
+            conf, panel, early = checked(prof, subid)
             if early is not None:
                 return early
             try:
                 if url_key == "raw_url" and panel["mode"] != "proxy" and panel["raw_mode"] == "engine" and panel["raw_url"]:
-                    return raw_engine(conf, panel, subid)
+                    return raw_engine(prof, conf, panel, subid)
                 return pass_through(panel, fetch_raw(panel[url_key], panel, subid))
             except PanelError as e:
                 return text(e.message, e.status)
         return view
 
-    app.add_url_rule(route.rstrip("/") + "/<subid>", "sub", sub)
-    for key, url_key in (("raw_route", "raw_url"), ("clash_route", "clash_url")):   # fixed at startup; 404 while the panel URL is empty
-        path = store.get()["server"][key].rstrip("/")
-        if path:
-            app.add_url_rule(path + "/<subid>", key, other_format(url_key))
+    # one URL rule per distinct path; profiles that share a path are told apart per request (see profiles.py)
+    by_path = {}
+    for prof in profiles:
+        server = prof.store.get()["server"]
+        for kind, key in (("sub", "route"), ("raw_url", "raw_route"), ("clash_url", "clash_route")):
+            path = server[key].rstrip("/")
+            if not path:                            # fixed at startup; an empty path turns that format off
+                continue
+            if any(k != kind and pth == path for k, pth in by_path):
+                print("[server] profile %s: %s %s is already used by another format; skipped" % (prof.name, key, path),
+                      file=sys.stderr, flush=True)
+                continue
+            by_path.setdefault((kind, path), []).append(prof)
+
+    def make_view(kind, candidates):
+        handler = sub if kind == "sub" else other_format(kind)
+        return lambda subid: handler(choose(candidates, subid), subid)
+
+    for n, ((kind, path), candidates) in enumerate(by_path.items()):
+        app.add_url_rule(path + "/<subid>", "fmt%d" % n, make_view(kind, candidates))
     admin.register(app, store)
     app.store = store
     app.accounts = accounts
+    app.profiles = profiles
     return app

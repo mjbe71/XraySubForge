@@ -3,7 +3,7 @@
 #
 #   curl -fsSL https://raw.githubusercontent.com/mjbe71/XraySubForge/main/install.sh | sudo bash
 #
-# Afterwards:  sudo xraysubforge help
+# Afterwards:  sudo sforge help
 # Works on Debian/Ubuntu out of the box (packages are installed with apt); on other systems install
 # python3 (with venv), git, curl and openssl yourself first.
 set -euo pipefail
@@ -20,6 +20,7 @@ CONFIG="$CONF_DIR/config.json"
 CERT_DIR="$CONF_DIR/certs"
 
 CMD=install
+SERVICE=xraysubforge
 YES=0 PANEL_URL="" PORT="" DOMAIN="" CERT="" KEY="" EMAIL="" PURGE=0
 WANT_LE=0 NO_TLS=0 ADMIN=ask            # ask | yes | no
 
@@ -55,11 +56,13 @@ usage() {
   cat <<EOF
 XraySubForge installer
 
-  install.sh [install|update|tls|uninstall|sync-certs] [options]
+  install.sh [install|update|tls|add-domain|uninstall|sync-certs|sync-domains] [options]
 
   install    first install (default); on an existing install it behaves like "update"
   update     get the newest version and restart (settings are kept)
   tls        (re)do the HTTPS step: use certificate files or get a Let's Encrypt one
+  link       for a copy you cloned yourself: create the 'xraysubforge' command for it (--service NAME of its systemd unit)
+  add-domain get a Let's Encrypt certificate for one more domain (--domain NAME) and add it to server.domains
   uninstall  remove the service and the program (settings are kept unless --purge)
 
 Options (all are asked interactively when missing):
@@ -77,7 +80,7 @@ EOF
 }
 
 parse_args() {
-  if [ $# -gt 0 ]; then case "$1" in install|update|tls|uninstall|sync-certs) CMD=$1; shift ;; esac; fi
+  if [ $# -gt 0 ]; then case "$1" in install|update|tls|uninstall|sync-certs|add-domain|sync-domains|link) CMD=$1; shift ;; esac; fi
   while [ $# -gt 0 ]; do
     case "$1" in
       --panel-url) PANEL_URL=${2:?}; shift ;;
@@ -87,6 +90,7 @@ parse_args() {
       --email) EMAIL=${2:?}; shift ;;
       --port) PORT=${2:?}; shift ;;
       --letsencrypt) WANT_LE=1 ;;
+      --service) SERVICE=${2:?}; shift ;;
       --no-tls) NO_TLS=1 ;;
       --admin) ADMIN=yes ;;
       --no-admin) ADMIN=no ;;
@@ -211,8 +215,9 @@ sync_certs() {                            # copy the recorded certificate into $
   return 0
 }
 
-issue_letsencrypt() {                     # issue_letsencrypt domain email
-  local domain=$1 email=${2:-} ip mine
+issue_letsencrypt() {                     # issue_letsencrypt domain email [extra]   (extra: an additional domain, not the main one)
+  local domain=$1 email=${2:-} extra=${3:-} ip mine hook="$APP_DIR/install.sh sync-certs"
+  [ -n "$extra" ] && hook="$APP_DIR/install.sh sync-domains"
   if ! have certbot; then
     have apt-get || { warn "certbot is not installed; install it (https://certbot.eff.org) or give certificate files."; return 1; }
     say "Installing certbot"
@@ -229,15 +234,100 @@ issue_letsencrypt() {                     # issue_letsencrypt domain email
   fi
   if ! port_free 80; then
     warn "Port 80 is in use. Let's Encrypt needs it for a minute (and again at each renewal)."
-    warn "Stop whatever uses it (for example nginx) and run:  sudo xraysubforge tls"
+    warn "Stop whatever uses it (for example nginx) and run:  sudo sforge tls"
     return 1
   fi
   local args=(certonly --standalone --preferred-challenges http -d "$domain" --non-interactive --agree-tos
-              --deploy-hook "$APP_DIR/install.sh sync-certs")
+              --deploy-hook "$hook")
   if [ -n "$email" ]; then args+=(-m "$email"); else args+=(--register-unsafely-without-email); fi
   say "Asking Let's Encrypt for a certificate for $domain"
+  if [ -n "$extra" ]; then
+    certbot "${args[@]}" || { warn "Let's Encrypt refused or failed (see the messages above)."; return 1; }
+    return 0
+  fi
   set_cert_source "/etc/letsencrypt/live/$domain/fullchain.pem" "/etc/letsencrypt/live/$domain/privkey.pem"
   certbot "${args[@]}" || { rm -f "$CERT_DIR/source"; warn "Let's Encrypt refused or failed (see the messages above)."; return 1; }
+}
+
+# Extra domains: one Let's Encrypt certificate each, copied to $CERT_DIR/domains/<name>/ and listed in server.domains.
+LE_LIVE=${XSF_LE_LIVE:-/etc/letsencrypt/live}
+sync_domains() {
+  local list="$CERT_DIR/domains.list" d changed=0
+  [ -f "$list" ] || return 0
+  while IFS= read -r d; do
+    [ -n "$d" ] || continue
+    if [ -r "$LE_LIVE/$d/fullchain.pem" ] && [ -r "$LE_LIVE/$d/privkey.pem" ]; then
+      install -d -m 750 -o "$SVC_USER" -g "$SVC_USER" "$CERT_DIR/domains/$d"
+      if ! cmp -s "$LE_LIVE/$d/fullchain.pem" "$CERT_DIR/domains/$d/fullchain.pem" 2>/dev/null \
+         || ! cmp -s "$LE_LIVE/$d/privkey.pem" "$CERT_DIR/domains/$d/privkey.pem" 2>/dev/null; then
+        install -m 600 -o "$SVC_USER" -g "$SVC_USER" "$LE_LIVE/$d/fullchain.pem" "$CERT_DIR/domains/$d/fullchain.pem"
+        install -m 600 -o "$SVC_USER" -g "$SVC_USER" "$LE_LIVE/$d/privkey.pem" "$CERT_DIR/domains/$d/privkey.pem"
+        changed=1; ok "Certificate for $d copied for the service"
+      fi
+    else
+      warn "No certificate files for $d in $LE_LIVE"
+    fi
+  done <"$list"
+  return 0   # the service re-reads certificates by itself within seconds; no restart needed
+}
+
+do_link() {                               # the `xraysubforge` command for a copy that was cloned by hand (not installed by this script)
+  need_root
+  local dir conf
+  dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+  [ -x "$dir/venv/bin/python" ] || die "No $dir/venv found: run this from the folder you cloned, with its virtualenv."
+  conf=${XSF_CONFIG:-$dir/config.json}
+  cat >"$BIN_DIR/sforge" <<EOF
+#!/bin/sh
+# Manage a hand-cloned XraySubForge ($dir, service $SERVICE). Run "sforge help".
+export XRAYSUBFORGE_CONFIG="$conf"
+export XSF_CTL="$BIN_DIR/sforge"
+[ -z "\$1" ] && set -- menu
+case "\$1" in
+  status)  exec systemctl status $SERVICE ;;
+  start)   exec systemctl start $SERVICE ;;
+  stop)    exec systemctl stop $SERVICE ;;
+  restart) exec systemctl restart $SERVICE ;;
+  logs)    exec journalctl -u $SERVICE -n 100 -f ;;
+  update)  git -C "$dir" pull && systemctl restart $SERVICE && echo "Updated and restarted."; exit \$? ;;
+  tls|uninstall|add-domain) echo "Not available for a copy you cloned yourself (set HTTPS in config.json, remove the folder and the service by hand)."; exit 1 ;;
+  help|-h|--help)
+    echo "sforge                      interactive menu"
+    echo "sforge status|start|stop|restart|logs"
+    echo "sforge update               git pull and restart"
+    echo "sforge check | config-set KEY=VALUE | set-admin-password | ..." ;;
+  *) cd "$dir" && exec "$dir/venv/bin/python" -m xraysubforge "\$@" ;;
+esac
+EOF
+  chmod 755 "$BIN_DIR/sforge"; ln -sf sforge "$BIN_DIR/xraysubforge"
+  ok "Created $BIN_DIR/sforge for $dir (service $SERVICE). Try:  sudo sforge"
+}
+
+do_add_domain() {
+  need_root
+  [ -f "$CONFIG" ] || die "Not installed yet. Run the install first."
+  local d=${DOMAIN,,}
+  [ -n "$d" ] || d=$(ask "Extra domain to get a Let's Encrypt certificate for (it must already point to this server)" "")
+  d=${d,,}
+  [[ "$d" =~ ^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$ && "$d" == *.* ]] || die "That does not look like a domain name: $d"
+  install -d -m 750 -o "$SVC_USER" -g "$SVC_USER" "$CERT_DIR"
+  issue_letsencrypt "$d" "$EMAIL" extra || exit 1
+  grep -qxF "$d" "$CERT_DIR/domains.list" 2>/dev/null || echo "$d" >>"$CERT_DIR/domains.list"
+  sync_domains
+  # register it in server.domains (an existing entry for the same name is replaced)
+  CONFIG="$CONFIG" DOM="$d" CD="$CERT_DIR/domains/$d" "$APP_DIR/venv/bin/python" - <<'PY'
+import json, os
+p, d, cd = os.environ["CONFIG"], os.environ["DOM"], os.environ["CD"]
+c = json.load(open(p))
+srv = c.setdefault("server", {})
+lst = [x for x in srv.get("domains", []) if not (isinstance(x, dict) and x.get("name") == d)]
+lst.append({"name": d, "cert": cd + "/fullchain.pem", "key": cd + "/privkey.pem"})
+srv["domains"] = lst
+json.dump(c, open(p, "w"), indent=2, ensure_ascii=False)
+PY
+  fix_config_owner
+  ok "$d added to server.domains"
+  if [ "$NO_SYSTEMD" != 1 ] && systemctl is-active --quiet xraysubforge 2>/dev/null; then systemctl restart xraysubforge && ok "Service restarted"; fi
 }
 
 step_tls() {                              # decides HTTPS; sets TLS_OK=1 when certificate files are in place
@@ -305,7 +395,7 @@ step_tls() {                              # decides HTTPS; sets TLS_OK=1 when ce
     if issue_letsencrypt "$DOMAIN" "$EMAIL"; then sync_certs; TLS_OK=1; return 0; fi
   fi
   [ "$YES" != 1 ] || die "Could not set up HTTPS for $DOMAIN."
-  warn "Continuing without HTTPS. Run  sudo xraysubforge tls  when you are ready."
+  warn "Continuing without HTTPS. Run  sudo sforge tls  when you are ready."
 }
 
 # ---------------------------------------------------------------- configuration
@@ -380,14 +470,14 @@ step_admin() {
 
 # ---------------------------------------------------------------- service files
 write_service_files() {
-  cat >"$BIN_DIR/xraysubforge" <<EOF
+  cat >"$BIN_DIR/sforge" <<EOF
 #!/bin/sh
-# Manage XraySubForge. Run "xraysubforge help".
+# Manage XraySubForge. Run "sforge help".
 export XRAYSUBFORGE_CONFIG="$CONFIG"
-export XSF_CTL="$BIN_DIR/xraysubforge"
+export XSF_CTL="$BIN_DIR/sforge"
 if [ -z "\$1" ] && [ -t 0 ]; then set -- menu; fi
 case "\${1:-help}" in
-  update|tls|uninstall|sync-certs) exec "$APP_DIR/install.sh" "\$@" ;;
+  update|tls|add-domain|uninstall|sync-certs|sync-domains) exec "$APP_DIR/install.sh" "\$@" ;;
   status)  exec systemctl status xraysubforge ;;
   restart) exec systemctl restart xraysubforge ;;
   stop)    exec systemctl stop xraysubforge ;;
@@ -395,20 +485,20 @@ case "\${1:-help}" in
   logs)    exec journalctl -u xraysubforge -n 100 -f ;;
   help|-h|--help)
     cat <<'TXT'
-xraysubforge                         interactive menu (everything below, and more)
-xraysubforge status | start | stop | restart | logs
-xraysubforge update                  get the newest version
-xraysubforge tls                     set up or change HTTPS (certificate files or Let's Encrypt)
-xraysubforge set-admin-password      set or change the admin password
-xraysubforge config-set KEY=VALUE    change a setting (e.g. server.port=8443)
-xraysubforge check                   validate the configuration
-xraysubforge uninstall [--purge]       remove it (also in the menu)
+sforge                          interactive menu (everything below, and more)
+sforge status | start | stop | restart | logs
+sforge update                  get the newest version
+sforge tls                     set up or change HTTPS (certificate files or Let's Encrypt)
+sforge set-admin-password      set or change the admin password
+sforge config-set KEY=VALUE    change a setting (e.g. server.port=8443)
+sforge check                   validate the configuration
+sforge uninstall [--purge]       remove it (also in the menu)
 TXT
     ;;
   *) cd "$APP_DIR" && exec "$APP_DIR/venv/bin/python" -m xraysubforge "\$@" ;;
 esac
 EOF
-  chmod 755 "$BIN_DIR/xraysubforge"
+  chmod 755 "$BIN_DIR/sforge"; ln -sf sforge "$BIN_DIR/xraysubforge"
   [ "$NO_SYSTEMD" = 1 ] && return 0
   cat >"$UNIT_DIR/xraysubforge.service" <<EOF
 [Unit]
@@ -442,6 +532,7 @@ Description=XraySubForge: copy a renewed HTTPS certificate
 [Service]
 Type=oneshot
 ExecStart=$APP_DIR/install.sh sync-certs
+ExecStart=$APP_DIR/install.sh sync-domains
 EOF
   cat >"$UNIT_DIR/xraysubforge-certsync.timer" <<EOF
 [Unit]
@@ -470,7 +561,7 @@ start_service() {
     if curl -fsk --max-time 3 "$scheme://127.0.0.1:$port/healthz" >/dev/null 2>&1; then ok "The service is running."; return 0; fi
     sleep 1
   done
-  warn "The service did not answer yet. Look at:  sudo xraysubforge logs"
+  warn "The service did not answer yet. Look at:  sudo sforge logs"
   return 1
 }
 
@@ -492,10 +583,10 @@ summary() {
     if [ -n "$tlsc" ]; then echo "  Admin panel:        $scheme://$host$shown/admin"
     else echo "  Admin panel:        $scheme://127.0.0.1:$port/admin   (from your computer: ssh -L $port:127.0.0.1:$port user@this-server)"; fi
   fi
-  echo "  Manage:             sudo xraysubforge help"
+  echo "  Manage:             sudo sforge help"
   if [ -z "$tlsc" ]; then
     echo
-    warn "The service listens on localhost only and without HTTPS. For users on the internet run:  sudo xraysubforge tls"
+    warn "The service listens on localhost only and without HTTPS. For users on the internet run:  sudo sforge tls"
   elif have ufw && ufw status 2>/dev/null | grep -q "Status: active"; then
     echo
     warn "A firewall (ufw) is active. Open the port:  sudo ufw allow $port/tcp"
@@ -508,7 +599,7 @@ do_install() {
   local existed=0
   # "installed" means the LAST step ran (it writes the `xraysubforge` command); a run that was interrupted earlier has
   # left a config and program files behind but no command, and must be continued, not mistaken for a finished install
-  [ -f "$CONFIG" ] && [ -d "$APP_DIR" ] && [ -x "$BIN_DIR/xraysubforge" ] && existed=1
+  [ -f "$CONFIG" ] && [ -d "$APP_DIR" ] && [ -x "$BIN_DIR/sforge" ] && existed=1
   if [ "$existed" = 0 ] && { [ -f "$CONFIG" ] || [ -d "$APP_DIR" ]; }; then
     warn "A previous installation was not finished. Continuing it."
   fi
@@ -574,7 +665,7 @@ do_uninstall() {
   for f in /etc/letsencrypt/renewal/*.conf; do
     [ -f "$f" ] && grep -q "$APP_DIR/install.sh" "$f" 2>/dev/null && sed -i "\#$APP_DIR/install.sh#d" "$f" || true
   done
-  rm -f "$BIN_DIR/xraysubforge"
+  rm -f "$BIN_DIR/sforge" "$BIN_DIR/xraysubforge"
   rm -rf "$APP_DIR"
   if [ "$PURGE" = 1 ]; then rm -rf "$CONF_DIR"; id "$SVC_USER" >/dev/null 2>&1 && userdel "$SVC_USER" || true; fi
   ok "Removed.$([ "$PURGE" = 1 ] || echo " Settings are still in $CONF_DIR (use --purge to delete them).") Certificates issued by certbot stay in /etc/letsencrypt."
@@ -588,6 +679,9 @@ main() {
     tls) do_tls ;;
     uninstall) do_uninstall ;;
     sync-certs) need_root; sync_certs ;;
+    sync-domains) need_root; sync_domains ;;
+    add-domain) do_add_domain ;;
+    link) do_link ;;
   esac
 }
 

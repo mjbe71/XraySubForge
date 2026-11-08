@@ -123,13 +123,23 @@ class Menu(Base):
         calls = []
         with mock.patch.object(tui.Menu, "run_ctl", lambda self, *a: calls.append(a)), \
                 mock.patch.dict(os.environ, {"XSF_CTL": "/x/xraysubforge"}):
-            self.run_menu(["11", "2", "no", "0"])                     # not confirmed
+            self.run_menu(["12", "2", "no", "0"])                     # not confirmed
             self.assertEqual(calls, [])
-            self.run_menu(["11", "2", "yes"])                         # everything
+            self.run_menu(["12", "2", "yes"])                         # everything
             self.assertEqual(calls, [("uninstall", "--yes", "--purge")])
             calls.clear()
-            self.run_menu(["11", "1", "yes"])
+            self.run_menu(["12", "1", "yes"])
             self.assertEqual(calls, [("uninstall", "--yes")])
+
+    def test_profiles_add_and_switch(self):
+        self.run_menu(["11", "2", "shop2", "1", "0"])                     # Profiles > Add > name > empty
+        pf = os.path.join(self.d.name, "profiles", "shop2.json")
+        self.assertTrue(os.path.exists(pf))
+        out = self.run_menu(["11", "2", "0", "0"])                        # switch to shop2: the header names the profile
+        self.assertIn("(profile shop2)", out)
+        self.run_menu(["11", "2", "2", "2", "https://new.example/json/", "0", "0"])
+        self.assertEqual(json.load(open(pf))["panel"]["url"], "https://new.example/json/")
+        self.assertEqual(self.conf()["panel"]["url"], "http://p.invalid/json/")   # the default is untouched
 
     def test_no_tty_refuses(self):
         with mock.patch("sys.stdin.isatty", return_value=False):

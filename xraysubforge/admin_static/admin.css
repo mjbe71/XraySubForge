@@ -234,3 +234,4 @@ header h1 .ver { font-size: 12px; font-weight: 500; color: var(--muted); margin-
 .domains { margin: 10px 0; }
 .domain-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) minmax(0, 1.3fr) auto; gap: 6px; margin-bottom: 6px; }
 @media (max-width: 760px) { .domain-row { grid-template-columns: minmax(0, 1fr) auto; } }
+.profiles{display:inline-flex;gap:.4rem;align-items:center}

@@ -26,6 +26,8 @@ from .engine import process
 from . import __version__
 from .kinds import kinds_of
 from .matching import check_when, fields_of, match
+from .output import DIRECT_RULES, QUIC_DOMAINS, SNIFFING
+from .profiles import NAME_RE, Profile, profile_dir
 from .panel import PanelError, fetch_panel
 
 # fields whose real values from the sample are offered as suggestions in the condition editor
@@ -122,9 +124,9 @@ def _write_atomic(path, data):
         raise
 
 
-def _accounts_for(app, clean):
+def _accounts_for(prof, clean):
     """Account values for the preview: the saved ones, with the candidate's inline `accounts.default` on top."""
-    data = app.accounts.get()
+    data = prof.accounts.get()
     default = dict(data["default"])
     default.update(clean["accounts"]["default"])
     return {"default": default, "users": data["users"]}
@@ -134,7 +136,7 @@ def _check(cid, status, text, **args):
     return {"id": cid, "status": status, "text": text, "args": args}
 
 
-def run_checks(app, conf, clean, problems, subid, secure_request):
+def run_checks(prof, conf, clean, problems, subid, secure_request):
     """The setup wizard's health checks for the candidate configuration `clean` (normalized). Each item:
     {id, status: ok|warn|fail|skip, text (English fallback), args}. Never raises."""
     import requests
@@ -180,7 +182,7 @@ def run_checks(app, conf, clean, problems, subid, secure_request):
     elif secure_request:
         out.append(_check("https", "ok", "Reached over HTTPS (probably through a reverse proxy).", kind="proxy"))
     else:
-        out.append(_check("https", "warn", "Users would reach the subscription over plain HTTP. Set up HTTPS: run 'sudo xraysubforge tls'.", kind="off"))
+        out.append(_check("https", "warn", "Users would reach the subscription over plain HTTP. Set up HTTPS: run 'sudo sforge tls'.", kind="off"))
     for d in srv.get("domains") or []:          # every extra domain's own certificate
         if not d.get("cert"):
             continue
@@ -197,7 +199,7 @@ def run_checks(app, conf, clean, problems, subid, secure_request):
             out.append(_check("https_domain", "ok", "%s: certificate valid for %s more days." % (name, info["days"]), name=name, days=info["days"]))
     a = conf["admin"]
     if a["password"] and not a["password_hash"]:
-        out.append(_check("admin_pw", "warn", "The admin password is stored as plain text. Set it again with 'sudo xraysubforge set-admin-password'."))
+        out.append(_check("admin_pw", "warn", "The admin password is stored as plain text. Set it again with 'sudo sforge set-admin-password'."))
     else:
         out.append(_check("admin_pw", "ok", "The admin password is stored safely."))
     errors, warnings = split_problems(problems)
@@ -210,9 +212,9 @@ def run_checks(app, conf, clean, problems, subid, secure_request):
     uses_account = any("{account." in json.dumps(c.get("entry", {})) for c in clean["chains"] if c.get("enabled", True))
     if uses_account:
         acc = clean["accounts"]
-        have = app.accounts.get()
+        have = prof.accounts.get()
         if acc["register"]["enabled"]:
-            folder = os.path.dirname(os.path.abspath(app.accounts._file_path(acc["file"]))) if acc["file"] else ""
+            folder = os.path.dirname(os.path.abspath(prof.accounts._file_path(acc["file"]))) if acc["file"] else ""
             if folder and os.access(folder, os.W_OK):
                 out.append(_check("accounts", "ok", "WARP accounts will be created automatically for each new user."))
             else:
@@ -308,6 +310,29 @@ def register(app, store):
         except BadSignature:
             return None
 
+    extra_profiles = {}
+
+    def profile_names():
+        names = ["default"]
+        try:
+            names += sorted(f[:-5] for f in os.listdir(profile_dir(store)) if f.endswith(".json") and NAME_RE.match(f[:-5]))
+        except OSError:
+            pass
+        return names
+
+    def cur():
+        """The profile the request works on (X-Profile header or ?profile=); the default one when absent or unknown."""
+        name = request.headers.get("X-Profile") or request.args.get("profile") or "default"
+        for p in getattr(app, "profiles", []):
+            if p.name == name:
+                return p
+        if name in profile_names() and name != "default":    # created after the start: opened on demand
+            if name not in extra_profiles:
+                from .config import ConfigStore
+                extra_profiles[name] = Profile(name, ConfigStore(os.path.join(profile_dir(store), name + ".json")))
+            return extra_profiles[name]
+        return app.profiles[0]
+
     def guarded(fn):
         def wrapper(*a, **kw):
             conf = store.get()
@@ -319,7 +344,7 @@ def register(app, store):
             if request.method != "GET" and not hmac.compare_digest(
                     request.headers.get("X-CSRF-Token", ""), str(sess.get("csrf", ""))):
                 return reply({"error": "bad CSRF token"}, 403)
-            return fn(conf, sess)
+            return fn(cur().store.get(), sess)      # the login is the default profile's; the data is the selected profile's
         wrapper.__name__ = fn.__name__
         return wrapper
 
@@ -388,13 +413,15 @@ def register(app, store):
 
     @guarded
     def state(conf, sess):
-        raw = _read_raw(store.path)
+        raw = _read_raw(cur().store.path)
         raw.pop("admin", None)
         _, problems = normalize(raw)
         errors, warnings = split_problems(problems)
-        return reply({"config": raw, "errors": errors, "warnings": warnings, "file": os.path.basename(store.path),
+        return reply({"config": raw, "errors": errors, "warnings": warnings, "file": os.path.basename(cur().store.path), "profiles": profile_names(), "profile": cur().name,
                       "route": conf["server"]["route"], "can_restart": can_restart(),
-                      "version": __version__, "commit": git_commit()})
+                      "version": __version__, "commit": git_commit(),
+                      "quic_domains": list(QUIC_DOMAINS), "direct_rules": copy.deepcopy(DIRECT_RULES),
+                      "sniffing": copy.deepcopy(SNIFFING)})
 
     @guarded
     def preview(conf, sess):
@@ -407,7 +434,7 @@ def register(app, store):
         sample = data.get("configs")
         sample = [c for c in sample if isinstance(c, dict)] if isinstance(sample, list) else []
         subid = data.get("subid") if isinstance(data.get("subid"), str) else None
-        out, report = process(sample, clean, subid=subid, accounts=_accounts_for(app, clean))
+        out, report = process(sample, clean, subid=subid, accounts=_accounts_for(cur(), clean))
         return reply({"errors": errors, "warnings": warnings, "report": report, "output": out})
 
     @guarded
@@ -475,15 +502,74 @@ def register(app, store):
         if errors:
             return reply({"errors": errors, "warnings": warnings}, 400)
         merged = dict(cand)
-        existing_admin = _read_raw(store.path).get("admin")
+        existing_admin = _read_raw(cur().store.path).get("admin")
         if existing_admin is not None:
             merged["admin"] = existing_admin           # the panel never edits (or reveals) its own login settings
         try:
-            _write_atomic(store.path, merged)
+            _write_atomic(cur().store.path, merged)
         except OSError as e:
             return reply({"error": "cannot write the config file: %s" % e.strerror}, 500)
-        store.load(force=True)
+        cur().store.load(force=True)
         return reply({"ok": True, "warnings": warnings})
+
+    @guarded
+    def profile_new(conf, sess):
+        data = body()
+        name = data.get("name")
+        if not isinstance(name, str) or not NAME_RE.match(name) or name == "default":
+            return reply({"error": "the name must be lowercase letters, digits, - or _ (not 'default')"}, 400)
+        path = os.path.join(profile_dir(store), name + ".json")
+        if os.path.exists(path):
+            return reply({"error": "a profile with this name exists"}, 400)
+        new = {}
+        src = data.get("copy")
+        if isinstance(src, str) and src in profile_names():
+            new = _read_raw(store.path if src == "default" else os.path.join(profile_dir(store), src + ".json"))
+            new.pop("admin", None)
+            if isinstance(new.get("server"), dict):
+                new["server"].pop("hosts", None)
+            new.pop("accounts", None)               # accounts hold secrets of that panel's users: never copied
+        try:
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            _write_atomic(path, new)
+        except OSError as e:
+            return reply({"error": "cannot write the profile file: %s" % e.strerror}, 500)
+        return reply({"ok": True, "name": name, "profiles": profile_names()})
+
+    def _profile_path(name):
+        return os.path.join(profile_dir(store), name + ".json")
+
+    @guarded
+    def profile_rename(conf, sess):
+        data = body()
+        old, new = data.get("name"), data.get("to")
+        if not (isinstance(old, str) and old in profile_names() and old != "default"):
+            return reply({"error": "no such profile (the default profile cannot be renamed)"}, 400)
+        if not isinstance(new, str) or not NAME_RE.match(new) or new == "default":
+            return reply({"error": "the name must be lowercase letters, digits, - or _ (not 'default')"}, 400)
+        if os.path.exists(_profile_path(new)):
+            return reply({"error": "a profile with this name exists"}, 400)
+        try:
+            os.replace(_profile_path(old), _profile_path(new))
+        except OSError as e:
+            return reply({"error": "cannot rename: %s" % e.strerror}, 500)
+        extra_profiles.pop(old, None)
+        return reply({"ok": True, "name": new, "profiles": profile_names()})
+
+    @guarded
+    def profile_delete(conf, sess):
+        """Moves the file to profiles/trash/ (nothing is erased; move it back to undo)."""
+        name = body().get("name")
+        if not (isinstance(name, str) and name in profile_names() and name != "default"):
+            return reply({"error": "no such profile (the default profile cannot be deleted)"}, 400)
+        trash = os.path.join(profile_dir(store), "trash")
+        try:
+            os.makedirs(trash, exist_ok=True)
+            os.replace(_profile_path(name), os.path.join(trash, "%s-%d.json" % (name, int(time.time()))))
+        except OSError as e:
+            return reply({"error": "cannot delete: %s" % e.strerror}, 500)
+        extra_profiles.pop(name, None)
+        return reply({"ok": True, "profiles": profile_names()})
 
     @guarded
     def restart(conf, sess):
@@ -502,7 +588,7 @@ def register(app, store):
         if subid and not re.search(conf["server"]["subid_regex"], subid):
             subid = None
         secure_req = request.is_secure or request.headers.get("X-Forwarded-Proto") == "https"
-        return reply({"checks": run_checks(app, conf, clean, problems, subid, secure_req)})
+        return reply({"checks": run_checks(cur(), conf, clean, problems, subid, secure_req)})
 
     @guarded
     def register_account(conf, sess):
@@ -512,7 +598,7 @@ def register(app, store):
         if subid and not re.search(conf["server"]["subid_regex"], subid):
             return reply({"error": "this id does not match server.subid_regex"}, 400)
         try:
-            new_id = app.accounts.register(subid, force=bool(data.get("force")))
+            new_id = cur().accounts.register(subid, force=bool(data.get("force")))
         except (ApiError, ValueError, OSError) as e:
             return reply({"error": "could not create the account: %s" % e}, 502)
         return reply({"ok": True, "created": new_id is not None, "device": new_id or ""})
@@ -521,5 +607,6 @@ def register(app, store):
                               ("state", state, ["GET"]), ("preview", preview, ["POST"]),
                               ("sample", sample, ["POST"]), ("facts", facts, ["POST"]), ("kinds", kinds, ["POST"]), ("save", save, ["POST"]),
                               ("register-account", register_account, ["POST"]), ("checks", checks, ["POST"]),
-                              ("restart", restart, ["POST"])):
+                              ("restart", restart, ["POST"]), ("profile-new", profile_new, ["POST"]),
+                              ("profile-rename", profile_rename, ["POST"]), ("profile-delete", profile_delete, ["POST"])):
         app.add_url_rule("%s/api/%s" % (base, name), "admin_api_" + name, fn, methods=methods)

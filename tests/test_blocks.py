@@ -231,6 +231,15 @@ class MoreBlocks(unittest.TestCase):
         _, problems = normalize({"blocks": {"list": [{"id": "x", "type": "warp", "settings": {"warp": "both"}, "advanced": {"chain": {"mode": "x"}}}]}})
         self.assertTrue(any("settings.warp" in p for p in problems) and any("advanced.chain" in p for p in problems))
 
+    def test_warp_only_decoy_setting(self):
+        conf, problems = normalize({"blocks": {"list": [
+            {"id": "solo", "name": "Free", "type": "warp", "kinds": [{"remark": "IR"}], "settings": {"warp": "only", "decoy": "vless"}}]}})
+        self.assertEqual([p for p in problems if "blocks" in p], [])
+        before = conf["chains"][0]["before"][0]
+        self.assertEqual((before["protocol"], before["tag"], before["streamSettings"]["security"]), ("vless", "decoy", "tls"))
+        _, problems = normalize({"blocks": {"list": [{"id": "x", "type": "warp", "settings": {"decoy": "freedom"}}]}})
+        self.assertTrue(any("settings.decoy" in p for p in problems))
+
 
 class PatchRandom(unittest.TestCase):
     def test_random_in_patches(self):

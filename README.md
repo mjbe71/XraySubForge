@@ -1,5 +1,7 @@
 # XraySubForge
 
+<p align="center"><img src="docs/assets/banner.png" alt="XraySubForge: the open-source subscription forge for 3x-ui panels" width="100%"></p>
+
 [فارسی](README.fa.md) · English
 
 An **advanced add-on for 3x-ui** and other Xray-core panels: a small Flask service that sits between your panel and
@@ -53,18 +55,21 @@ The installer asks what it needs and does the rest. In order:
 Then it creates a service that starts at boot and prints your subscription link. Afterwards:
 
 ```bash
-sudo xraysubforge help        # status, logs, restart, update, tls (change HTTPS), set-admin-password, ...
-sudo xraysubforge update      # get the newest version, keeping your settings
+sudo sforge help        # status, logs, restart, update, tls (change HTTPS), set-admin-password, ...
+sudo sforge update      # get the newest version, keeping your settings
+sudo sforge add-domain --domain other.example.com   # free Let's Encrypt certificate for one more domain (server.domains)
 ```
 
-Run `sudo xraysubforge` with no arguments for an **interactive terminal menu** (English): service status/logs/restart/update, panel URL, port and HTTPS, the admin password, adding/editing/reordering rules, groups, chains and patches with guided questions (or as JSON in your editor), a live preview for a subscription id, and WARP accounts. Every change is validated before it is written.
+Run `sudo sforge` with no arguments for an **interactive terminal menu** (English): service status/logs/restart/update, panel URL, port and HTTPS, the admin password, adding/editing/reordering rules, groups, chains and patches with guided questions (or as JSON in your editor), a live preview for a subscription id, and WARP accounts. Every change is validated before it is written.
 
 Everything can also be given as options for unattended installs (`--panel-url`, `--domain`, `--cert`/`--key`,
 `--letsencrypt`, `--port`, `--admin`, `--yes`, ...): run `install.sh --help`. Settings live in
-`/etc/xraysubforge/config.json`, the program in `/opt/xraysubforge`. To remove it: `sudo xraysubforge uninstall`.
+`/etc/xraysubforge/config.json`, the program in `/opt/xraysubforge`. To remove it: `sudo sforge uninstall`.
 
 > The installer has been tested on a real server. The 3x-ui detection reads setting names from memory of 3x-ui; if it finds nothing, it just asks you.
 > Please report problems.
+
+If you cloned the repository yourself instead of using the installer, `sudo bash install.sh link --service <your systemd unit>` (run inside the clone, which needs its `venv`) creates the same `sforge` command for it: menu, status, restart, logs and `update` (git pull and restart).
 
 ## Manual install
 

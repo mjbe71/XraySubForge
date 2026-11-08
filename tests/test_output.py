@@ -117,33 +117,17 @@ class Details(unittest.TestCase):
         self.assertEqual([(r.get("port"), r.get("network")) for r in bal], [("0-65535", None), (None, "tcp,udp")])
 
 
-class Decoy(unittest.TestCase):
-    def run_decoy(self, spec, params):
-        conf, p = normalize({"output": {"decoy": spec}})
-        self.assertEqual(p, [])
-        return process([base()], conf, params=params)[0][0]
-
-    def test_param_switch(self):
-        spec = {"param": "decoy"}
-        self.assertEqual(self.run_decoy(spec, {})["outbounds"][0]["tag"], "proxy")
-        c = self.run_decoy(spec, {"decoy": "1"})
-        self.assertEqual([o["tag"] for o in c["outbounds"]][:2], ["decoy", "proxy"])
-        self.assertEqual(c["outbounds"][0]["protocol"], "freedom")
-
-    def test_default_on_and_off_switch(self):
-        spec = {"default": True}
-        self.assertEqual(self.run_decoy(spec, {})["outbounds"][0]["tag"], "decoy")
-        self.assertEqual(self.run_decoy(spec, {"decoy": "0"})["outbounds"][0]["tag"], "proxy")
-
-    def test_adds_catchall_only_without_balancer_rule(self):
-        c = self.run_decoy({}, {"decoy": "1"})
-        self.assertEqual(c["routing"]["rules"][-1]["outboundTag"], "proxy")
-        cfg = base()
-        cfg["routing"]["rules"] = [{"type": "field", "network": "tcp,udp", "balancerTag": "b"}]
-        conf, _ = normalize({"output": {"decoy": {}}})
-        out = process([cfg], conf, params={"decoy": "1"})[0][0]
-        self.assertEqual(out["routing"]["rules"], [{"type": "field", "network": "tcp,udp", "balancerTag": "b"}])
-
-    def test_validation(self):
-        _, p = normalize({"output": {"decoy": {"default": "x", "bogus": 1}}})
-        self.assertEqual(len(p), 2)
+class SplitInboundOptions(unittest.TestCase):
+    def test_sniffing_and_ports_are_settable(self):
+        from xraysubforge.config import normalize
+        from xraysubforge.engine import process
+        conf, problems = normalize({"output": {"split_inbounds": True, "sniff_override": ["http", "tls"], "route_only": True,
+                                                "socks_port": 20808, "http_port": 20809}})
+        self.assertEqual([p for p in problems if "output" in p], [])
+        out, _ = process([{"remarks": "x", "outbounds": [{"protocol": "vless", "tag": "proxy", "settings": {}}],
+                           "inbounds": [{"protocol": "mixed", "port": 10808}]}], conf)
+        socks, http = out[0]["inbounds"]
+        self.assertEqual((socks["port"], http["port"]), (20808, 20809))
+        self.assertEqual(socks["sniffing"], {"destOverride": ["http", "tls"], "enabled": True, "routeOnly": True})
+        _, problems = normalize({"output": {"socks_port": 99999, "route_only": "yes", "sniff_override": [1]}})
+        self.assertEqual(sum("output." in p for p in problems), 3)

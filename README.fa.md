@@ -2,6 +2,8 @@
 
 # XraySubForge
 
+<p align="center"><img src="docs/assets/banner.png" alt="XraySubForge" width="100%"></p>
+
 فارسی · [English](README.md)
 
 یک **افزونهٔ پیشرفته برای 3x-ui** و پنل‌های دیگر Xray-core: سرویس کوچک Flask که بین پنل و برنامهٔ VPN کاربران قرار می‌گیرد. ساب پنل را می‌خواند (JSON مخصوص Xray، یا لینک‌های معمول `vless://`، `vmess://`، `trojan://`، `ss://`) و با **قوانین شرطی‌ای که خودتان می‌نویسید** تغییرش می‌دهد. کانفیگ‌ها را با شرط یا عبارت منظم (regex) روی هر فیلد (اسم، پروتکل، امنیت، پورت و ...) پیدا می‌کند.
@@ -39,13 +41,13 @@ curl -fsSL https://raw.githubusercontent.com/mjbe71/XraySubForge/main/install.sh
 بعد سرویسی می‌سازد که با بوت بالا می‌آید و لینک ساب شما را چاپ می‌کند. از آن به بعد:
 
 ```bash
-sudo xraysubforge help        # وضعیت، لاگ، ری‌استارت، به‌روزرسانی، tls (تغییر HTTPS)، set-admin-password و ...
-sudo xraysubforge update      # آخرین نسخه، با حفظ تنظیمات
+sudo sforge help        # وضعیت، لاگ، ری‌استارت، به‌روزرسانی، tls (تغییر HTTPS)، set-admin-password و ...
+sudo sforge update      # آخرین نسخه، با حفظ تنظیمات
 ```
 
-اگر `sudo xraysubforge` را بدون آرگومان اجرا کنید، یک **منوی تعاملی ترمینال** (به انگلیسی) باز می‌شود: وضعیت/لاگ/ری‌استارت سرویس، آدرس پنل، پورت و HTTPS، رمز ادمین، افزودن و ویرایش قوانین/گروه‌ها/زنجیره‌ها/پچ‌ها، پیش‌نمایش و حساب WARP. هر تغییر قبل از ذخیره اعتبارسنجی می‌شود.
+اگر `sudo sforge` را بدون آرگومان اجرا کنید، یک **منوی تعاملی ترمینال** (به انگلیسی) باز می‌شود: وضعیت/لاگ/ری‌استارت سرویس، آدرس پنل، پورت و HTTPS، رمز ادمین، افزودن و ویرایش قوانین/گروه‌ها/زنجیره‌ها/پچ‌ها، پیش‌نمایش و حساب WARP. هر تغییر قبل از ذخیره اعتبارسنجی می‌شود.
 
-همهٔ این‌ها را می‌شود برای نصب بدون سؤال به‌صورت گزینه هم داد (`--panel-url`، `--domain`، `--cert`/`--key`، `--letsencrypt`، `--port`، `--admin`، `--yes` و ...): `install.sh --help`. تنظیمات در `/etc/xraysubforge/config.json` و برنامه در `/opt/xraysubforge` است. حذف: `sudo xraysubforge uninstall`.
+همهٔ این‌ها را می‌شود برای نصب بدون سؤال به‌صورت گزینه هم داد (`--panel-url`، `--domain`، `--cert`/`--key`، `--letsencrypt`، `--port`، `--admin`، `--yes` و ...): `install.sh --help`. تنظیمات در `/etc/xraysubforge/config.json` و برنامه در `/opt/xraysubforge` است. حذف: `sudo sforge uninstall`.
 
 > نصب‌کننده روی یک سرور واقعی تست شده. تشخیص 3x-ui اسم تنظیمات را از حافظه می‌خواند؛ اگر چیزی پیدا نکند فقط از شما می‌پرسد. مشکلات را گزارش کنید.
 

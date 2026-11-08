@@ -19,6 +19,7 @@ from .config import CONFIG_ENV, ConfigStore, normalize, split_problems
 from .engine import process
 from .matching import FIELDS, OPS
 from .panel import PanelError, fetch_panel
+from .profiles import NAME_RE
 
 KINDS = (("rules", "Rules (keep / drop / pin configs)"), ("groups", "Groups (balancers)"),
          ("chains", "Chains (dial an outbound through an exit)"), ("patches", "Patches (merge your own JSON)"))
@@ -75,7 +76,8 @@ def ask_password(prompt="New password (at least 8 characters)"):
 class Menu:
     def __init__(self, path=None):
         self.path = path or os.environ.get(CONFIG_ENV) or "config.json"
-        self.ctl = os.environ.get("XSF_CTL", "")          # the `xraysubforge` wrapper (set by the installer)
+        self.default_path = self.path                      # profiles/<name>.json sit next to it
+        self.ctl = os.environ.get("XSF_CTL", "")          # the `sforge` wrapper (set by the installer)
 
     # ---------- config file ----------
     def raw(self):
@@ -127,7 +129,7 @@ class Menu:
     # ---------- helpers ----------
     def run_ctl(self, *args):
         if not self.ctl or not os.path.exists(self.ctl):
-            say("Not available: this works when installed with install.sh (the `xraysubforge` command).")
+            say("Not available: this works when installed with install.sh (the `sforge` command).")
             return
         subprocess.call([self.ctl] + list(args))
 
@@ -219,7 +221,7 @@ class Menu:
         s, p = conf["server"], conf["panel"]
         scheme = "https" if s["tls_cert"] else "http"
         say("\n=== XraySubForge ===")
-        say("config: %s" % self.path)
+        say("config: %s%s" % (self.path, "" if self.path == self.default_path else "   (profile %s)" % os.path.basename(self.path)[:-5]))
         say("listens on %s://%s:%s%s   panel: %s" % (scheme, s["host"], s["port"], s["route"], p["url"] or "(not set)"))
         say("blocks %d   old-style items: rules %d, groups %d, chains %d, patches %d   web admin: %s" % (
             len(conf["blocks"]["list"]), len(conf["rules"]), len(conf["groups"]), len(conf["chains"]), len(conf["patches"]),
@@ -236,6 +238,7 @@ class Menu:
                  ("WARP accounts", self.accounts_menu),
                  ("Edit the whole config.json in your editor", self.edit_all),
                  ("Check the configuration", self.check),
+                 ("Profiles (switch to another service, or add one)", self.profile_menu),
                  ("Uninstall XraySubForge from this server", self.uninstall)]
         while True:
             self.header()
@@ -246,6 +249,43 @@ class Menu:
                 items[i][1]()
             except (OSError, ValueError) as e:
                 say("Error: %s" % e)
+
+    # ---------- profiles ----------
+    def profile_names(self):
+        d = os.path.join(os.path.dirname(os.path.abspath(self.default_path)), "profiles")
+        try:
+            return ["default"] + sorted(f[:-5] for f in os.listdir(d) if f.endswith(".json") and NAME_RE.match(f[:-5]))
+        except OSError:
+            return ["default"]
+
+    def profile_menu(self):
+        names = self.profile_names()
+        cur = "default" if self.path == self.default_path else os.path.basename(self.path)[:-5]
+        i = choose("Profiles (now: %s). Rename and delete are in the web admin (Advanced > Profile)." % cur,
+                   ["Switch to %s" % n + ("  (current)" if n == cur else "") for n in names] + ["Add a profile"])
+        if i is None:
+            return
+        d = os.path.join(os.path.dirname(os.path.abspath(self.default_path)), "profiles")
+        if i < len(names):
+            self.path = self.default_path if names[i] == "default" else os.path.join(d, names[i] + ".json")
+            self._store = None
+            say("Now working on profile %s." % names[i])
+            return
+        name = ask("Name of the new profile (lowercase letters, digits, - or _)").strip()
+        if not NAME_RE.match(name) or name == "default" or name in names:
+            say("Not created: use a new name of lowercase letters, digits, - or _ (not 'default').")
+            return
+        copy_from = None
+        if choose("Start from", ["An empty profile", "A copy of %s (its accounts are not copied)" % cur], back="Cancel") == 1:
+            copy_from = self.raw()
+        new = dict(copy_from or {})
+        new.pop("admin", None)
+        new.pop("accounts", None)
+        if isinstance(new.get("server"), dict):
+            new["server"] = {k: v for k, v in new["server"].items() if k != "hosts"}
+        os.makedirs(d, exist_ok=True)
+        _write_atomic(os.path.join(d, name + ".json"), new)
+        say("Profile %s created. Restart the service so its routes are active; switch to it here to edit it." % name)
 
     def service_menu(self):
         acts = [("Status", ("status",)), ("Restart", ("restart",)), ("Show logs (Ctrl+C to stop)", ("logs",)),

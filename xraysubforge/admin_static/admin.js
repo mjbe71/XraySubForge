@@ -115,7 +115,7 @@
     exp_keep_rule: "Kept by rule \"{rule}\"", exp_kept: "Kept as it is", exp_group: "Merged into balancer \"{g}\"", exp_chain: "Exit of \"{c}\"",
     colWhat: "What happens",
     restartBtn: "Restart the service", restartConfirm: "Restart the service now? The panel is unavailable for a few seconds.", restarting: "Restarting… waiting for the service to come back.",
-    restarted: "The service is back.", restartFail: "Could not restart: {err}", restartManual: "To restart: run \"sudo xraysubforge restart\" on the server.", restartNeeded: "You changed server settings: restart the service to apply them.", chipsHint: "Type a word, then press Enter or +. Add as many as you like.", addWord: "+ Add", noAccountYet: "The WARP chain \"{id}\" cannot be shown here yet: it needs a WARP account. With automatic accounts on, each user's account is created the first time they fetch their subscription.",
+    restarted: "The service is back.", restartFail: "Could not restart: {err}", restartManual: "To restart: run \"sudo sforge restart\" on the server.", restartNeeded: "You changed server settings: restart the service to apply them.", chipsHint: "Type a word, then press Enter or +. Add as many as you like.", addWord: "+ Add", noAccountYet: "The WARP chain \"{id}\" cannot be shown here yet: it needs a WARP account. With automatic accounts on, each user's account is created the first time they fetch their subscription.",
     c_panel_url_ok: "Panel address is set", c_panel_url_fail: "The panel address is not set",
     c_panel_reach_ok: "The panel is reachable", c_panel_reach_warn: "The panel answered with an error (HTTP {code})",
     c_panel_reach_fail_connect: "Cannot connect to the panel: wrong address or port, or a firewall is blocking it",
@@ -123,9 +123,9 @@
     c_panel_reach_fail_timeout: "The panel did not answer in time",
     c_sample_ok: "The panel gave {n} config(s) for your test id", c_sample_fail: "The panel refused the test id: {reason}", c_sample_skip: "Test id not tried (go back to step 2 to try one)",
     c_https_ok: "HTTPS is on (certificate valid for {days} more days)", c_https_ok_proxy: "You are connected over HTTPS",
-    c_https_warn: "The HTTPS certificate expires in {days} day(s)", c_https_warn_off: "Users would reach the subscription over plain HTTP: run \"sudo xraysubforge tls\" on the server",
+    c_https_warn: "The HTTPS certificate expires in {days} day(s)", c_https_warn_off: "Users would reach the subscription over plain HTTP: run \"sudo sforge tls\" on the server",
     c_https_fail_unreadable: "HTTPS is on but the certificate file cannot be read",
-    c_admin_pw_ok: "The admin password is stored safely", c_admin_pw_warn: "The admin password is stored as plain text: run \"sudo xraysubforge set-admin-password\"",
+    c_admin_pw_ok: "The admin password is stored safely", c_admin_pw_warn: "The admin password is stored as plain text: run \"sudo sforge set-admin-password\"",
     c_config_ok: "The settings are valid", c_config_warn: "{n} note(s) about the settings", c_config_fail: "{n} problem(s) in the settings",
     c_accounts_ok: "WARP accounts are ready", c_accounts_fail_none: "The WARP chain has no account values: turn on automatic accounts",
     c_accounts_fail_unwritable: "Automatic accounts need a folder the service can write to for the accounts file",
@@ -172,7 +172,7 @@
     exp_keep_rule: "با قانون «{rule}» نگه داشته شد", exp_kept: "همان‌طور که هست می‌ماند", exp_group: "در بالانسر «{g}» ادغام شد", exp_chain: "خروجی «{c}»",
     colWhat: "چه می‌شود",
     restartBtn: "راه‌اندازی مجدد سرویس", restartConfirm: "سرویس همین حالا راه‌اندازی مجدد شود؟ پنل چند ثانیه در دسترس نیست.", restarting: "در حال راه‌اندازی مجدد… منتظر برگشتن سرویس هستیم.",
-    restarted: "سرویس برگشت.", restartFail: "راه‌اندازی مجدد ممکن نشد: {err}", restartManual: "برای راه‌اندازی مجدد، روی سرور «sudo xraysubforge restart» را بزنید.", restartNeeded: "تنظیمات سرور را تغییر داده‌اید: برای اعمال، سرویس را راه‌اندازی مجدد کنید.", chipsHint: "یک کلمه بنویسید و Enter یا «+ افزودن» را بزنید. هر تعداد می‌توانید اضافه کنید.", addWord: "+ افزودن", noAccountYet: "زنجیرهٔ WARP با نام «{id}» هنوز در اینجا قابل نمایش نیست: به حساب WARP نیاز دارد. اگر حساب خودکار روشن باشد، حساب هر کاربر هنگام اولین دریافت ساب او ساخته می‌شود.",
+    restarted: "سرویس برگشت.", restartFail: "راه‌اندازی مجدد ممکن نشد: {err}", restartManual: "برای راه‌اندازی مجدد، روی سرور «sudo sforge restart» را بزنید.", restartNeeded: "تنظیمات سرور را تغییر داده‌اید: برای اعمال، سرویس را راه‌اندازی مجدد کنید.", chipsHint: "یک کلمه بنویسید و Enter یا «+ افزودن» را بزنید. هر تعداد می‌توانید اضافه کنید.", addWord: "+ افزودن", noAccountYet: "زنجیرهٔ WARP با نام «{id}» هنوز در اینجا قابل نمایش نیست: به حساب WARP نیاز دارد. اگر حساب خودکار روشن باشد، حساب هر کاربر هنگام اولین دریافت ساب او ساخته می‌شود.",
     c_panel_url_ok: "آدرس پنل تنظیم شده است", c_panel_url_fail: "آدرس پنل تنظیم نشده است",
     c_panel_reach_ok: "پنل در دسترس است", c_panel_reach_warn: "پنل با خطا پاسخ داد (HTTP {code})",
     c_panel_reach_fail_connect: "اتصال به پنل ممکن نیست: آدرس یا پورت اشتباه است یا فایروال جلویش را گرفته",
@@ -180,9 +180,9 @@
     c_panel_reach_fail_timeout: "پنل به‌موقع پاسخ نداد",
     c_sample_ok: "پنل برای شناسهٔ آزمایشی {n} کانفیگ داد", c_sample_fail: "پنل شناسهٔ آزمایشی را نپذیرفت: {reason}", c_sample_skip: "شناسهٔ آزمایشی امتحان نشد (برای امتحان به مرحلهٔ ۲ برگردید)",
     c_https_ok: "HTTPS روشن است (گواهی {days} روز دیگر معتبر است)", c_https_ok_proxy: "با HTTPS متصل هستید",
-    c_https_warn: "گواهی HTTPS تا {days} روز دیگر منقضی می‌شود", c_https_warn_off: "کاربران ساب را با HTTP ساده می‌گیرند: روی سرور «sudo xraysubforge tls» را بزنید",
+    c_https_warn: "گواهی HTTPS تا {days} روز دیگر منقضی می‌شود", c_https_warn_off: "کاربران ساب را با HTTP ساده می‌گیرند: روی سرور «sudo sforge tls» را بزنید",
     c_https_fail_unreadable: "HTTPS روشن است ولی فایل گواهی خوانده نمی‌شود",
-    c_admin_pw_ok: "رمز ادمین امن ذخیره شده است", c_admin_pw_warn: "رمز ادمین به‌صورت متن ساده ذخیره شده: «sudo xraysubforge set-admin-password» را بزنید",
+    c_admin_pw_ok: "رمز ادمین امن ذخیره شده است", c_admin_pw_warn: "رمز ادمین به‌صورت متن ساده ذخیره شده: «sudo sforge set-admin-password» را بزنید",
     c_config_ok: "تنظیمات معتبر است", c_config_warn: "{n} نکته دربارهٔ تنظیمات", c_config_fail: "{n} مشکل در تنظیمات",
     c_accounts_ok: "حساب‌های WARP آماده‌اند", c_accounts_fail_none: "زنجیرهٔ WARP مقدار حساب ندارد: حساب خودکار را روشن کنید",
     c_accounts_fail_unwritable: "حساب خودکار به پوشه‌ای نیاز دارد که سرویس بتواند فایل حساب‌ها را در آن بنویسد",
@@ -194,9 +194,12 @@
     rank: "Rank", rankHint: "Lower numbers come first.",
     outHint: "Settings applied to every returned config after balancers and chains were built. Everything is off until you turn it on.",
     outEnabled: "Apply the output settings", outWhen: "Only for configs matching",
-    sectInbounds: "Inbounds & routing", sectDns: "DNS", sectTuning: "Balancer tuning", sectRemark: "Names", sectDecoy: "Decoy (ping) config",
+    sectInbounds: "Inbounds & routing", sectDns: "DNS", sectTuning: "Balancer tuning", sectRemark: "Names",
     splitInbounds: "Separate socks and http inbounds (some apps do not work with the combined one)",
     dnsOut: "Add a dns-out outbound", blockUdp: "Block UDP port 443 (QUIC) so apps fall back to TCP",
+    quicEdit: "Copy the built-in list here to edit it",
+    sniffOver: "Sniffing: destOverride", sniffHint: "Protocols the socks and http inbounds sniff (default: http, tls, quic, fakedns).", routeOnly: "Sniffing routeOnly", socksPort: "socks port (empty = keep the panel's)", httpPort: "http port (empty = keep the panel's)",
+    profile: "Profile", profileDefaultNote: "The default profile cannot be renamed or deleted. Pick another profile in the header to manage it.", profileManageNote: "Profile {n}: rename it, or delete it (its file is moved to profiles/trash/, not erased).", profileDefault: "default profile", profileNew: "+ New profile", profileName: "Name of the new profile (lowercase letters, digits, - or _)", profileCopy: "Start from a copy of the current profile (its accounts are not copied)? OK = copy, Cancel = empty", profileRestart: "Done. Restart the service so the routes match.", profileRename: "Rename", profileRemove: "Delete", profileDelete: "Delete profile {n}? Its file is moved to profiles/trash/, not erased.",
     quicDomains: "QUIC domains (empty = built-in list)", replaceRouting: "Replace the routing rules with the ones built here (keeps balancer rules)",
     domainStrategy: "Domain strategy", baseRules: "Base routing rules", baseOff: "off", baseBuiltin: "built-in (private and Iran go direct)", baseCustom: "custom list",
     baseRulesList: "Rules (JSON list)", baseRulesHint: "Rules added to every config; the built-in set sends private addresses and Iranian sites direct.",
@@ -207,7 +210,6 @@
     panelBal: "Tune the panel's own balancers", pbRtt: "Max RTT", pbFew: "\"Few\" means at most this many members", pbExpFew: "Expected (few members)", pbExpMany: "Expected (many members)",
     remarkTitle: "Rewrite names", remarkHint: "Each rule replaces the text matching the pattern. The \"only if\" pattern, when set, must match the name for the rule to run.",
     rwRegex: "Pattern", rwReplace: "Replace with", rwIf: "Only if name matches", addRule: "+ Add rule",
-    decoyOn: "Add a decoy config for ping tests (switch with ?decoy=1 / ?decoy=0 on the subscription link)", decoyParam: "URL parameter", decoyDefault: "On by default", decoyPing: "Ping address", decoyWhen: "Only when the config matches",
     usingDefaults: "Using the built-in defaults.", customize: "Customize",
     orWord: "or", notWord: "not",
     chainMode: "Direction", modeEntry: "entry first: your outbound is dialed through the panel config", modeExit: "exit first: the exit goes through your entry (e.g. client → WARP → exit)",
@@ -246,9 +248,12 @@
     rank: "رتبه", rankHint: "عدد کمتر زودتر می‌آید.",
     outHint: "تنظیماتی که بعد از ساخت بالانسرها و زنجیرها روی هر کانفیگ خروجی اعمال می‌شود. تا خودتان روشن نکنید همه خاموش است.",
     outEnabled: "تنظیمات خروجی اعمال شود", outWhen: "فقط برای کانفیگ‌های مطابق",
-    sectInbounds: "اینباند و مسیریابی", sectDns: "DNS", sectTuning: "تنظیم بالانسرها", sectRemark: "نام‌ها", sectDecoy: "کانفیگ طعمه (برای پینگ)",
+    sectInbounds: "اینباند و مسیریابی", sectDns: "DNS", sectTuning: "تنظیم بالانسرها", sectRemark: "نام‌ها",
     splitInbounds: "اینباند socks و http جدا باشد (بعضی برنامه‌ها با اینباند ترکیبی کار نمی‌کنند)",
     dnsOut: "خروجی dns-out اضافه شود", blockUdp: "پورت UDP 443 (QUIC) بسته شود تا برنامه‌ها به TCP برگردند",
+    quicEdit: "کپی فهرست داخلی برای ویرایش",
+    sniffOver: "Sniffing: destOverride", sniffHint: "پروتکل‌هایی که اینباندهای socks و http شناسایی می‌کنند (پیش‌فرض: http, tls, quic, fakedns).", routeOnly: "Sniffing routeOnly", socksPort: "پورت socks (خالی = همان پنل)", httpPort: "پورت http (خالی = همان پنل)",
+    profile: "پروفایل", profileDefaultNote: "پروفایل پیش‌فرض را نمی‌شود تغییر نام داد یا حذف کرد. برای مدیریت، پروفایل دیگری را از بالای صفحه انتخاب کن.", profileManageNote: "پروفایل {n}: تغییر نام یا حذف (فایلش به profiles/trash/ منتقل می‌شود و پاک نمی‌شود).", profileDefault: "پروفایل پیش‌فرض", profileNew: "+ پروفایل جدید", profileName: "نام پروفایل جدید (حروف کوچک انگلیسی، عدد، - یا _)", profileCopy: "از روی نسخهٔ پروفایل فعلی شروع شود (حساب‌ها کپی نمی‌شوند)؟ تأیید = کپی، لغو = خالی", profileRestart: "انجام شد. سرویس را ری‌استارت کن تا مسیرها هماهنگ شوند.", profileRename: "تغییر نام", profileRemove: "حذف", profileDelete: "پروفایل {n} حذف شود؟ فایلش به profiles/trash/ منتقل می‌شود و پاک نمی‌شود.",
     quicDomains: "دامنه‌های QUIC (خالی = فهرست داخلی)", replaceRouting: "قوانین مسیریابی با قوانین ساخته‌شده در اینجا جایگزین شوند (قوانین بالانسر می‌مانند)",
     domainStrategy: "استراتژی دامنه", baseRules: "قوانین پایهٔ مسیریابی", baseOff: "خاموش", baseBuiltin: "داخلی (آی‌پی خصوصی و سایت‌های ایران مستقیم)", baseCustom: "فهرست دلخواه",
     baseRulesList: "قوانین (فهرست JSON)", baseRulesHint: "قوانینی که به هر کانفیگ اضافه می‌شوند؛ مجموعهٔ داخلی آی‌پی‌های خصوصی و سایت‌های ایرانی را مستقیم می‌کند.",
@@ -259,7 +264,6 @@
     panelBal: "بالانسرهای خود پنل هم تنظیم شوند", pbRtt: "حداکثر RTT", pbFew: "«کم» یعنی حداکثر این تعداد عضو", pbExpFew: "expected (عضو کم)", pbExpMany: "expected (عضو زیاد)",
     remarkTitle: "بازنویسی نام‌ها", remarkHint: "هر قانون متنِ مطابق با الگو را عوض می‌کند. اگر «فقط اگر» پر باشد، نام باید با آن هم بخواند تا قانون اجرا شود.",
     rwRegex: "الگو", rwReplace: "جایگزین", rwIf: "فقط اگر نام بخواند با", addRule: "+ افزودن قانون",
-    decoyOn: "یک کانفیگ طعمه برای تست پینگ اضافه شود (با ?decoy=1 / ?decoy=0 روی لینک ساب جابه‌جا می‌شود)", decoyParam: "پارامتر آدرس", decoyDefault: "پیش‌فرض روشن", decoyPing: "آدرس پینگ", decoyWhen: "فقط وقتی کانفیگ بخواند",
     usingDefaults: "مقدارهای داخلی استفاده می‌شود.", customize: "سفارشی‌سازی",
     orWord: "یا", notWord: "نه",
     chainMode: "جهت", modeEntry: "ورودی اول: خروجی شما از داخل کانفیگ پنل رد می‌شود", modeExit: "خروجی اول: خروجی از ورودی شما رد می‌شود (مثلاً کلاینت ← WARP ← خروجی)",
@@ -381,7 +385,7 @@
     advRules: "Rules and order", advPatches: "Patches", advJson: "JSON",
     bWarp: "WARP", bAddWarp: "+ WARP block", bNewWarp: "WARP {n}", s_warp: "Route", s_pick: "WARP endpoint",
     h_warp: "WARP, then the exit server of the config; or WARP alone.", h_pick: "Which WARP endpoint each user gets.",
-    bWarpExit: "WARP, then the exit", bWarpOnly: "WARP only", bPickRandom: "random on every update", bPickUser: "fixed per user",
+    s_decoy: "Decoy outbound", h_decoy: "With WARP only: an unused vless+TLS outbound in front, so apps that refuse a lone masque config load it.", bDecoyVless: "vless + TLS (unused)", bWarpExit: "WARP, then the exit", bWarpOnly: "WARP only", bPickRandom: "random on every update", bPickUser: "fixed per user",
     bAdvancedJson: "Advanced (JSON)", bAdvBalancer: "\"group\": extra balancer keys (params, probe, expand, …); \"member_patch\": extra steps for every member.",
     bAdvList: "\"patches\": a list of patches (merge, random, routing_prepend, …) applied to this block's configs.",
     bAdvWarp: "\"chain\": extra chain keys (entry, endpoints, exit, entry_merge, before, …).",
@@ -430,7 +434,7 @@
     advRules: "قوانین و ترتیب", advPatches: "پچ‌ها", advJson: "JSON",
     bAddWarp: "+ بلوک WARP", bNewWarp: "WARP {n}", s_warp: "مسیر", s_pick: "endpoint وارپ",
     h_warp: "اول WARP، بعد سرور خروجی کانفیگ؛ یا فقط WARP.", h_pick: "هر کاربر کدام endpoint وارپ را بگیرد.",
-    bWarpExit: "WARP، بعد خروجی", bWarpOnly: "فقط WARP", bPickRandom: "تصادفی در هر به‌روزرسانی", bPickUser: "ثابت برای هر کاربر",
+    s_decoy: "outbound طعمه", h_decoy: "فقط با WARP تنها: یک outbound خالی vless+TLS در ابتدا می‌آید تا برنامه‌هایی که masque تنها را قبول نمی‌کنند، کانفیگ را باز کنند.", bDecoyVless: "vless + TLS (بدون استفاده)", bWarpExit: "WARP، بعد خروجی", bWarpOnly: "فقط WARP", bPickRandom: "تصادفی در هر به‌روزرسانی", bPickUser: "ثابت برای هر کاربر",
     domainsTitle: "دامنه‌های بیشتر", domainsHint: "هر دامنه گواهی خودش را دارد و بر اساس نامی که اپ به آن وصل می‌شود انتخاب می‌شود (مثلاً یکی پشت Cloudflare با گواهی Origin کلادفلر، یکی پشت یک CDN دیگر). همهٔ دامنه‌ها باید به این سرور اشاره کنند. نیاز به راه‌اندازی دوباره دارد.",
     dom_name: "دامنه", dom_cert: "گواهی (fullchain)", dom_key: "کلید خصوصی", domainAdd: "+ دامنه",
     cancel: "انصراف", bEditCond: "ویرایش این شرط", bDone: "تمام", bDragBlock: "برای جابه‌جایی بلوک بکشید",
@@ -502,6 +506,17 @@
   let loadedRoute = "/sub/";
   let canRestart = false;
   let appVersion = "";
+  // the selected profile lives in the address (?profile=name), so a refresh or a bookmark keeps it
+  let profile = "default";
+  try { profile = new URLSearchParams(location.search).get("profile") || "default"; } catch (e) { /* ignore */ }
+  function syncUrl() {
+    try {
+      const u = new URL(location.href);
+      if (profile === "default") u.searchParams.delete("profile"); else u.searchParams.set("profile", profile);
+      history.replaceState(null, "", u.pathname + u.search + u.hash);
+    } catch (e) { /* ignore */ }
+  }
+  let profileNames = ["default"];
   let loadedServer = "{}";
   const needsRestart = () => JSON.stringify(cfg.server || {}) !== loadedServer;
   let sample = null;
@@ -514,7 +529,7 @@
   const root = document.getElementById("app");
 
   async function api(path, body) {
-    const opt = { method: body === undefined ? "GET" : "POST", headers: { "X-CSRF-Token": csrf }, credentials: "same-origin" };
+    const opt = { method: body === undefined ? "GET" : "POST", headers: { "X-CSRF-Token": csrf, "X-Profile": profile }, credentials: "same-origin" };
     if (body !== undefined) { opt.headers["Content-Type"] = "application/json"; opt.body = JSON.stringify(body); }
     let r;
     try { r = await fetch(BASE + "/api/" + path, opt); } catch (e) { return { status: 0, ok: false, data: {} }; }
@@ -1659,6 +1674,7 @@
   const B_SETTINGS = [
     { key: "warp", kind: "one", options: ["exit", "only"], labels: { exit: "bWarpExit", only: "bWarpOnly" }, def: "exit", types: ["warp"] },
     { key: "pick", kind: "one", options: ["random", "per_user"], labels: { random: "bPickRandom", per_user: "bPickUser" }, def: "random", types: ["warp"] },
+    { key: "decoy", kind: "one", options: ["vless"], labels: { vless: "bDecoyVless" }, def: "vless", types: ["warp"] },
     { key: "fragment", kind: "multi", options: ["tlshello-0-len", "tlshello-6-98"], def: ["tlshello-0-len", "tlshello-6-98"], ph: "bCustomFrag", add: "bAddCustom", types: ["list", "balancer"] },
     { key: "cipher", kind: "multi", options: ["semi-python", "real-firefox"], def: ["semi-python", "real-firefox"], ph: "bCustomCipher", add: "bAddCustom", types: ["list", "balancer"] },
     { key: "fingerprint", kind: "one", options: ["chrome", "firefox", "safari", "ios", "android", "edge", "random", "randomized"], def: "chrome", types: ["list", "balancer"] },
@@ -2122,6 +2138,10 @@
       const block = { id: nextId("block", b.list), name: prettyId(c.id), type: "warp",
         kinds: [Object.assign({ _label: t("bOldCond", { id: prettyId(c.id) }) }, c.exit_when || {})], settings };
       if (perCountry) block.per_country = true;
+      // an old decoy in front of a WARP-only entry becomes the block's own Decoy setting, not a hidden advanced key
+      if (Array.isArray(adv.before) && adv.before.length === 1 && adv.before[0] && adv.before[0].tag === "decoy" && adv.before[0].protocol === "vless") {
+        settings.decoy = "vless"; delete adv.before;
+      }
       if (Object.keys(adv).length) block.advanced = { chain: adv };
       const firstDrop = b.list.findIndex((x) => x.type === "drop");
       if (firstDrop < 0) b.list.push(block); else b.list.splice(firstDrop, 0, block);
@@ -2142,7 +2162,6 @@
     dedicated_dns: () => ({ ip: "8.8.8.8", tag: "dedicated-dns" }),
     direct_dns: () => ({ tag_regex: "^domestic-dns" }),
     panel_balancers: () => ({ max_rtt: "2500ms", few_max_members: 2, expected_few: 1, expected_many: 2 }),
-    decoy: () => ({ param: "decoy", default: false }),
   };
   function optSection(obj, key, labelKey, bodyFn) {
     const box = h("div", { class: "opt" });
@@ -2174,11 +2193,12 @@
     function draw() {
       box.replaceChildren();
       const s = h("select", { onchange: () => {
-        if (s.value === "off") delete o.base_rules; else if (s.value === "builtin") o.base_rules = true; else o.base_rules = [];
+        if (s.value === "off") delete o.base_rules; else if (s.value === "builtin") o.base_rules = true; else o.base_rules = JSON.parse(JSON.stringify(directRules));
         changed(); draw();
       } }, [["off", t("baseOff")], ["builtin", t("baseBuiltin")], ["custom", t("baseCustom")]].map(([v, l]) => h("option", { value: v }, l)));
       s.value = mode();
       box.append(field(t("baseRules"), s, t("baseRulesHint"), true));
+      if (mode() === "builtin") box.append(h("pre", { class: "hint" }, JSON.stringify(directRules, null, 2)));
       if (mode() === "custom") box.append(field(t("baseRulesList"), bindJSON(o, "base_rules", 6), null, true));
     }
     draw();
@@ -2228,6 +2248,50 @@
     return box;
   }
 
+  let quicDefaults = [];
+  let directRules = [];
+  let sniffDefaults = { destOverride: ["http", "tls", "quic", "fakedns"], routeOnly: false };
+  function quicEditor(o, quic) {
+    const wrap = h("div", {});
+    let was = null;
+    function draw() {
+      const own = quic.length > 0;
+      was = own;
+      wrap.replaceChildren(
+        chipsInput(quic, () => { if (quic.length) o.quic_domains = quic; else delete o.quic_domains; changed(); if ((quic.length > 0) !== was) draw(); }, "youtube.com"),
+        ...(own ? [] : [h("div", { class: "hint" }, quicDefaults.join(", ")),
+          h("button", { type: "button", onclick: () => { quic.push(...quicDefaults); o.quic_domains = quic; changed(); draw(); } }, t("quicEdit"))]));
+    }
+    draw();
+    return wrap;
+  }
+
+  // the socks/http inbounds built by "split_inbounds": what is built by default is shown, and only a change is saved
+  function splitFlagAndOptions(o) {
+    const box = h("div", {});
+    const draw = () => box.replaceChildren(
+      h("div", { class: "row" }, h("label", { class: "check" }, (() => {
+        const c = bindBool(o, "split_inbounds", false);
+        c.addEventListener("change", draw);
+        return c;
+      })(), t("splitInbounds"))),
+      ...(o.split_inbounds ? [splitInboundsEditor(o)] : []));
+    draw();
+    return box;
+  }
+  function splitInboundsEditor(o) {
+    const over = Array.isArray(o.sniff_override) ? o.sniff_override.slice() : sniffDefaults.destOverride.slice();
+    const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+    return h("div", { class: "opt" },
+      field(t("sniffOver"), chipsInput(over, () => { if (same(over, sniffDefaults.destOverride)) delete o.sniff_override; else o.sniff_override = over.slice(); changed(); }, "tls"), t("sniffHint"), true),
+      h("div", { class: "row" }, h("label", { class: "check" }, (() => {
+        const c = h("input", { type: "checkbox" }); c.checked = o.route_only === undefined ? !!sniffDefaults.routeOnly : !!o.route_only;
+        c.addEventListener("change", () => { if (c.checked === !!sniffDefaults.routeOnly) delete o.route_only; else o.route_only = c.checked; changed(); });
+        return c;
+      })(), t("routeOnly"))),
+      h("div", { class: "grid" }, field(t("socksPort"), bindText(o, "socks_port", { num: true })), field(t("httpPort"), bindText(o, "http_port", { num: true }))));
+  }
+
   function outputEditor() {
     const o = (cfg.output = cfg.output && typeof cfg.output === "object" && !Array.isArray(cfg.output) ? cfg.output : {});
     const quic = Array.isArray(o.quic_domains) ? o.quic_domains : [];
@@ -2239,11 +2303,11 @@
       h("div", { class: "row" }, h("label", { class: "check" }, bindBool(o, "enabled", true), t("outEnabled"))),
       whenEditor(o, "when", "outWhen"),
       detailsBox("sectInbounds", h("div", {},
-        flag(o, "split_inbounds", "splitInbounds"),
+        splitFlagAndOptions(o),
         flag(o, "dns_out", "dnsOut"),
         flag(o, "block_udp_443", "blockUdp"),
         h("label", { class: "f wide" }, t("quicDomains"),
-          chipsInput(quic, () => { if (quic.length) o.quic_domains = quic; else delete o.quic_domains; changed(); }, "youtube.com")),
+          quicEditor(o, quic)),
         flag(o, "replace_routing", "replaceRouting"),
         field(t("domainStrategy"), dom),
         baseRulesEditor(o)), true),
@@ -2258,13 +2322,7 @@
           field(t("pbFew"), bindText(v, "few_max_members", { num: true })),
           field(t("pbExpFew"), bindText(v, "expected_few", { num: true })),
           field(t("pbExpMany"), bindText(v, "expected_many", { num: true })))))),
-      detailsBox("sectRemark", remarkRewriteEditor(o)),
-      detailsBox("sectDecoy", optSection(o, "decoy", "decoyOn", (v) => h("div", {},
-        h("div", { class: "grid" },
-          field(t("decoyParam"), bindText(v, "param")),
-          field(t("decoyPing"), bindText(v, "ping_url"))),
-        h("div", { class: "row" }, h("label", { class: "check" }, bindBool(v, "default", false), t("decoyDefault"))),
-        whenEditor(v, "when", "decoyWhen")))));
+      detailsBox("sectRemark", remarkRewriteEditor(o)));
   }
 
   const orderBody = (r) => h("div", {}, whenEditor(r),
@@ -2312,12 +2370,13 @@
     else if (tab === "blocks") body = blocksView();
     else if (tab === "settings") body = h("div", {}, settingsEditor(), proxyOnly ? null : detailsBox("sectOutput", outputEditor()), h("p", { class: "hint" }, t("adminNote")));
     else {
-      const subs = proxyOnly ? [["raw", t("advJson")]] : [["list", t("advRules")], ["groups", t("tabGroups")], ["chains", t("tabWarp")], ["patches", t("advPatches")], ["raw", t("advJson")]];
+      const subs = proxyOnly ? [["raw", t("advJson")], ["profile", t("profile")]] : [["list", t("advRules")], ["groups", t("tabGroups")], ["chains", t("tabWarp")], ["patches", t("advPatches")], ["raw", t("advJson")], ["profile", t("profile")]];
       let inner;
       if (advTab === "groups") inner = listEditor("groups", "groupsHint", (items) => ({ id: nextId("group", items), type: "leastLoad", when: {} }), groupBody, TEMPLATES.groups);
       else if (advTab === "chains") inner = listEditor("chains", "chainsHint", (items) => ({ id: nextId("chain", items), exit_when: {}, entry: {} }), chainBody, TEMPLATES.chains);
       else if (advTab === "patches") inner = listEditor("patches", "patchesHint", (items) => ({ id: nextId("patch", items), merge: {} }), patchBody);
       else if (advTab === "raw") inner = rawEditor();
+      else if (advTab === "profile") inner = profileManage();
       else inner = h("div", {},
         sect("sectFilter", listEditor("rules", "rulesHint", (items) => ({ id: nextId("rule", items), when: {}, do: "drop" }), ruleBody, TEMPLATES.rules)),
         sect("sectSort", listEditor("order", "orderHint", (items) => ({ id: nextId("order", items), rank: 30 }), orderBody, TEMPLATES.order)));
@@ -2509,10 +2568,46 @@
   }
   function applyLang() { document.documentElement.lang = lang; document.documentElement.dir = lang === "fa" ? "rtl" : "ltr"; }
 
+  // the profile switcher: one select, plus "+ New profile" (empty, or a copy of the current one without its accounts)
+  function profileBox() {
+    const sel = h("select", { "aria-label": t("profile"), onchange: () => {
+      if (isDirty() && !confirm(t("revert") + "?")) { sel.value = profile; return; }
+      profile = sel.value; start();
+    } }, profileNames.map((n) => h("option", { value: n }, n === "default" ? t("profileDefault") : n)));
+    sel.value = profile;
+    const add = h("button", { type: "button", onclick: async () => {
+      const name = (prompt(t("profileName")) || "").trim();
+      if (!name) return;
+      const r = await api("profile-new", { name, copy: confirm(t("profileCopy")) ? profile : undefined });
+      if (!r.ok) { alert(r.data.error || "error"); return; }
+      profile = name; await start(); alert(t("profileRestart"));
+    } }, t("profileNew"));
+    return h("span", { class: "profiles" }, sel, add);
+  }
+
+  // Advanced > Profile: rename or delete the current profile (kept away from the header so it is not hit by accident)
+  function profileManage() {
+    const ren = h("button", { type: "button", onclick: async () => {
+      const to = (prompt(t("profileName"), profile) || "").trim();
+      if (!to || to === profile) return;
+      const r = await api("profile-rename", { name: profile, to });
+      if (!r.ok) { alert(r.data.error || "error"); return; }
+      profile = to; await start(); alert(t("profileRestart"));
+    } }, t("profileRename"));
+    const del = h("button", { type: "button", class: "danger", onclick: async () => {
+      if (!confirm(t("profileDelete", { n: profile }))) return;
+      const r = await api("profile-delete", { name: profile });
+      if (!r.ok) { alert(r.data.error || "error"); return; }
+      profile = "default"; await start(); alert(t("profileRestart"));
+    } }, t("profileRemove"));
+    if (profile === "default") return h("div", {}, h("p", { class: "hint" }, t("profileDefaultNote")));
+    return h("div", {}, h("p", { class: "hint" }, t("profileManageNote", { n: profile })), h("div", { class: "row" }, ren, del));
+  }
+
   function drawMain() {
     const saveBtn = h("button", { type: "button", class: "primary", onclick: save }, t("save"));
     root.replaceChildren(
-      h("header", {}, h("h1", {}, t("title"), appVersion ? h("span", { class: "ver", title: t("versionTitle") }, appVersion) : null), statusEl, themeToggle(), langToggle(),
+      h("header", {}, h("h1", {}, t("title"), appVersion ? h("span", { class: "ver", title: t("versionTitle") }, appVersion) : null), profileBox(), statusEl, themeToggle(), langToggle(),
         h("button", { type: "button", onclick: () => { if (!isDirty() || confirm(t("revert") + "?")) start(); } }, t("revert")), saveBtn,
         canRestart ? restartHeaderBtn : null,
         h("button", { type: "button", onclick: async () => { await api("logout", {}); drawLogin(); } }, t("logout"))),
@@ -2548,6 +2643,12 @@
     savedSnapshot = JSON.stringify(cfg);
     loadedRoute = r.data.route;
     canRestart = !!r.data.can_restart;
+    quicDefaults = Array.isArray(r.data.quic_domains) ? r.data.quic_domains : [];
+    directRules = Array.isArray(r.data.direct_rules) ? r.data.direct_rules : [];
+    if (isObj(r.data.sniffing)) sniffDefaults = r.data.sniffing;
+    profileNames = Array.isArray(r.data.profiles) ? r.data.profiles : ["default"];
+    profile = r.data.profile || "default";
+    syncUrl();
     appVersion = r.data.version ? "v" + r.data.version + (r.data.commit ? " · " + r.data.commit : "") : "";
     loadedServer = JSON.stringify(cfg.server || {});
     lastPreview = { errors: r.data.errors, warnings: r.data.warnings };

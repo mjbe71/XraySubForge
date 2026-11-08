@@ -33,7 +33,23 @@ panel response ──► patches (stage "source") ──► rules ──► grou
 | `subid_regex` | `"^[A-Za-z0-9_-]{4,64}$"` | Ids not matching this get a 404 without contacting the panel. |
 | `workers`, `threads` | `2`, `4` | Used by gunicorn (`gunicorn.conf.py`). |
 | `tls_cert`, `tls_key` | `""` | Serve HTTPS directly: paths of the certificate (full chain) and the private key; set both or neither. The service user must be able to read them (the installer keeps copies in `/etc/xraysubforge/certs`). Needs a restart. |
+| `hosts` | `[]` | Host names that choose this profile when several [profiles](#profiles-several-services-in-one-install) share a route (the request's `Host` header is compared). |
 | `domains` | `[]` | More names, each with its own certificate: `[{"name": "sub2.example.com", "cert": "...", "key": "..."}]` (`*.example.com` works too). The app's requested name (SNI) picks the certificate; other names get the default one (`tls_cert`, or the first domain's). Renewed files are picked up by themselves. A domain behind Cloudflare can use Cloudflare's Origin certificate. Needs a restart to change. |
+
+## Profiles: several services in one install
+
+`config.json` is the default profile. Every `profiles/<name>.json` next to it is another one: a complete config of the same
+shape, with its own `panel`, `blocks`, `rules`, `accounts` and `output`. Profiles are read at startup (restart to add one);
+a name is lowercase letters, digits, `-` or `_`.
+
+Which profile answers a request:
+
+1. only one profile uses the requested route (`server.route`, `raw_route`, `clash_route`) -> that one;
+2. several profiles share the route -> the one whose `server.hosts` holds the request's host name;
+3. still several -> the profile whose panel knows the subscription id (the panels are asked at once; a found id is remembered
+   for an hour). An id that exists in more than one panel goes to the first profile (default first) and is logged once.
+
+Profiles that share a domain must never hand out the same subscription id to two different users. The admin panel has a profile switcher (with "+ New profile" (empty or a copy without its accounts), Rename and Delete; Delete moves the file to `profiles/trash/`) next to the title; a new profile needs a service restart for its routes.
 
 ## `admin`
 
@@ -346,6 +362,7 @@ Everything is off unless you turn it on. `when` limits it to some configs.
 | Key | Meaning |
 |---|---|
 | `split_inbounds` | Replace `mixed` by a `socks` (tag `socks`) and an `http` inbound (some apps cannot use `mixed`). Ports are kept. |
+| `sniff_override`, `route_only`, `socks_port`, `http_port` | With `split_inbounds`: the sniffing `destOverride` list (default `http`, `tls`, `quic`, `fakedns`), sniffing `routeOnly` (default off) and the two ports (default: the panel's own). All shown in the admin panel. |
 | `dns_out` | Add a `dns-out` outbound and a rule that sends DNS queries from the `socks` inbound to Xray's own DNS module. Only for configs that have DNS servers. |
 | `block_udp_443` + `quic_domains` | Block QUIC (UDP 443) for these domains (a built-in list unless you set `quic_domains`). |
 | `base_rules` | `true`: private and `.ir` destinations go direct. Or give your own list of rules. |
@@ -355,7 +372,6 @@ Everything is off unless you turn it on. `when` limits it to some configs.
 | `sampling` | Observatory `sampling` of **our** balancers: `{"fixed": 2}` or `{"members_div": 2, "extra": 2}` (members ÷ 2 + 2). |
 | `panel_balancers` | Tune the panel's own `leastLoad` balancers: `{"max_rtt": "2500ms", "few_max_members": 2, "expected_few": 1, "expected_many": 2}`. |
 | `remark_rewrite` | `[{ "if": "regex", "regex": "...", "replace": "..." }]` applied to each remark in order (`if` is optional). |
-| `decoy` | `{"param": "decoy", "default": false, "ping_url": "...", "when": {...}}`: a harmless `freedom` outbound tagged `decoy` as the **first** outbound, for apps that ping only the first one. `?decoy=1` turns it on, `?decoy=0` off, otherwise `default` decides. Real traffic keeps its routing. |
 
 ## `order`: the order of the result
 
