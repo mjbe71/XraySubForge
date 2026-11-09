@@ -293,6 +293,19 @@ order items (ids starting with `blk-`), placed after your own ones, so everythin
 | `settings.cipher` | One or more of `semi-python`, `real-firefox`, or your own `TLS_…:TLS_…` list; random as above. TLS configs only. |
 | `settings.fingerprint` | `chrome`, `firefox`, `safari`, `ios`, `android`, `edge`, `360`, `qq`, `random`, `randomized`, `unsafe` (TLS and Reality). |
 | `settings.strategy` | Balancers: `leastLoad` (default), `leastPing`, `random`, `roundRobin`. `leastLoad` and `leastPing` get a default probe. |
+| `settings.member_position` | Balancers: `[{ "when": {...}, "at": "first" \| "last" }]`, where matching members sit in the balancer (the first matching entry decides). |
+| `settings.member_patch` | Balancers: `[{ "when", "merge", "random" }]`, extra steps applied to every member after the fragment/cipher/fingerprint steps (for example `alpn` or `sockopt`). |
+| `settings.catchall_rules` | Balancers: the routing rules sent to the balancer, in this order (the balancer tag is filled in). Default: `{"network": "tcp,udp"}`. |
+| `settings.expand` | Balancers: the `expand` object (see below): several members per server. Wins over `pool`. |
+| `settings.entry_merge` | WARP blocks: an object merged into the WARP entry outbound (for example `sockopt`, or the account's keys with `{account.privateKey?}`). |
+| `settings.min_members` | Balancers: whole number, 1 or more; buckets with fewer members are not built (same as the group key). |
+| `settings.keep_members` | Balancers: `true` keeps the original single configs next to the balancer. |
+| `settings.include_balanced` | Balancers: `true` also uses configs that already have a balancer of the panel's own. |
+| `settings.probe_kind` | Balancers: `burst` or `observatory`; default by strategy (`burst` for `leastLoad`). |
+| `settings.position` | Balancers and WARP blocks: `top` or `bottom`. |
+| `settings.remove_exit` | WARP blocks: `true` removes the exit config from the result. |
+| `settings.patches` | List blocks: a list of patches (`stage`, `target`, `when`, `merge`, `routing_prepend`, `routing_append`) for this block's configs. |
+| `settings.choices`, `settings.entry`, `settings.endpoints` | WARP blocks: the chain keys of the same names (`choices`: object of lists; `entry`: outbound or `{account.x}` placeholder; `endpoints`: list or placeholder). |
 | `settings.pool` | Balancers: every member gets one copy per address in this list. |
 | `settings.name` | Balancers: the name, with `{block}`, `{country}` (the flag) and `{n}` (members). Default `{block} {country}` or `{block}`. |
 

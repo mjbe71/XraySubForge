@@ -5,7 +5,7 @@
       "list": [
         {"id": "fast", "name": "Fast", "type": "balancer", "per_country": true,
          "kinds": [{"remark": {"contains": "CF"}, "network": "xhttp"}],
-         "settings": {"fragment": ["tlshello-0-len", "tlshello-6-98"], "cipher": ["semi-python"],
+         "settings": {"fragment": ["tlshello-0-len", "tlshello-6-98"], "cipher": ["semi-python"], "load": {"expected": 2, "maxRTT": "2500ms"},
                       "fingerprint": "chrome", "strategy": "leastLoad", "pool": ["a.example.com"],
                       "name": "{block} {country}"}},
         {"id": "gone", "type": "drop", "kinds": [{"remark": {"contains": "test"}}]}
@@ -21,7 +21,7 @@ drop block took.
 import copy
 import re
 
-from .matching import check_when
+from .matching import check_catchall, check_member_patch, check_member_position, check_when
 
 BLOCK_TYPES = ("list", "balancer", "warp", "drop")
 BLOCK_KEYS = {"id", "name", "type", "kinds", "per_country", "flagless", "settings", "enabled", "advanced"}
@@ -29,8 +29,14 @@ BLOCK_KEYS = {"id", "name", "type", "kinds", "per_country", "flagless", "setting
 ADVANCED_GROUP_KEYS = {"params", "probe", "probe_kind", "member_cost", "min_members", "remove_members_from_output", "position",
                        "expand", "include_balanced", "member_position", "catchall_rules", "name", "split_by"}
 LIST_SETTINGS = {"fragment", "cipher", "fingerprint", "name"}
-BALANCER_SETTINGS = LIST_SETTINGS | {"strategy", "pool"}
-WARP_SETTINGS = {"warp", "pick", "name", "decoy"}
+BALANCER_SETTINGS = LIST_SETTINGS | {"strategy", "pool", "load", "probe", "cost", "member_position", "member_patch", "catchall_rules", "expand",
+                                          "min_members", "keep_members", "position", "include_balanced", "probe_kind"}
+# leastLoad parameters ("load": the strategy's settings) and how members are probed ("probe"). Xray has two probes:
+# leastLoad reads burstObservatory.pingConfig, leastPing reads observatory; leastPing has no strategy settings.
+LOAD_KEYS = {"expected": int, "maxRTT": str, "tolerance": float, "baselines": list}
+PROBE_KEYS = {"leastLoad": {"destination": str, "connectivity": str, "interval": str, "sampling": int, "timeout": str, "httpMethod": str},
+              "leastPing": {"probeUrl": str, "probeInterval": str, "enableConcurrency": bool}}
+WARP_SETTINGS = {"warp", "pick", "name", "decoy", "entry_merge", "position", "remove_exit", "choices", "entry", "endpoints"}
 # "decoy": "vless" puts an unused vless+TLS outbound in front of a WARP-only entry (some apps only load a masque config then)
 WARP_DECOY = [{"protocol": "vless", "tag": "decoy",
                "settings": {"address": "{entry.address}", "port": "{entry.port}", "id": "{user.id}", "encryption": "none"},
@@ -43,7 +49,8 @@ FINGERPRINTS = ("chrome", "firefox", "safari", "ios", "android", "edge", "360", 
 PREFIX = "blk-"
 FRAG_PATH = "streamSettings.finalmask.tcp"
 CIPHER_PATH = "streamSettings.tlsSettings.cipherSuites"
-DEFAULT_PROBE = {"destination": "https://www.gstatic.com/generate_204", "interval": "30s"}
+DEFAULT_PROBE = {"destination": "https://www.gstatic.com/generate_204", "interval": "30s"}          # leastLoad (burstObservatory)
+DEFAULT_PING_PROBE = {"probeUrl": "https://www.gstatic.com/generate_204", "probeInterval": "30s"}   # leastPing (observatory)
 _ID = re.compile(r"^[A-Za-z0-9_-]{1,40}$")
 
 # the shared preset names (the same ones 3x-ui offers for hosts)
@@ -151,7 +158,7 @@ def _check_block(b, where):
     s = b.get("settings", {})
     if not isinstance(s, dict):
         return p + ["%s.settings: must be an object" % where]
-    allowed = {"balancer": BALANCER_SETTINGS, "list": LIST_SETTINGS, "warp": WARP_SETTINGS}.get(btype, set())
+    allowed = {"balancer": BALANCER_SETTINGS, "list": LIST_SETTINGS | {"patches"}, "warp": WARP_SETTINGS}.get(btype, set())
     for k in s:
         if k not in allowed:
             p.append("%s.settings.%s: not available for a %s block" % (where, k, b.get("type", "list")))
@@ -165,6 +172,67 @@ def _check_block(b, where):
         p.append("%s.settings.fingerprint: must be one of %s" % (where, ", ".join(FINGERPRINTS)))
     if "strategy" in s and s["strategy"] not in STRATEGIES:
         p.append("%s.settings.strategy: must be one of %s" % (where, ", ".join(STRATEGIES)))
+    strat = s.get("strategy", "leastLoad")
+    for key, spec in (("load", LOAD_KEYS), ("probe", PROBE_KEYS.get(strat))):
+        if key not in s:
+            continue
+        if spec is None or (key == "load" and strat != "leastLoad"):
+            p.append("%s.settings.%s: not used by the %s strategy" % (where, key, strat))
+            continue
+        v = s[key]
+        if not isinstance(v, dict):
+            p.append("%s.settings.%s: must be an object" % (where, key))
+            continue
+        for k, x in v.items():
+            typ = spec.get(k)
+            if typ is None:
+                p.append("%s.settings.%s.%s: unknown key" % (where, key, k))
+                continue
+            if typ is list:
+                ok = isinstance(x, list) and all(isinstance(y, str) and y.strip() for y in x)
+            elif typ is bool:
+                ok = isinstance(x, bool)
+            else:
+                ok = isinstance(x, (int, float) if typ is float else typ) and not isinstance(x, bool) \
+                    and (typ is not int or x >= 0) and (typ is not str or bool(x.strip()))
+            if not ok:
+                p.append("%s.settings.%s.%s: wrong value" % (where, key, k))
+    if "cost" in s:
+        c = s["cost"]
+        if strat != "leastLoad":
+            p.append("%s.settings.cost: only the leastLoad strategy uses costs" % where)
+        elif not (isinstance(c, list) and all(isinstance(e, dict) and set(e) <= {"when", "value"} and isinstance(e.get("value"), (int, float))
+                                              and not isinstance(e.get("value"), bool) and e["value"] >= 0 for e in c)):
+            p.append('%s.settings.cost: must be a list of {"when": {...}, "value": number}; the first rule that matches a member wins, a rule without "when" is the default' % where)
+        else:
+            for n, e in enumerate(c):
+                p += check_when(e.get("when"), "%s.settings.cost[%d].when" % (where, n)) if "when" in e else []
+    for key, check in (("member_position", check_member_position), ("member_patch", check_member_patch), ("catchall_rules", check_catchall)):
+        if key in s:
+            p += check(s[key], "%s.settings.%s" % (where, key))
+    if "min_members" in s and not (isinstance(s["min_members"], int) and not isinstance(s["min_members"], bool) and s["min_members"] >= 1):
+        p.append("%s.settings.min_members: must be a whole number, 1 or more" % where)
+    for key in ("keep_members", "include_balanced", "remove_exit"):
+        if key in s and not isinstance(s[key], bool):
+            p.append("%s.settings.%s: must be true or false" % (where, key))
+    if "position" in s and s["position"] not in ("top", "bottom"):
+        p.append('%s.settings.position: must be "top" or "bottom"' % where)
+    if "probe_kind" in s and s["probe_kind"] not in ("burst", "observatory"):
+        p.append('%s.settings.probe_kind: must be "burst" or "observatory"' % where)
+    if "patches" in s:
+        pt = s["patches"]
+        if not (isinstance(pt, list) and all(isinstance(x, dict) and all(k in PATCH_KEYS for k in x) for x in pt)):
+            p.append("%s.settings.patches: a list of patches (%s)" % (where, ", ".join(sorted(PATCH_KEYS))))
+    if "choices" in s and not (isinstance(s["choices"], dict) and all(isinstance(v, list) and v for v in s["choices"].values())):
+        p.append("%s.settings.choices: must be an object of non-empty lists" % where)
+    if "entry" in s and not ((isinstance(s["entry"], dict) and s["entry"]) or (isinstance(s["entry"], str) and re.fullmatch(r"\{account\.[A-Za-z0-9_.\-]+\}", s["entry"]))):
+        p.append("%s.settings.entry: an outbound object, or one {account.x} placeholder" % where)
+    if "endpoints" in s and not ((isinstance(s["endpoints"], list) and s["endpoints"] and all(isinstance(x, str) for x in s["endpoints"]))
+                                 or (isinstance(s["endpoints"], str) and s["endpoints"].startswith("{account."))):
+        p.append("%s.settings.endpoints: a list of addresses, or one {account.x} placeholder" % where)
+    for key in ("expand", "entry_merge"):
+        if key in s and not isinstance(s[key], dict):
+            p.append("%s.settings.%s: must be an object" % (where, key))
     if "pool" in s and not (isinstance(s["pool"], list) and s["pool"] and all(isinstance(a, str) and a.strip() for a in s["pool"])):
         p.append("%s.settings.pool: must be a list of addresses" % where)
     if "name" in s and not isinstance(s["name"], str):
@@ -260,7 +328,7 @@ def compile_blocks(raw):
                 if rnd:
                     patch["random"] = rnd
                 out["patches"].append(patch)
-            for i, extra in enumerate((b.get("advanced") or {}).get("patches") or [], 1):
+            for i, extra in enumerate(copy.deepcopy(s.get("patches") or []) + list((b.get("advanced") or {}).get("patches") or []), 1):
                 patch = dict(extra, id="%s-adv%d" % (gid, i))
                 patch["when"] = {"all": [claim, extra["when"]]} if extra.get("when") else claim
                 out["patches"].append(patch)
@@ -279,6 +347,15 @@ def compile_blocks(raw):
                 chain["exit"] = False
                 if s.get("decoy") == "vless":
                     chain["before"] = copy.deepcopy(WARP_DECOY)
+            for key in ("choices", "entry", "endpoints"):
+                if s.get(key):
+                    chain[key] = copy.deepcopy(s[key])
+            if s.get("position"):
+                chain["position"] = s["position"]
+            if s.get("remove_exit"):
+                chain["remove_exit_from_output"] = True
+            if isinstance(s.get("entry_merge"), dict) and s["entry_merge"]:
+                chain["entry_merge"] = copy.deepcopy(s["entry_merge"])
             chain.update((b.get("advanced") or {}).get("chain") or {})
             out["chains"].append(chain)
             gtag = re.escape(re.sub(r"[^A-Za-z0-9]+", "-", gid).strip("-"))
@@ -288,8 +365,16 @@ def compile_blocks(raw):
         strategy = s.get("strategy", "leastLoad")
         group = {"id": gid, "when": claim, "type": strategy,
                  "name": _name(s.get("name"), b.get("name") or bid, b.get("per_country", False))}
-        if strategy in ("leastLoad", "leastPing"):
+        if strategy == "leastLoad":
             group["probe"] = dict(DEFAULT_PROBE)
+        elif strategy == "leastPing":
+            group["probe"] = dict(DEFAULT_PING_PROBE)
+        if s.get("probe") and "probe" in group:
+            group["probe"].update(s["probe"])
+        if s.get("load"):
+            group["params"] = dict(s["load"])
+        if s.get("cost"):
+            group["member_cost"] = copy.deepcopy(s["cost"])
         if b.get("per_country"):
             group["split_by"] = {"field": "flag", "regex": "(.+)"}
         steps = []
@@ -302,10 +387,27 @@ def compile_blocks(raw):
             if rnd:
                 step["random"] = rnd
             steps.append(step)
+        steps += copy.deepcopy(s.get("member_patch") or [])
         if steps:
             group["member_patch"] = steps
+        if s.get("member_position"):
+            group["member_position"] = copy.deepcopy(s["member_position"])
+        if s.get("catchall_rules"):
+            group["catchall_rules"] = copy.deepcopy(s["catchall_rules"])
         if s.get("pool"):
             group["expand"] = {"addresses": list(s["pool"]), "copies": len(s["pool"]), "pick": "random"}
+        if s.get("min_members"):
+            group["min_members"] = s["min_members"]
+        if s.get("keep_members"):
+            group["remove_members_from_output"] = False
+        if s.get("position"):
+            group["position"] = s["position"]
+        if s.get("include_balanced"):
+            group["include_balanced"] = True
+        if s.get("probe_kind"):
+            group["probe_kind"] = s["probe_kind"]
+        if isinstance(s.get("expand"), dict) and s["expand"]:
+            group["expand"] = copy.deepcopy(s["expand"])      # the full form wins over the plain address pool
         adv = b.get("advanced") or {}
         group.update(adv.get("group") or {})            # kept as they were (a converted classic group)
         if adv.get("member_patch"):

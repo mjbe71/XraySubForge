@@ -180,3 +180,44 @@ def check_when(when, where):
                 elif op in ("in", "not_in") and not isinstance(arg, list):
                     problems.append("%s.%s.%s: must be a list" % (where, key, op))
     return problems
+
+
+def check_member_position(mp, where):
+    """[{"when": {...}, "at": "first"|"last"}] -> list of problems."""
+    if not isinstance(mp, list):
+        return ["%s: must be a list" % where]
+    p = []
+    for i, e in enumerate(mp):
+        if not (isinstance(e, dict) and e.get("at") in ("first", "last")):
+            p.append('%s[%d]: needs {"when": {...}, "at": "first" or "last"}' % (where, i))
+        else:
+            p += check_when(e.get("when"), "%s[%d].when" % (where, i))
+    return p
+
+
+def check_member_patch(mpt, where):
+    """[{"when", "merge", "random"}] -> list of problems."""
+    if not isinstance(mpt, list):
+        return ["%s: must be a list" % where]
+    p = []
+    for i, e in enumerate(mpt):
+        w = "%s[%d]" % (where, i)
+        if not isinstance(e, dict):
+            p.append("%s: must be an object" % w)
+            continue
+        for k in e:
+            if k not in ("when", "merge", "random") and not k.startswith("_"):
+                p.append("%s: unknown key %r" % (w, k))
+        p += check_when(e.get("when"), w + ".when")
+        if "merge" in e and not isinstance(e["merge"], dict):
+            p.append("%s.merge: must be an object" % w)
+        rnd = e.get("random")
+        if rnd is not None and not (isinstance(rnd, dict) and all(isinstance(v, list) and v for v in rnd.values())):
+            p.append('%s.random: must be {"dotted.path": [option, ...]}' % w)
+    return p
+
+
+def check_catchall(cr, where):
+    if not (isinstance(cr, list) and cr and all(isinstance(r, dict) for r in cr)):
+        return ["%s: must be a non-empty list of routing rules (the balancer tag is filled in)" % where]
+    return []

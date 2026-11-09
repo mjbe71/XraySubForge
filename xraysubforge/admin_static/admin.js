@@ -235,7 +235,7 @@
     jsonUrl: "JSON subscription URL (optional)", doneLinkJson: "JSON subscription link:",
     proxyOnBanner: "Proxy mode is on: rules, balancers, chains and patches are not applied. Change this in Start or Settings.",
     mpTitle: "Member patches", mpHint: "Changes applied to every config that joins this balancer. Patches run in order.",
-    mpPatch: "Patch", mpAll: "every member", mpAdd: "+ Patch", mpMerge: "Merge (JSON)", mpMergeHint: "Always applied, e.g. fingerprint, alpn, sockopt.",
+    mpPatch: "Patch", mpAll: "every member", mpAdd: "+ Patch", mpMerge: "Merge", mpMergeHint: "Always applied, e.g. fingerprint, alpn, sockopt.",
     mpRandom: "Random choice", mpRandomHint: "Each config gets one of the presets, picked at random.",
     mpFragment: "Fragment presets", mpCipher: "Cipher suites presets", mpOther: "Other random choices (JSON)",
     mpAddFragment: "+ Fragment presets", mpAddCipher: "+ Cipher suites presets", mpAddPreset: "Add preset…", mpCustom: "Custom", mpAddStep: "+ Step", mpRemoveStep: "Remove step",
@@ -361,7 +361,7 @@
     rawWarn: "The JSON subscription is the better source: it carries everything the panel knows (its DNS and routing, the hosts' fragment / Final Mask, mux, sockopt and more). Links carry only part of it, so those settings are lost unless you add them again here, and some types (masque, hysteria2, tuic, wireguard) are not read at all. Use raw links only when you cannot turn the JSON subscription on.",
     versionTitle: "The version of this panel (and the git commit, for a git checkout)",
     jsonTemplate: "Client config for links (JSON)", jsonTemplateHint: "Raw links only: inbounds, DNS and routing each built config gets. Empty = a built-in one.",
-    bNotPlaced: "not placed yet", bIn: "in {b}", bRemovedWhere: "removed", bPick: "Pick", bPicked: "Picked", bMoveHere: "Move here",
+    bSelHint: "Ctrl/Cmd+click selects several, Shift+click a range; drag them together or use Move here.", bSelN: "{n} selected", bSelClear: "Clear", bNotPlaced: "not placed yet", bIn: "in {b}", bRemovedWhere: "removed", bPick: "Pick", bPicked: "Picked", bMoveHere: "Move here",
     bDropHere: "Drop kinds here", bList: "List", bBalancer: "Balancer", bPerCountry: "One per country",
     bUp: "Move block up", bDown: "Move block down", bDelete: "Delete block", bTakeOut: "Take out of this block", bBlockName: "Block name",
     bAddList: "+ List block", bAddBalancer: "+ Balancer per country", bNewBlock: "Block {n}", bNewBalancer: "Balancer {n}",
@@ -372,6 +372,26 @@
     bDefault: "Back to default", bRandom: "random", bAddCustom: "Add custom", bAddAddress: "Add address",
     bCustomFrag: "Your own: packets, lengths, delays (e.g. tlshello, 10-20, 1)", bCustomCipher: "Your own list: TLS_…:TLS_…", bAddressPh: "Address or domain",
     bAddresses: "{n} addresses", bExample: "Example: {x}",
+    pMerge: "Merge", pRoutePre: "Routing rules added first", pRoutePost: "Routing rules added last",
+    s_choices: "Choices", h_choices: "Lists of values; each user gets one value of each list (the same one every time), available as {choice.name} in the entry.", chName: "name", chValues: "values, separated by commas", chAdd: "+ List",
+    s_entry: "Entry outbound", h_entry: "The outbound dialed through the exit: a {account.x} placeholder, or the outbound itself.", entryText: "placeholder", entryObj: "outbound (path = value)",
+    s_endpoints: "Endpoints", h_endpoints: "Addresses the entry connects to (host:port, one per user), or one {account.x} placeholder.",
+    s_patches: "Patches", h_patches: "Changes for this block's configs: merge values, or add routing rules before / after the existing ones.", bNPatches: "{n} patches", bNLists: "{n} lists",
+    s_min_members: "Minimum members", h_min_members: "A balancer is built only when it would have at least this many members; otherwise its configs stay as they were.",
+    s_keep_members: "Keep single configs", h_keep_members: "Keep the original single configs next to the balancer instead of replacing them.", bKeepMembers: "kept next to the balancer",
+    s_include_balanced: "Include panel balancers", h_include_balanced: "Also use configs that already have a balancer of the panel's own.", bIncludeBalanced: "included",
+    s_probe_kind: "Probe type", h_probe_kind: "Which Xray probe measures the members. Default: burstObservatory for leastLoad, observatory for the others.",
+    s_position: "Position", h_position: "Put the result at the top or the bottom of the subscription, whatever the block order says.", bPosTop: "top", bPosBottom: "bottom",
+    s_remove_exit: "Remove the exit config", h_remove_exit: "Take the config the WARP chain starts from out of the result.", bRemoveExit: "removed",
+    s_expand: "Copies per server", h_expand: "Several members per server: one copy of each config per address, grouped by server. Replaces the plain address pool.",
+    s_entry_merge: "Entry changes", h_entry_merge: "Values merged into the WARP entry outbound, e.g. sockopt or the account's keys ({account.privateKey?}).",
+    kvPath: "path (a.b.c)", kvValue: "value", kvAdd: "+ Value", kvHint: "A value is JSON when it parses (true, 5, null, [..]); otherwise text. null deletes the key.",
+    bRule: "Rule", bRuleAdd: "+ Rule", bRuleKept: "Also kept as they are: {k}", bExpandSum: "{n} copies", bNPaths: "{n} values",
+    s_member_position: "Member order", h_member_position: "Where matching configs sit inside the balancer. The first rule that matches a config decides.",
+    s_member_patch: "Member patches", h_member_patch: "Changes applied to every config that joins this balancer (for example alpn or sockopt). Patches run in order.",
+    s_catchall_rules: "Catch-all rules", h_catchall_rules: "The routing rules sent to the balancer, in this order (JSON list; the balancer tag is filled in). Default: tcp and udp.",
+    bMoveAdv: "Move to settings", bMoveAdvHint: "Parameters, probe, cost, member order, catch-all rules and member patches have settings of their own. Moving them changes nothing in the result.",
+    bNSteps: "{n} patches", bNRules: "{n} rules", bPosAt: "position", bPos_first: "first", bPos_last: "last", bPosAdd: "+ Order rule",
     s_fragment: "Fragment", s_cipher: "Cipher suites", s_fingerprint: "Fingerprint", s_strategy: "Strategy", s_pool: "Address pool", s_name: "Name",
     h_fragment: "Pick one or more. With several, each config gets one of them at random.",
     h_cipher: "Pick one or more. With several, each config gets one of them at random. TLS configs only.",
@@ -385,6 +405,8 @@
     advRules: "Rules and order", advPatches: "Patches", advJson: "JSON",
     bWarp: "WARP", bAddWarp: "+ WARP block", bNewWarp: "WARP {n}", s_warp: "Route", s_pick: "WARP endpoint",
     h_warp: "WARP, then the exit server of the config; or WARP alone.", h_pick: "Which WARP endpoint each user gets.",
+    bCostTitle: "Cost per member", bCostHint: "The first rule that matches a config sets its cost (higher = chosen less often). A rule without a condition is the default.", bCostValue: "cost", bCostWhen: "when", bCostAdd: "+ Cost rule", bCostAll: "every other config",
+    bLoadParams: "leastLoad parameters (empty = Xray default)", bProbeParams: "Probe (how members are measured)", bNoParams: "This strategy has no parameters.", s_load: "leastLoad parameters", h_load: "expected, maxRTT and tolerance of the leastLoad strategy. Empty fields use Xray's own defaults.", s_probe: "Probe", h_probe: "How the balancer measures its members: URL, method, interval, number of samples and timeout.",
     s_decoy: "Decoy outbound", h_decoy: "With WARP only: an unused vless+TLS outbound in front, so apps that refuse a lone masque config load it.", bDecoyVless: "vless + TLS (unused)", bWarpExit: "WARP, then the exit", bWarpOnly: "WARP only", bPickRandom: "random on every update", bPickUser: "fixed per user",
     bAdvancedJson: "Advanced (JSON)", bAdvBalancer: "\"group\": extra balancer keys (params, probe, expand, …); \"member_patch\": extra steps for every member.",
     bAdvList: "\"patches\": a list of patches (merge, random, routing_prepend, …) applied to this block's configs.",
@@ -412,7 +434,7 @@
     rawWarn: "ساب JSON منبع بهتری است: هر چیزی که پنل می‌داند را دارد (DNS و routing پنل، fragment / Final Mask هاست‌ها، mux، sockopt و بیشتر). لینک‌ها فقط بخشی از این‌ها را دارند، پس آن تنظیمات از دست می‌روند مگر اینکه اینجا دوباره اضافه‌شان کنید، و بعضی نوع‌ها (masque، hysteria2، tuic، wireguard) اصلاً خوانده نمی‌شوند. لینک خام را فقط وقتی انتخاب کنید که نمی‌توانید ساب JSON را روشن کنید.",
     rawModeLabel: "لینک خام برای کاربران", rawPass: "لینک‌های پنل، بدون تغییر", rawEngine: "با قوانین و بلوک‌های من",
     rawModeHint: "لینک‌ها تنظیمات کمتری از JSON دارند: بالانسر به اعضایش تبدیل می‌شود و fragment و cipher suites حذف می‌شوند.",
-    bNotPlaced: "هنوز جایی نیست", bIn: "در {b}", bRemovedWhere: "حذف‌شده", bPick: "انتخاب", bPicked: "انتخاب شد", bMoveHere: "انتقال به اینجا",
+    bSelHint: "Ctrl/Cmd+کلیک چند مورد و Shift+کلیک یک بازه را انتخاب می‌کند؛ با هم بکشید یا «انتقال به اینجا» بزنید.", bSelN: "{n} انتخاب شد", bSelClear: "پاک کردن", bNotPlaced: "هنوز جایی نیست", bIn: "در {b}", bRemovedWhere: "حذف‌شده", bPick: "انتخاب", bPicked: "انتخاب شد", bMoveHere: "انتقال به اینجا",
     bDropHere: "گونه‌ها را اینجا رها کنید", bList: "فهرست", bBalancer: "بالانسر", bPerCountry: "یکی برای هر کشور",
     bUp: "بالا بردن بلوک", bDown: "پایین بردن بلوک", bDelete: "حذف بلوک", bTakeOut: "بیرون آوردن از این بلوک", bBlockName: "نام بلوک",
     bAddList: "+ بلوک فهرست", bAddBalancer: "+ بالانسر هر کشور", bNewBlock: "بلوک {n}", bNewBalancer: "بالانسر {n}",
@@ -434,6 +456,28 @@
     advRules: "قوانین و ترتیب", advPatches: "پچ‌ها", advJson: "JSON",
     bAddWarp: "+ بلوک WARP", bNewWarp: "WARP {n}", s_warp: "مسیر", s_pick: "endpoint وارپ",
     h_warp: "اول WARP، بعد سرور خروجی کانفیگ؛ یا فقط WARP.", h_pick: "هر کاربر کدام endpoint وارپ را بگیرد.",
+    bCostTitle: "Cost هر عضو", bCostHint: "اولین قانونی که با یک کانفیگ جور شود cost آن را تعیین می‌کند (بیشتر = کمتر انتخاب می‌شود). قانون بدون شرط، پیش‌فرض است.", bCostValue: "cost", bCostWhen: "شرط", bCostAdd: "+ قانون cost", bCostAll: "بقیهٔ کانفیگ‌ها",
+    pMerge: "ادغام", pRoutePre: "قوانین مسیریابی که اول اضافه می‌شوند", pRoutePost: "قوانین مسیریابی که آخر اضافه می‌شوند",
+    s_choices: "Choices", h_choices: "لیست‌هایی از مقدار؛ هر کاربر از هر لیست یک مقدار می‌گیرد (همیشه همان) و در entry به شکل {choice.name} قابل استفاده است.", chName: "نام", chValues: "مقدارها، با ویرگول جدا شوند", chAdd: "+ لیست",
+    s_entry: "Entry outbound", h_entry: "outbound که از طریق خروج وصل می‌شود: یک placeholder مثل {account.x} یا خود outbound.", entryText: "placeholder", entryObj: "outbound (مسیر = مقدار)",
+    s_endpoints: "Endpoints", h_endpoints: "آدرس‌هایی که entry به آن‌ها وصل می‌شود (host:port، برای هر کاربر یکی) یا یک placeholder مثل {account.x}.",
+    s_patches: "Patches", h_patches: "تغییرات برای کانفیگ‌های این بلوک: ادغام مقدار، یا افزودن قانون مسیریابی قبل / بعد از قوانین موجود.", bNPatches: "{n} patch", bNLists: "{n} لیست",
+    s_min_members: "حداقل اعضا", h_min_members: "بالانسر فقط وقتی ساخته می‌شود که دست‌کم این تعداد عضو داشته باشد؛ وگرنه کانفیگ‌ها همان‌طور می‌مانند.",
+    s_keep_members: "نگه‌داشتن کانفیگ‌های تکی", h_keep_members: "کانفیگ‌های تکی اصلی کنار بالانسر می‌مانند و جایگزین نمی‌شوند.", bKeepMembers: "کنار بالانسر می‌ماند",
+    s_include_balanced: "شامل بالانسرهای پنل", h_include_balanced: "کانفیگ‌هایی که از قبل بالانسر خود پنل را دارند هم استفاده می‌شوند.", bIncludeBalanced: "شامل",
+    s_probe_kind: "نوع probe", h_probe_kind: "کدام probe ایکس‌ری اعضا را اندازه بگیرد. پیش‌فرض: burstObservatory برای leastLoad و observatory برای بقیه.",
+    s_position: "جایگاه", h_position: "نتیجه بالا یا پایین اشتراک قرار بگیرد، فارغ از ترتیب بلوک‌ها.", bPosTop: "بالا", bPosBottom: "پایین",
+    s_remove_exit: "حذف کانفیگ خروج", h_remove_exit: "کانفیگی که زنجیرهٔ WARP از آن شروع می‌شود از نتیجه حذف می‌شود.", bRemoveExit: "حذف می‌شود",
+    s_expand: "Copies per server", h_expand: "چند عضو برای هر سرور: از هر کانفیگ به ازای هر آدرس یک کپی، گروه‌بندی‌شده بر اساس سرور. جایگزین Address pool ساده می‌شود.",
+    s_entry_merge: "تغییرات Entry", h_entry_merge: "مقادیری که در outbound ورودی WARP ادغام می‌شوند، مثل sockopt یا کلیدهای حساب ({account.privateKey?}).",
+    kvPath: "مسیر (a.b.c)", kvValue: "مقدار", kvAdd: "+ مقدار", kvHint: "مقدار اگر JSON معتبر باشد (true، 5، null، [..]) همان است، وگرنه متن. null کلید را حذف می‌کند.",
+    bRule: "قانون", bRuleAdd: "+ قانون", bRuleKept: "این‌ها هم همان‌طور نگه داشته می‌شوند: {k}", bExpandSum: "{n} کپی", bNPaths: "{n} مقدار",
+    s_member_position: "ترتیب اعضا", h_member_position: "جای کانفیگ‌های جورشده داخل بالانسر. اولین قانونی که با کانفیگ جور شود تعیین می‌کند.",
+    s_member_patch: "Patch اعضا", h_member_patch: "تغییراتی که روی هر کانفیگ عضو این بالانسر اعمال می‌شود (مثلاً alpn یا sockopt). به ترتیب اجرا می‌شوند.",
+    s_catchall_rules: "قوانین Catch-all", h_catchall_rules: "قوانین مسیریابی که به بالانسر می‌روند، به همین ترتیب (لیست JSON؛ تگ بالانسر خودکار پر می‌شود). پیش‌فرض: tcp و udp.",
+    bMoveAdv: "انتقال به Settings", bMoveAdvHint: "پارامترها، probe، cost، ترتیب اعضا، قوانین catch-all و patchهای اعضا Setting خودشان را دارند. انتقال، نتیجه را تغییر نمی‌دهد.",
+    bNSteps: "{n} patch", bNRules: "{n} قانون", bPosAt: "جایگاه", bPos_first: "اول", bPos_last: "آخر", bPosAdd: "+ قانون ترتیب",
+    bLoadParams: "پارامترهای leastLoad (خالی = پیش‌فرض Xray)", bProbeParams: "Probe (نحوهٔ اندازه‌گیری اعضا)", bNoParams: "این استراتژی پارامتری ندارد.", s_load: "پارامترهای leastLoad", h_load: "expected و maxRTT و tolerance در استراتژی leastLoad. فیلد خالی = پیش‌فرض Xray.", s_probe: "Probe", h_probe: "نحوهٔ اندازه‌گیری اعضای بالانسر: آدرس، متد، فاصله، تعداد نمونه و timeout.",
     s_decoy: "outbound طعمه", h_decoy: "فقط با WARP تنها: یک outbound خالی vless+TLS در ابتدا می‌آید تا برنامه‌هایی که masque تنها را قبول نمی‌کنند، کانفیگ را باز کنند.", bDecoyVless: "vless + TLS (بدون استفاده)", bWarpExit: "WARP، بعد خروجی", bWarpOnly: "فقط WARP", bPickRandom: "تصادفی در هر به‌روزرسانی", bPickUser: "ثابت برای هر کاربر",
     domainsTitle: "دامنه‌های بیشتر", domainsHint: "هر دامنه گواهی خودش را دارد و بر اساس نامی که اپ به آن وصل می‌شود انتخاب می‌شود (مثلاً یکی پشت Cloudflare با گواهی Origin کلادفلر، یکی پشت یک CDN دیگر). همهٔ دامنه‌ها باید به این سرور اشاره کنند. نیاز به راه‌اندازی دوباره دارد.",
     dom_name: "دامنه", dom_cert: "گواهی (fullchain)", dom_key: "کلید خصوصی", domainAdd: "+ دامنه",
@@ -1654,7 +1698,7 @@
         const card = h("details", { class: "sect" },
           h("summary", {}, t("mpPatch") + " " + (idx + 1) + ": " + (p.when ? describeWhen(p.when) : t("mpAll"))),
           whenEditor(p),
-          field(t("mpMerge"), bindJSON(p, "merge", 6), t("mpMergeHint"), true),
+          h("div", { class: "f wide" }, t("mpMerge"), mergeEditor(p, "merge"), h("span", { class: "hint" }, t("mpMergeHint"))),
           randomEditor(p),
           h("div", { class: "row" },
             h("button", { type: "button", onclick: () => move(-1), "aria-label": "↑" }, "↑"),
@@ -1679,6 +1723,25 @@
     { key: "cipher", kind: "multi", options: ["semi-python", "real-firefox"], def: ["semi-python", "real-firefox"], ph: "bCustomCipher", add: "bAddCustom", types: ["list", "balancer"] },
     { key: "fingerprint", kind: "one", options: ["chrome", "firefox", "safari", "ios", "android", "edge", "random", "randomized"], def: "chrome", types: ["list", "balancer"] },
     { key: "strategy", kind: "one", options: ["leastLoad", "leastPing", "random", "roundRobin"], def: "leastLoad", types: ["balancer"] },
+    // the parameters of the chosen strategy are edited inside the Strategy setting (see bStrategyFields), not as settings of their own
+    { key: "load", kind: "fields", hidden: true, def: {}, types: ["balancer"] },
+    { key: "probe", kind: "fields", hidden: true, def: {}, types: ["balancer"] },
+    { key: "cost", kind: "fields", hidden: true, def: [], types: ["balancer"] },
+    { key: "member_position", kind: "custom", def: [{ at: "last" }], types: ["balancer"] },
+    { key: "member_patch", kind: "custom", def: [], types: ["balancer"] },
+    { key: "catchall_rules", kind: "custom", def: [{ network: "tcp,udp" }], types: ["balancer"] },
+    { key: "min_members", kind: "num", def: 2, types: ["balancer"] },
+    { key: "keep_members", kind: "one", options: ["keep"], labels: { keep: "bKeepMembers" }, def: true, types: ["balancer"] },
+    { key: "include_balanced", kind: "one", options: ["include"], labels: { include: "bIncludeBalanced" }, def: true, types: ["balancer"] },
+    { key: "probe_kind", kind: "one", options: ["burst", "observatory"], labels: { burst: "burstObservatory", observatory: "observatory" }, def: "burst", types: ["balancer"] },
+    { key: "position", kind: "one", options: ["top", "bottom"], labels: { top: "bPosTop", bottom: "bPosBottom" }, def: "top", types: ["balancer", "warp"] },
+    { key: "remove_exit", kind: "one", options: ["remove"], labels: { remove: "bRemoveExit" }, def: true, types: ["warp"] },
+    { key: "expand", kind: "custom", def: { copies: 2 }, types: ["balancer"] },
+    { key: "entry_merge", kind: "custom", def: {}, types: ["warp"] },
+    { key: "choices", kind: "custom", def: { endpoint: ["1.2.3.4", "5.6.7.8"] }, types: ["warp"] },
+    { key: "entry", kind: "custom", def: "{account.masque.outbound}", types: ["warp"] },
+    { key: "endpoints", kind: "custom", def: "{account.masque.endpoints}", types: ["warp"] },
+    { key: "patches", kind: "custom", def: [], types: ["list"] },
     { key: "pool", kind: "list", def: ["a.example.com", "b.example.com"], ph: "bAddressPh", add: "bAddAddress", types: ["balancer"] },
     { key: "name", kind: "text", def: "{block} {country}", types: ["list", "balancer", "warp"] },
   ];
@@ -1693,6 +1756,7 @@
   const bView = () => (isObj(cfg.blocks) && Array.isArray(cfg.blocks.list) ? cfg.blocks : bEmpty());
   const condOnly = (w) => Object.fromEntries(Object.entries(w || {}).filter(([k]) => !k.startsWith("_")));
   const kkey = (w) => canon(condOnly(w));
+  let bSel = [], bSelLast = -1;   // several sample kinds selected (Ctrl/Cmd+click toggles, Shift+click selects a range)
   let bKinds = null, bKindsFor = null, bPick = null, bDrag = null, bOver = null, bOpen = null, bMenu = null, bDraft = "";
   let bPast = [], bFuture = [];
   const bNewCond = {};
@@ -1747,7 +1811,7 @@
     bFuture = [];
     if (!isObj(cfg.blocks) || !Array.isArray(cfg.blocks.list)) cfg.blocks = bEmpty();
     fn(cfg.blocks);
-    bPick = null; bOver = null; bDrag = null;
+    bPick = null; bOver = null; bDrag = null; bSel = []; bSelLast = -1;
     if (!keepOpen) bDraft = "";
     changed(); drawEditor();
   }
@@ -1755,24 +1819,30 @@
     JSON.parse(snap).forEach((v, n) => { const k = B_SNAP[n]; if (v === null) delete cfg[k]; else cfg[k] = v; });
     changed(); drawEditor();
   }
-  function bMove(cond, target, fromSource) {   // target: a block index, "trash" or "rest"
-    if (!cond) return;
-    const key = kkey(cond);
+  function bMove(cond, target, fromSource) {   // cond: one kind or an array of them; target: a block index, "trash" or "rest"
+    const conds = (Array.isArray(cond) ? cond : [cond]).filter(Boolean);
+    if (!conds.length) return;
     bChange((b) => {
       const toBalancer = typeof target === "number" && b.list[target] && b.list[target].type === "balancer";
-      b.list.forEach((x, n) => {
-        if (fromSource && toBalancer && x.type === "balancer" && n !== target) return;   // a copy: the other balancers keep it
-        x.kinds = (x.kinds || []).filter((w) => kkey(w) !== key);
-      });
+      for (const one of conds) {
+        const key = kkey(one);
+        b.list.forEach((x, n) => {
+          if (fromSource && toBalancer && x.type === "balancer" && n !== target) return;   // a copy: the other balancers keep it
+          x.kinds = (x.kinds || []).filter((w) => kkey(w) !== key);
+        });
+      }
       if (target === "rest") return;
       let i = target;
       if (target === "trash") {
         i = b.list.findIndex((x) => x.type === "drop");
         if (i < 0) { b.list.push({ id: nextId("removed", b.list), type: "drop", kinds: [] }); i = b.list.length - 1; }
       }
-      b.list[i].kinds = (b.list[i].kinds || []).concat([JSON.parse(JSON.stringify(cond))]);
+      b.list[i].kinds = (b.list[i].kinds || []).concat(conds.map((c) => JSON.parse(JSON.stringify(c))));
     });
   }
+  // what a "Move here" / "Remove" press moves: the selected kinds, else the single picked one
+  const bPicked = () => (bSel.length && bKinds ? bKinds.filter((k) => bSel.includes(kkey(k.when))).map(bCond) : bPick);
+  const bHasPick = () => !!(bSel.length || bPick);
   const bCond = (k) => Object.assign({ _label: (k.flag ? k.flag + " " : "") + k.label }, k.when);
   let bDragSource = false;
   function bDragProps(cond, fromSource) {
@@ -1788,9 +1858,294 @@
   function bSummary(key, v) {
     const d = B_DEF[key];
     if (d.kind === "multi") return v.map((x) => (d.options.includes(x) ? x : t("bCustom"))).join(" · ") + (v.length > 1 ? ", " + t("bRandom") : "");
+    if (key === "expand") return t("bExpandSum", { n: v.copies || 1 });
+    if (key === "entry_merge") return t("bNPaths", { n: kvFlat(v, "", []).length });
+    if (key === "choices") return t("bNLists", { n: Object.keys(v).length });
+    if (key === "entry") return typeof v === "string" ? v : t("bNPaths", { n: kvFlat(v, "", []).length });
+    if (key === "endpoints") return Array.isArray(v) ? t("bAddresses", { n: v.length }) : v;
+    if (key === "patches") return t("bNPatches", { n: v.length });
+    if (d.kind === "custom") return t(key === "member_patch" ? "bNSteps" : "bNRules", { n: v.length });
     if (d.kind === "list") return t("bAddresses", { n: v.length }) + (v.length > 1 ? ", " + t("bRandom") : "");
+    if (d.kind === "num") return String(v);
+    if (typeof d.def === "boolean") return bLabel(d, d.options[0]);
     return bLabel(d, v);
   }
+  // Xray's two probes: leastLoad reads burstObservatory.pingConfig, leastPing reads observatory; only leastLoad has strategy settings
+  const B_PROBE_DEFAULT = {
+    leastLoad: { destination: "https://www.gstatic.com/generate_204", interval: "30s" },
+    leastPing: { probeUrl: "https://www.gstatic.com/generate_204", probeInterval: "30s" },
+  };
+  const B_LOAD_FIELDS = [["expected", "num", ""], ["maxRTT", "text", "2500ms"], ["tolerance", "num", "0.01"], ["baselines", "list", "1s, 2s"]];
+  const B_PROBE_FIELDS = {
+    leastLoad: [["destination", "text", "https://www.gstatic.com/generate_204"], ["connectivity", "text", ""], ["interval", "text", "30s"], ["sampling", "num", "10"], ["timeout", "text", "5s"], ["httpMethod", "text", "HEAD"]],
+    leastPing: [["probeUrl", "text", "https://www.gstatic.com/generate_204"], ["probeInterval", "text", "30s"], ["enableConcurrency", "bool", ""]],
+  };
+  const bStash = {};                 // block id -> {strategy: {load, probe, cost}} of the strategies switched away from
+  const bCostOpen = new WeakSet();   // cost rows whose condition editor is open (new rows start open, the others folded)
+  function bStrategyFields(blk, strategy) {
+    const grid = (obj, fields, label) => {
+      const set = (k, kind, raw) => {
+        const val = raw.trim();
+        if (val === "") delete obj[k];
+        else if (kind === "num") obj[k] = Number(val);
+        else if (kind === "bool") obj[k] = val === "true";
+        else if (kind === "list") obj[k] = val.split(",").map((x) => x.trim()).filter(Boolean);
+        else obj[k] = val;
+        changed();
+      };
+      return h("div", {}, h("strong", { class: "hint" }, t(label)),
+        h("div", { class: "grid" }, fields.map(([k, kind, ph]) => {
+          const cur = obj[k];
+          const input = kind === "bool"
+            ? h("select", { "aria-label": k, onchange: (e) => set(k, kind, e.target.value) },
+                ["", "true", "false"].map((o) => h("option", { value: o, selected: String(cur === undefined ? "" : cur) === o }, o || "—")))
+            : h("input", { type: kind === "num" ? "number" : "text", step: "any", placeholder: ph, "aria-label": k,
+                value: cur === undefined ? "" : Array.isArray(cur) ? cur.join(", ") : cur, oninput: (e) => set(k, kind, e.target.value) });
+          return field(k, input);
+        })));
+    };
+    // costs of members: the first rule that matches a member sets its cost (higher = used less); a rule without a condition is the default
+    const costOpen = bCostOpen;
+    const costEditor = (st) => {
+      const box = h("div", {});
+      const draw = () => {
+        const list = Array.isArray(st.cost) ? st.cost : [];
+        const sync = () => { if (list.length) st.cost = list; else delete st.cost; changed(); };
+        box.replaceChildren(h("strong", { class: "hint" }, t("bCostTitle")), h("p", { class: "hint" }, t("bCostHint")),
+          ...list.map((row, n) => {
+            const open = costOpen.has(row);
+            const summary = row.when && Object.keys(row.when).length ? describeWhen(row.when) : t("bCostAll");
+            const move = (to) => { if (to >= 0 && to < list.length) { list.splice(to, 0, list.splice(n, 1)[0]); sync(); draw(); } };
+            return h("div", { class: "b-costrow" },
+              h("div", { class: "row" },
+                h("input", { type: "number", step: "any", min: "0", class: "b-costval", value: row.value === undefined ? "" : row.value, "aria-label": t("bCostValue"), title: t("bCostValue"),
+                  oninput: (e) => { row.value = e.target.value === "" ? 0 : Number(e.target.value); sync(); } }),
+                h("button", { type: "button", class: "b-costwhen", "aria-expanded": String(open), title: summary,
+                  onclick: () => { if (open) costOpen.delete(row); else costOpen.add(row); draw(); } }, summary, open ? " ▴" : " ▾"),
+                h("button", { type: "button", class: "icon", "aria-label": t("bUp"), title: t("bUp"), disabled: n === 0, onclick: () => move(n - 1) }, "↑"),
+                h("button", { type: "button", class: "icon", "aria-label": t("bDown"), title: t("bDown"), disabled: n === list.length - 1, onclick: () => move(n + 1) }, "↓"),
+                h("button", { type: "button", class: "icon danger", "aria-label": t("bDelete"), title: t("bDelete"), onclick: () => { list.splice(n, 1); sync(); draw(); } }, "×")),
+              ...(open ? [whenEditor(row, "when", "bCostWhen")] : []));
+          }),
+          h("button", { type: "button", class: "small", onclick: () => { st.cost = list; const row = { value: 1 }; list.push(row); costOpen.add(row); sync(); draw(); } }, t("bCostAdd")));
+      };
+      draw();
+      return box;
+    };
+    const st = blk.settings;
+    const parts = [];
+    if (strategy === "leastLoad") {
+      st.load = st.load || {};
+      parts.push(grid(st.load, B_LOAD_FIELDS, "bLoadParams"));
+      parts.push(costEditor(st));
+    }
+    if (B_PROBE_FIELDS[strategy]) { st.probe = st.probe || {}; parts.push(grid(st.probe, B_PROBE_FIELDS[strategy], "bProbeParams")); }
+    if (!parts.length) parts.push(h("p", { class: "hint" }, t("bNoParams")));
+    return h("div", { class: "b-params" }, ...parts);
+  }
+
+  // a merge object as rows "path = value" (nested keys joined by dots); a value is JSON when it parses, else text
+  const kvFlat = (o, pre, out) => { Object.entries(o).forEach(([k, v]) => { if (isObj(v) && Object.keys(v).length) kvFlat(v, pre + k + ".", out); else out.push([pre + k, v]); }); return out; };
+  const kvNest = (rows) => {
+    const res = {};
+    rows.forEach(([path, v]) => {
+      const parts = path.trim().split(".").filter(Boolean);
+      if (!parts.length) return;
+      let o = res;
+      parts.slice(0, -1).forEach((k) => { if (!isObj(o[k])) o[k] = {}; o = o[k]; });
+      o[parts[parts.length - 1]] = v;
+    });
+    return res;
+  };
+  const kvText = (v) => { if (typeof v === "string") { try { JSON.parse(v); return JSON.stringify(v); } catch (e) { return v; } } return JSON.stringify(v); };
+  const kvValue = (x) => { try { return JSON.parse(x); } catch (e) { return x; } };
+  function mergeEditor(obj, key, keep) {
+    const box = h("div", { class: "b-kv" });
+    const rows = kvFlat(isObj(obj[key]) ? obj[key] : {}, "", []);
+    const commit = () => { const o = kvNest(rows); if (Object.keys(o).length || keep) obj[key] = o; else delete obj[key]; changed(); };
+    const draw = () => {
+      box.replaceChildren(...rows.map((row, n) => h("div", { class: "row" },
+        h("input", { type: "text", class: "mono b-kvpath", value: row[0], placeholder: t("kvPath"), "aria-label": t("kvPath"), oninput: (e) => { row[0] = e.target.value; commit(); } }),
+        h("span", { class: "dim" }, "="),
+        h("input", { type: "text", class: "mono b-kvval", value: kvText(row[1]), placeholder: t("kvValue"), "aria-label": t("kvValue"), oninput: (e) => { row[1] = kvValue(e.target.value); commit(); } }),
+        h("button", { type: "button", class: "icon danger", "aria-label": t("bDelete"), title: t("bDelete"), onclick: () => { rows.splice(n, 1); commit(); draw(); } }, "×"))),
+        h("button", { type: "button", class: "small", onclick: () => { rows.push(["", ""]); draw(); } }, t("kvAdd")),
+        h("span", { class: "hint" }, t("kvHint")));
+    };
+    draw();
+    return box;
+  }
+  // routing rules sent to the balancer: one card per rule with the usual fields; any other key of a rule is kept untouched
+  const RULE_FIELDS = [["network", "text", "tcp,udp"], ["port", "text", "0-65535"], ["protocol", "list", "http, tls, bittorrent"],
+    ["domain", "list", "geosite:google"], ["ip", "list", "geoip:private"], ["inboundTag", "list", "tag"], ["source", "list", "10.0.0.0/8"], ["sourcePort", "text", "1000-2000"]];
+  const ROUTE_FIELDS = RULE_FIELDS.concat([["outboundTag", "text", "direct"], ["balancerTag", "text", ""]]);
+  function catchallEditor(st, key = "catchall_rules", newRule = { network: "tcp,udp" }, keepEmpty = false, fields = RULE_FIELDS) {
+    const box = h("div", {});
+    const draw = () => {
+      const list = Array.isArray(st[key]) ? st[key] : [];
+      const sync = () => { if (list.length || !keepEmpty) st[key] = list; else delete st[key]; changed(); };
+      box.replaceChildren(...list.map((rule, n) => {
+        const move = (to) => { if (to >= 0 && to < list.length) { list.splice(to, 0, list.splice(n, 1)[0]); sync(); draw(); } };
+        const set = (k, kind, raw) => {
+          const v = raw.trim();
+          if (!v) delete rule[k]; else rule[k] = kind === "list" ? v.split(",").map((x) => x.trim()).filter(Boolean) : v;
+          sync();
+        };
+        const other = Object.keys(rule).filter((k) => k !== "type" && !fields.some((f) => f[0] === k));
+        return h("div", { class: "b-costrow" },
+          h("div", { class: "row" }, h("strong", { class: "hint", style: "flex:1" }, t("bRule") + " " + (n + 1)),
+            h("button", { type: "button", class: "icon", "aria-label": t("bUp"), title: t("bUp"), disabled: n === 0, onclick: () => move(n - 1) }, "↑"),
+            h("button", { type: "button", class: "icon", "aria-label": t("bDown"), title: t("bDown"), disabled: n === list.length - 1, onclick: () => move(n + 1) }, "↓"),
+            h("button", { type: "button", class: "icon danger", "aria-label": t("bDelete"), title: t("bDelete"), disabled: !keepEmpty && list.length === 1, onclick: () => { list.splice(n, 1); sync(); draw(); } }, "×")),
+          h("div", { class: "grid" }, fields.map(([k, kind, ph]) => field(k, h("input", { type: "text", placeholder: ph, "aria-label": k,
+            value: Array.isArray(rule[k]) ? rule[k].join(", ") : rule[k] === undefined ? "" : rule[k], oninput: (e) => set(k, kind, e.target.value) })))),
+          other.length ? h("p", { class: "hint" }, t("bRuleKept", { k: other.join(", ") })) : null);
+      }), h("button", { type: "button", class: "small", onclick: () => { list.push(Object.assign({}, newRule)); sync(); draw(); } }, t("bRuleAdd")));
+    };
+    draw();
+    return box;
+  }
+
+  // patches of a list block: when (inside the block), stage, target, merge, and routing rules added before / after
+  const OPEN_BP = new WeakSet();
+  function patchesEditor(st) {
+    const box = h("div", {});
+    const draw = () => {
+      const list = Array.isArray(st.patches) ? st.patches : [];
+      const sync = () => { st.patches = list; changed(); };
+      box.replaceChildren(...list.map((p, n) => {
+        const move = (to) => { if (to >= 0 && to < list.length) { list.splice(to, 0, list.splice(n, 1)[0]); sync(); draw(); } };
+        const sel = (k, opts) => h("select", { "aria-label": k, onchange: (e) => { if (e.target.value) p[k] = e.target.value; else delete p[k]; sync(); } },
+          opts.map(([v, label]) => h("option", { value: v, selected: (p[k] || "") === v }, label)));
+        const card = h("details", { class: "sect" },
+          h("summary", {}, t("mpPatch") + " " + (n + 1) + ": " + (p.when ? describeWhen(p.when) : t("mpAll"))),
+          whenEditor(p),
+          h("div", { class: "grid" },
+            field(t("stage"), sel("stage", [["", t("source")], ["output", t("output")]])),
+            field(t("target"), sel("target", [["", t("config")], ["outbound", t("outbound")]]))),
+          h("div", { class: "f wide" }, t("pMerge"), mergeEditor(p, "merge"), h("span", { class: "hint" }, t("mpMergeHint"))),
+          h("div", { class: "f wide" }, t("pRoutePre"), catchallEditor(p, "routing_prepend", { outboundTag: "direct" }, true, ROUTE_FIELDS)),
+          h("div", { class: "f wide" }, t("pRoutePost"), catchallEditor(p, "routing_append", { outboundTag: "direct" }, true, ROUTE_FIELDS)),
+          Object.keys(p).some((k) => k === "random") ? h("p", { class: "hint" }, t("bRuleKept", { k: "random" })) : null,
+          h("div", { class: "row" },
+            h("button", { type: "button", class: "icon", "aria-label": t("bUp"), disabled: n === 0, onclick: () => move(n - 1) }, "↑"),
+            h("button", { type: "button", class: "icon", "aria-label": t("bDown"), disabled: n === list.length - 1, onclick: () => move(n + 1) }, "↓"),
+            h("button", { type: "button", class: "danger", onclick: () => { list.splice(n, 1); sync(); draw(); } }, t("remove"))));
+        card.open = OPEN_BP.has(p);
+        card.addEventListener("toggle", () => { if (card.open) OPEN_BP.add(p); else OPEN_BP.delete(p); });
+        return card;
+      }), h("button", { type: "button", class: "small", onclick: () => { const p = {}; OPEN_BP.add(p); list.push(p); sync(); draw(); } }, t("mpAdd")));
+    };
+    draw();
+    return box;
+  }
+  // WARP chain: the lists a user is spread over ("choices"), the entry outbound, and the endpoints
+  function choicesEditor(st) {
+    const box = h("div", {});
+    const draw = () => {
+      const rows = Object.entries(isObj(st.choices) ? st.choices : {});
+      const commit = () => { const o = {}; rows.forEach(([k, v]) => { if (k.trim()) o[k.trim()] = v; }); st.choices = o; changed(); };
+      box.replaceChildren(...rows.map((row, n) => h("div", { class: "row" },
+        h("input", { type: "text", class: "mono b-kvpath", value: row[0], placeholder: t("chName"), "aria-label": t("chName"), oninput: (e) => { row[0] = e.target.value; commit(); } }),
+        h("span", { class: "dim" }, "="),
+        h("input", { type: "text", class: "mono b-kvval", value: row[1].map(kvText).join(", "), placeholder: "1.2.3.4, 5.6.7.8", "aria-label": t("chValues"),
+          oninput: (e) => { row[1] = e.target.value.split(",").map((x) => x.trim()).filter(Boolean).map(kvValue); commit(); } }),
+        h("button", { type: "button", class: "icon danger", "aria-label": t("bDelete"), onclick: () => { rows.splice(n, 1); commit(); draw(); } }, "×"))),
+        h("button", { type: "button", class: "small", onclick: () => { rows.push(["", []]); draw(); } }, t("chAdd")));
+    };
+    draw();
+    return box;
+  }
+  function entryEditor(st) {
+    const box = h("div", {});
+    const draw = () => {
+      const asText = typeof st.entry === "string";
+      const mode = h("select", { "aria-label": t("s_entry"), onchange: (e) => { st.entry = e.target.value === "text" ? "{account.masque.outbound}" : { protocol: "masque" }; changed(); draw(); } },
+        h("option", { value: "text", selected: asText }, t("entryText")), h("option", { value: "obj", selected: !asText }, t("entryObj")));
+      box.replaceChildren(mode, asText
+        ? h("input", { type: "text", class: "mono", value: st.entry, "aria-label": t("s_entry"), oninput: (e) => { st.entry = e.target.value; changed(); } })
+        : mergeEditor(st, "entry", true));
+    };
+    draw();
+    return box;
+  }
+  function endpointsEditor(st) {
+    const cur = Array.isArray(st.endpoints) ? st.endpoints.join(", ") : st.endpoints || "";
+    return h("input", { type: "text", class: "mono", value: cur, placeholder: "{account.masque.endpoints}  /  host:port, host:port", "aria-label": t("s_endpoints"),
+      oninput: (e) => { const v = e.target.value.trim(); st.endpoints = v.startsWith("{") ? v : v.split(",").map((x) => x.trim()).filter(Boolean); changed(); } });
+  }
+
+  // Advanced keys that have a setting of their own: moved there (same result, nothing else changes)
+  function bMovable(blk) {
+    const g = (blk.advanced && blk.advanced.group) || {}, st = blk.settings || {}, strat = st.strategy || "leastLoad";
+    if (bType(blk) === "warp") {
+      const c = (blk.advanced && blk.advanced.chain) || {};
+      const w = [];
+      if (isObj(c.entry_merge) && !(isObj(st.entry_merge) && Object.keys(st.entry_merge).length)) w.push(["entry_merge", "entry_merge"]);
+      if (["top", "bottom"].includes(c.position) && st.position === undefined) w.push(["position", "position"]);
+      if (c.remove_exit_from_output === true && st.remove_exit === undefined) w.push(["remove_exit_from_output", "remove_exit"]);
+      if (isObj(c.choices) && Object.values(c.choices).every((x) => Array.isArray(x) && x.length) && !(isObj(st.choices) && Object.keys(st.choices).length)) w.push(["choices", "choices"]);
+      if ((typeof c.entry === "string" || (isObj(c.entry) && Object.keys(c.entry).length)) && st.entry === undefined) w.push(["entry", "entry"]);
+      if ((typeof c.endpoints === "string" || (Array.isArray(c.endpoints) && c.endpoints.length && c.endpoints.every((x) => typeof x === "string"))) && st.endpoints === undefined) w.push(["endpoints", "endpoints"]);
+      return w;
+    }
+    const fits = (obj, fields) => isObj(obj) && Object.keys(obj).every((k) => {
+      const f = fields.find((x) => x[0] === k);
+      return f && (f[1] === "num" ? typeof obj[k] === "number" : f[1] === "bool" ? typeof obj[k] === "boolean" : f[1] === "list" ? Array.isArray(obj[k]) : typeof obj[k] === "string");
+    });
+    const out = [], free = (v) => v === undefined || (isObj(v) && !Object.keys(v).length) || (Array.isArray(v) && !v.length);
+    if (g.params !== undefined && free(st.load) && strat === "leastLoad" && fits(g.params, B_LOAD_FIELDS)) out.push(["params", "load"]);
+    if (g.probe !== undefined && free(st.probe) && B_PROBE_FIELDS[strat] && fits(g.probe, B_PROBE_FIELDS[strat])) out.push(["probe", "probe"]);
+    if (g.member_cost !== undefined && free(st.cost) && strat === "leastLoad" && Array.isArray(g.member_cost)) out.push(["member_cost", "cost"]);
+    if (g.member_position !== undefined && free(st.member_position)) out.push(["member_position", "member_position"]);
+    if (g.catchall_rules !== undefined && free(st.catchall_rules)) out.push(["catchall_rules", "catchall_rules"]);
+    if (g.expand !== undefined && isObj(g.expand) && free(st.expand)) out.push(["expand", "expand"]);
+    if (typeof g.min_members === "number" && g.min_members >= 1 && st.min_members === undefined) out.push(["min_members", "min_members"]);
+    if (g.position !== undefined && ["top", "bottom"].includes(g.position) && st.position === undefined) out.push(["position", "position"]);
+    if (g.include_balanced === true && st.include_balanced === undefined) out.push(["include_balanced", "include_balanced"]);
+    if (["burst", "observatory"].includes(g.probe_kind) && st.probe_kind === undefined) out.push(["probe_kind", "probe_kind"]);
+    if (g.remove_members_from_output === false && st.keep_members === undefined) out.push(["remove_members_from_output", "keep_members", true]);
+    return out;
+  }
+  function bMoveAdvanced(i) {
+    bChange((b) => {
+      const x = b.list[i], moves = bMovable(x);
+      x.settings = x.settings || {};
+      const src = bType(x) === "warp" ? "chain" : "group";
+      moves.forEach(([from, to, val]) => { x.settings[to] = val !== undefined ? val : x.advanced[src][from]; delete x.advanced[src][from]; });
+      if (isObj(x.advanced[src]) && !Object.keys(x.advanced[src]).length) delete x.advanced[src];
+      if (Array.isArray(x.advanced.member_patch) && !(x.settings.member_patch || []).length) { x.settings.member_patch = x.advanced.member_patch; delete x.advanced.member_patch; }
+      if (Array.isArray(x.advanced.patches) && !(x.settings.patches || []).length) { x.settings.patches = x.advanced.patches; delete x.advanced.patches; }
+      if (!Object.keys(x.advanced).length) delete x.advanced;
+    }, true);
+  }
+
+  // where matching members sit in the balancer: the first rule that matches a member decides (first = front, last = back)
+  function positionEditor(st) {
+    const box = h("div", {});
+    const draw = () => {
+      const list = Array.isArray(st.member_position) ? st.member_position : [];
+      const sync = () => { if (list.length) st.member_position = list; else delete st.member_position; changed(); };
+      box.replaceChildren(...list.map((row, n) => {
+        const open = bCostOpen.has(row);
+        const summary = row.when && Object.keys(row.when).length ? describeWhen(row.when) : t("bCostAll");
+        const move = (to) => { if (to >= 0 && to < list.length) { list.splice(to, 0, list.splice(n, 1)[0]); sync(); draw(); } };
+        return h("div", { class: "b-costrow" },
+          h("div", { class: "row" },
+            h("select", { class: "b-costval b-posat", "aria-label": t("bPosAt"), onchange: (e) => { row.at = e.target.value; sync(); } },
+              ["first", "last"].map((o) => h("option", { value: o, selected: row.at === o }, t("bPos_" + o)))),
+            h("button", { type: "button", class: "b-costwhen", "aria-expanded": String(open), title: summary,
+              onclick: () => { if (open) bCostOpen.delete(row); else bCostOpen.add(row); draw(); } }, summary, open ? " ▴" : " ▾"),
+            h("button", { type: "button", class: "icon", "aria-label": t("bUp"), title: t("bUp"), disabled: n === 0, onclick: () => move(n - 1) }, "↑"),
+            h("button", { type: "button", class: "icon", "aria-label": t("bDown"), title: t("bDown"), disabled: n === list.length - 1, onclick: () => move(n + 1) }, "↓"),
+            h("button", { type: "button", class: "icon danger", "aria-label": t("bDelete"), title: t("bDelete"), onclick: () => { list.splice(n, 1); sync(); draw(); } }, "×")),
+          ...(open ? [whenEditor(row, "when", "bCostWhen")] : []));
+      }), h("button", { type: "button", class: "small", onclick: () => { st.member_position = list; const row = { at: "last" }; list.push(row); bCostOpen.add(row); sync(); draw(); } }, t("bPosAdd")));
+    };
+    draw();
+    return box;
+  }
+
   function bSettingEditor(blk, i, key) {
     const d = B_DEF[key], v = blk.settings[key];
     const put = (nv) => bChange((b) => { b.list[i].settings[key] = nv; }, true);
@@ -1800,14 +2155,36 @@
     if (d.kind === "multi" || d.kind === "one") {
       const names = d.kind === "multi" ? d.options.concat(v.filter((x) => !d.options.includes(x))) : d.options;
       box.append(h("div", { class: "b-opts" }, names.map((n) => {
-        const on = d.kind === "multi" ? v.includes(n) : v === n;
+        const on = d.kind === "multi" ? v.includes(n) : typeof d.def === "boolean" ? v === true : v === n;
         return h("button", { type: "button", class: "b-opt" + (on ? " on" : ""), "aria-pressed": String(on), onclick: () => {
-          if (d.kind === "one") return put(n);
+          if (key === "strategy") return bChange((b) => {
+            // the parameters of the strategy being left are kept in memory, so pressing it again brings them back
+            const x = b.list[i], old = x.settings.strategy || "leastLoad", stash = bStash[x.id] = bStash[x.id] || {};
+            if (old === n) return;
+            stash[old] = { load: x.settings.load, probe: x.settings.probe, cost: x.settings.cost };
+            x.settings.strategy = n;
+            delete x.settings.load; delete x.settings.probe; delete x.settings.cost;
+            const back = stash[n] || {};
+            ["load", "probe", "cost"].forEach((k) => { if (back[k] !== undefined) x.settings[k] = back[k]; });
+            const dp = B_PROBE_DEFAULT[n];
+            if (dp && !x.settings.probe) x.settings.probe = Object.assign({}, dp);
+          }, true);
+          if (d.kind === "one") return typeof d.def === "boolean" ? null : put(n);   // an on/off setting is switched off with the × on its pill
           if (on && v.length === 1) return;
           put(on ? v.filter((x) => x !== n) : v.concat([n]));
         } }, d.options.includes(n) ? bLabel(d, n) : t("bCustom") + ": " + n);
       })));
     }
+    if (key === "strategy") box.append(bStrategyFields(blk, v));
+    if (key === "member_position") box.append(positionEditor(blk.settings));
+    if (key === "member_patch") box.append(memberPatchEditor(blk.settings));
+    if (key === "catchall_rules") box.append(catchallEditor(blk.settings));
+    if (key === "expand") box.append(expandEditor(blk.settings));
+    if (key === "entry_merge") box.append(mergeEditor(blk.settings, "entry_merge", true));
+    if (key === "choices") box.append(choicesEditor(blk.settings));
+    if (key === "entry") box.append(entryEditor(blk.settings));
+    if (key === "endpoints") box.append(endpointsEditor(blk.settings));
+    if (key === "patches") box.append(patchesEditor(blk.settings));
     if (d.kind === "list") {
       box.append(h("div", { class: "b-opts" }, v.map((n) => h("button", { type: "button", class: "b-opt mono", onclick: () => { if (v.length > 1) put(v.filter((x) => x !== n)); } }, n, " ×"))));
     }
@@ -1816,6 +2193,10 @@
       const add = () => { const x = bDraft.trim(); if (!x || v.includes(x)) return; bDraft = ""; put(v.concat([x])); };
       inp.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); add(); } });
       box.append(h("div", { class: "row" }, inp, h("button", { type: "button", onclick: add }, t(d.add))));
+    }
+    if (d.kind === "num") {
+      box.append(h("div", { class: "row" }, h("input", { type: "number", min: "1", step: "1", value: v, "aria-label": t("s_" + key),
+        oninput: (e) => { const n = Math.floor(Number(e.target.value)); if (n >= 1) { blk.settings[key] = n; changed(); } } })));
     }
     if (d.kind === "text") {
       const ex = h("span", { class: "hint" });
@@ -1857,7 +2238,7 @@
       h("button", { type: "button", class: "icon", "aria-label": t("bUp"), title: t("bUp"), onclick: () => { const prev = all[all.indexOf(i) - 1]; if (prev !== undefined) bChange((b) => { const x = b.list.splice(i, 1)[0]; b.list.splice(prev, 0, x); }); } }, "↑"),
       h("button", { type: "button", class: "icon", "aria-label": t("bDown"), title: t("bDown"), onclick: () => { const next = all[all.indexOf(i) + 1]; if (next !== undefined) bChange((b) => { const x = b.list.splice(i, 1)[0]; b.list.splice(next, 0, x); }); } }, "↓"),
       h("button", { type: "button", class: "icon danger", "aria-label": t("bDelete"), title: t("bDelete"), onclick: () => bChange((b) => { b.list.splice(i, 1); }) }, "×"));
-    const keys = B_SETTINGS.filter((d) => s[d.key] !== undefined && bAllowed(d, blk)).map((d) => d.key);
+    const keys = B_SETTINGS.filter((d) => !d.hidden && s[d.key] !== undefined && bAllowed(d, blk)).map((d) => d.key);
     const pills = h("div", { class: "b-pills" }, keys.map((key) => {
       const open = bOpen === id + ":" + key;
       return h("span", { class: "b-pill" + (open ? " open" : "") },
@@ -1872,7 +2253,7 @@
         h("button", { type: "button", class: "x", "aria-label": t("remove"), onclick: () => bChange((b) => { delete b.list[i].advanced; }) }, "×"));
     })() : null, h("button", { type: "button", class: "b-add", "aria-expanded": String(bMenu === id), onclick: () => { bMenu = bMenu === id ? null : id; drawEditor(); } }, t("bAddSetting")));
     const menu = bMenu === id ? (() => {
-      const avail = B_SETTINGS.filter((d) => s[d.key] === undefined && bAllowed(d, blk));
+      const avail = B_SETTINGS.filter((d) => !d.hidden && s[d.key] === undefined && bAllowed(d, blk));
       const items = avail.map((d) => h("button", { type: "button", onclick: () => bChange((b) => {
         const x = b.list[i]; x.settings = x.settings || {}; x.settings[d.key] = d.key === "name" ? bNameDefault(x) : JSON.parse(JSON.stringify(d.def));
       }, true) }, t("s_" + d.key)));
@@ -1892,8 +2273,11 @@
         blk.advanced = v; changed();
       });
       ta.addEventListener("change", () => drawEditor());
+      const movable = bType(blk) !== "drop" && (bMovable(blk).length || (bType(blk) === "list" && Array.isArray(blk.advanced.patches) && !((blk.settings || {}).patches || []).length) || (Array.isArray(blk.advanced.member_patch) && !((blk.settings || {}).member_patch || []).length));
       extraEditor = h("div", { class: "b-editor" }, h("div", { class: "row" }, h("strong", {}, t("bAdvancedJson")),
-        h("span", { class: "hint", style: "flex:1" }, t(B_ADV_HINT[bType(blk)] || "bAdvList"))), ta);
+        h("span", { class: "hint", style: "flex:1" }, t(B_ADV_HINT[bType(blk)] || "bAdvList"))),
+        movable ? h("div", { class: "row" }, h("button", { type: "button", class: "small", onclick: () => bMoveAdvanced(i) }, t("bMoveAdv")),
+          h("span", { class: "hint" }, t("bMoveAdvHint"))) : null, ta);
     }
     const kindOpen = (blk.kinds || []).findIndex((w, j) => bOpen === id + ":kind:" + j);
     if (kindOpen >= 0) {
@@ -1925,8 +2309,9 @@
         () => { bOpen = bOpen === id + ":kind:" + j ? null : id + ":kind:" + j; drawEditor(); })),
       (blk.kinds || []).length ? null : h("span", { class: "hint" }, t("bDropHere")),
       h("button", { type: "button", class: "b-cond", onclick: () => { bOpen = id + ":newcond"; drawEditor(); } }, t("bPlusCond")),
-      bPick ? h("button", { type: "button", class: "b-movehere", onclick: () => bMove(bPick, i, bPickSource) }, t("bMoveHere")) : null));
-    const n = counts[PREFIX_BLK + id] || 0;
+      bHasPick() ? h("button", { type: "button", class: "b-movehere", onclick: () => bMove(bPicked(), i, bSel.length ? true : bPickSource) }, t("bMoveHere")) : null));
+    // list blocks leave no trace in the preview report: count the sample configs of their kinds instead
+    const n = counts[PREFIX_BLK + id] || (bType(blk) === "list" ? (blk.kinds || []).reduce((sum, w) => sum + ((names[kkey(w)] || {}).count || 0), 0) : 0);
     const card = h("div", { class: "b-block" + (blk.type === "warp" ? " warp" : "") }, head, h("p", { class: "hint b-takes" }, sample ? t("bTakes", { n }) : ""),
       pills, menu, openKey ? bSettingEditor(blk, i, openKey) : extraEditor, zone);
     // blocks move by dragging their grip onto another block (it goes before or after, by where it is dropped)
@@ -2005,12 +2390,29 @@
       const total = bKinds.reduce((a, k) => a + k.count, 0);
       source = h("div", {},
         h("p", { class: "hint" }, t("bKindsN", { n: total, k: bKinds.length })),
-        h("div", { class: "b-kinds" }, bKinds.map((k) => {
-          const cond = bCond(k), key = kkey(k.when), picked = bPick && kkey(bPick) === key;
-          return h("div", Object.assign({ class: "b-kind" + (isPlaced(key) ? " placed" : "") + (picked ? " picked" : "") }, bDragProps(cond, true)),
+        bSel.length ? h("p", { class: "hint" }, t("bSelN", { n: bSel.length }) + " ", h("button", { type: "button", class: "small", onclick: () => { bSel = []; bSelLast = -1; drawEditor(); } }, t("bSelClear"))) : h("p", { class: "hint" }, t("bSelHint")),
+        h("div", { class: "b-kinds" }, bKinds.map((k, n) => {
+          const cond = bCond(k), key = kkey(k.when), picked = bPick && kkey(bPick) === key, sel = bSel.includes(key);
+          const props = bDragProps(cond, true);
+          const startDrag = props.ondragstart;
+          props.ondragstart = (e) => {                      // dragging one of several selected kinds drags them all
+            startDrag(e);
+            if (sel && bSel.length > 1) bDrag = bKinds.filter((x) => bSel.includes(kkey(x.when))).map(bCond);
+          };
+          return h("div", Object.assign({ class: "b-kind" + (isPlaced(key) ? " placed" : "") + (picked ? " picked" : "") + (sel ? " selected" : ""),
+            onclick: (e) => {
+              if (e.target.closest("button")) return;
+              if (e.shiftKey && bSelLast >= 0) {
+                const [a, z] = [Math.min(bSelLast, n), Math.max(bSelLast, n)];
+                bSel = bKinds.slice(a, z + 1).map((x) => kkey(x.when));
+              } else if (e.ctrlKey || e.metaKey) {
+                bSel = sel ? bSel.filter((x) => x !== key) : bSel.concat([key]); bSelLast = n;
+              } else { bSel = sel && bSel.length === 1 ? [] : [key]; bSelLast = n; }
+              bPick = null; drawEditor();
+            } }, props),
             h("span", { class: "b-cc" }, k.flag || "·"),
             h("div", { class: "b-kind-text" }, h("div", { class: "b-kind-label", title: k.remarks.join("\n") }, k.label), h("div", { class: "hint" }, k.count + " · " + where(key))),
-            h("button", { type: "button", class: "small" + (picked ? " primary" : ""), "aria-pressed": String(!!picked), onclick: () => { bPick = picked ? null : cond; bPickSource = true; drawEditor(); } }, picked ? t("bPicked") : t("bPick")));
+            h("button", { type: "button", class: "small" + (picked ? " primary" : ""), "aria-pressed": String(!!picked), onclick: () => { bPick = picked ? null : cond; bPickSource = true; bSel = []; drawEditor(); } }, picked ? t("bPicked") : t("bPick")));
         })));
     }
 
@@ -2034,7 +2436,7 @@
     v.list.forEach((b) => { if (b.type === "drop") (b.kinds || []).forEach((w) => gone.push(w)); });
     const trash = bZone("trash", h("div", { class: "b-block b-trash" },
       h("div", { class: "b-head" }, h("strong", { class: "danger-text" }, "🗑 " + t("bRemoved")), h("span", { class: "hint", style: "flex:1" }, t("bRemovedHint")),
-        bPick ? h("button", { type: "button", class: "danger", onclick: () => bMove(bPick, "trash", bPickSource) }, t("bRemove")) : null),
+        bHasPick() ? h("button", { type: "button", class: "danger", onclick: () => bMove(bPicked(), "trash", bSel.length ? true : bPickSource) }, t("bRemove")) : null),
       gone.length ? h("div", { class: "b-zone plain" }, gone.map((w) => bChip(w, names, () => bMove(w, "rest"), t("bBringBack"), "gone"))) : null));
 
     // the items made in the old tabs, shown as locked blocks with the kinds they take
@@ -2078,8 +2480,7 @@
   // turn a classic group / drop rule into a block; the classic item is switched off (not deleted)
   const B_FRAG_PATH = "streamSettings.finalmask.tcp", B_CS_PATH = "streamSettings.tlsSettings.cipherSuites";
   const presetName = (v, known) => Object.keys(known).find((k) => canon(known[k]) === canon(v));
-  const B_ADV_GROUP = ["params", "probe", "probe_kind", "member_cost", "min_members", "remove_members_from_output", "position",
-    "expand", "include_balanced", "member_position", "catchall_rules"];
+  const B_ADV_GROUP = ["params", "probe", "member_cost"];
   function bConvertGroup(gi) {
     const g = cfg.groups[gi];
     bChange((b) => {
@@ -2091,6 +2492,8 @@
       if (perCountry) settings.name = name.replace(/\{split\}/g, "{country}").replace(/\{group\}/g, "{block}");
       else advGroup.name = name;
       B_ADV_GROUP.forEach((k) => { if (g[k] !== undefined) advGroup[k] = JSON.parse(JSON.stringify(g[k])); });
+      ["member_position", "catchall_rules", "expand", "min_members", "position", "include_balanced", "probe_kind"].forEach((k) => { if (g[k] !== undefined) settings[k] = JSON.parse(JSON.stringify(g[k])); });
+      if (g.remove_members_from_output === false) settings.keep_members = true;
       (g.member_patch || []).forEach((step) => {
         const st = JSON.parse(JSON.stringify(step));
         if (!st.when && isObj(st.random)) {
@@ -2112,14 +2515,14 @@
       if (Object.keys(settings).length) block.settings = settings;
       const adv = {};
       if (Object.keys(advGroup).length) adv.group = advGroup;
-      if (rest.length) adv.member_patch = rest;
+      if (rest.length) { block.settings = block.settings || {}; block.settings.member_patch = rest; }
       if (Object.keys(adv).length) block.advanced = adv;
       const firstOther = b.list.findIndex((x) => x.type !== "balancer");
       if (firstOther < 0) b.list.push(block); else b.list.splice(firstOther, 0, block);
       cfg.groups[gi].enabled = false;
     });
   }
-  const B_ADV_CHAIN = ["exit", "entry_merge", "before", "choices", "remove_exit_from_output", "position"];
+  const B_ADV_CHAIN = ["exit", "before"];
   function bConvertChain(ci) {
     const c = cfg.chains[ci];
     bChange((b) => {
@@ -2131,10 +2534,16 @@
       const name = c.name || (c.split_by ? "{split}" : c.id);
       if (perCountry || !c.split_by) settings.name = name.replace(/\{split\}/g, "{country}").replace(/\{group\}/g, "{block}");
       else adv.name = name;
-      if (c.entry !== "{account.masque.outbound}") adv.entry = JSON.parse(JSON.stringify(c.entry));
-      if (c.endpoints !== "{account.masque.endpoints}") adv.endpoints = JSON.parse(JSON.stringify(c.endpoints === undefined ? null : c.endpoints));
-      if (adv.endpoints === null) delete adv.endpoints;
+      if (c.entry !== "{account.masque.outbound}") settings.entry = JSON.parse(JSON.stringify(c.entry));
+      if (c.endpoints !== "{account.masque.endpoints}" && c.endpoints !== undefined) {
+        const ok = typeof c.endpoints === "string" || (Array.isArray(c.endpoints) && c.endpoints.every((x) => typeof x === "string"));
+        if (ok) settings.endpoints = JSON.parse(JSON.stringify(c.endpoints)); else adv.endpoints = JSON.parse(JSON.stringify(c.endpoints));
+      }
+      if (isObj(c.choices)) settings.choices = JSON.parse(JSON.stringify(c.choices));
       B_ADV_CHAIN.forEach((k) => { if (c[k] !== undefined && !(k === "exit" && c[k] === false)) adv[k] = JSON.parse(JSON.stringify(c[k])); });
+      if (c.position) settings.position = c.position;
+      if (c.remove_exit_from_output === true) settings.remove_exit = true;
+      if (isObj(c.entry_merge)) settings.entry_merge = JSON.parse(JSON.stringify(c.entry_merge));
       const block = { id: nextId("block", b.list), name: prettyId(c.id), type: "warp",
         kinds: [Object.assign({ _label: t("bOldCond", { id: prettyId(c.id) }) }, c.exit_when || {})], settings };
       if (perCountry) block.per_country = true;
@@ -2370,7 +2779,11 @@
     else if (tab === "blocks") body = blocksView();
     else if (tab === "settings") body = h("div", {}, settingsEditor(), proxyOnly ? null : detailsBox("sectOutput", outputEditor()), h("p", { class: "hint" }, t("adminNote")));
     else {
-      const subs = proxyOnly ? [["raw", t("advJson")], ["profile", t("profile")]] : [["list", t("advRules")], ["groups", t("tabGroups")], ["chains", t("tabWarp")], ["patches", t("advPatches")], ["raw", t("advJson")], ["profile", t("profile")]];
+      // the old tabs show only while they hold something (made there, or switched off after Convert to block)
+      const has = (k) => Array.isArray(cfg[k]) && cfg[k].length > 0;
+      const oldTabs = [["list", t("advRules"), has("rules") || has("order")], ["groups", t("tabGroups"), has("groups")], ["chains", t("tabWarp"), has("chains")], ["patches", t("advPatches"), has("patches")]];
+      const subs = proxyOnly ? [["raw", t("advJson")], ["profile", t("profile")]] : [...oldTabs.filter((x) => x[2]).map((x) => [x[0], x[1]]), ["raw", t("advJson")], ["profile", t("profile")]];
+      if (!subs.some((x) => x[0] === advTab)) advTab = subs[0][0];
       let inner;
       if (advTab === "groups") inner = listEditor("groups", "groupsHint", (items) => ({ id: nextId("group", items), type: "leastLoad", when: {} }), groupBody, TEMPLATES.groups);
       else if (advTab === "chains") inner = listEditor("chains", "chainsHint", (items) => ({ id: nextId("chain", items), exit_when: {}, entry: {} }), chainBody, TEMPLATES.chains);

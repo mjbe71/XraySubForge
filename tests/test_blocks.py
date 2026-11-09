@@ -252,3 +252,114 @@ class PatchRandom(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class BalancerLoadAndProbe(unittest.TestCase):
+    def test_load_and_probe_reach_the_group(self):
+        conf, problems = normalize({"blocks": {"list": [{"id": "t", "name": "Balancer", "type": "balancer", "per_country": True,
+            "kinds": [{"remark": {"contains": "x"}}],
+            "settings": {"load": {"expected": 2, "maxRTT": "2500ms"},
+                         "probe": {"destination": "https://www.google.com/generate_204", "interval": "4h", "sampling": 4}}}]}})
+        self.assertEqual([p for p in problems if "blocks" in p], [])
+        g = next(x for x in conf["groups"] if x["id"].startswith("blk-t"))
+        self.assertEqual(g["params"], {"expected": 2, "maxRTT": "2500ms"})
+        self.assertEqual((g["probe"]["interval"], g["probe"]["sampling"]), ("4h", 4))
+        _, problems = normalize({"blocks": {"list": [{"id": "t", "type": "balancer", "settings": {"load": {"expected": "x", "bogus": 1}}}]}})
+        self.assertEqual(sum("settings.load" in p for p in problems), 2)
+
+
+class StrategyParameters(unittest.TestCase):
+    def group(self, settings):
+        conf, problems = normalize({"blocks": {"list": [{"id": "t", "type": "balancer", "kinds": [{"remark": {"contains": "x"}}], "settings": settings}]}})
+        return conf, [p for p in problems if "blocks" in p]
+
+    def test_least_ping_uses_the_observatory_keys(self):
+        conf, problems = self.group({"strategy": "leastPing"})
+        self.assertEqual(problems, [])
+        self.assertEqual(set(conf["groups"][0]["probe"]), {"probeUrl", "probeInterval"})
+        conf, problems = self.group({"strategy": "leastPing", "probe": {"probeInterval": "10s", "enableConcurrency": True}})
+        self.assertEqual((problems, conf["groups"][0]["probe"]["probeInterval"]), ([], "10s"))
+
+    def test_wrong_keys_for_the_strategy(self):
+        self.assertTrue(self.group({"strategy": "leastPing", "load": {"expected": 1}})[1])            # leastPing has no strategy settings
+        self.assertTrue(self.group({"strategy": "leastPing", "probe": {"destination": "x"}})[1])      # that is a burstObservatory key
+        self.assertTrue(self.group({"strategy": "random", "probe": {"interval": "1m"}})[1])
+        self.assertEqual(self.group({"strategy": "leastLoad", "load": {"baselines": ["1s", "2s"], "tolerance": 0.01}})[1], [])
+
+
+class MemberCost(unittest.TestCase):
+    def test_cost_rules_reach_the_group(self):
+        cost = [{"when": {"remark": {"contains": "GC-"}}, "value": 5}, {"value": 1}]
+        conf, problems = normalize({"blocks": {"list": [{"id": "t", "type": "balancer", "kinds": [{"remark": {"contains": "x"}}],
+                                                         "settings": {"cost": cost}}]}})
+        self.assertEqual([p for p in problems if "blocks" in p], [])
+        self.assertEqual(conf["groups"][0]["member_cost"], cost)
+        _, problems = normalize({"blocks": {"list": [{"id": "t", "type": "balancer", "settings": {"strategy": "leastPing", "cost": cost}}]}})
+        self.assertTrue(any("settings.cost" in p for p in problems))
+        _, problems = normalize({"blocks": {"list": [{"id": "t", "type": "balancer", "settings": {"cost": [{"value": "x"}]}}]}})
+        self.assertTrue(any("settings.cost" in p for p in problems))
+
+
+class MemberPlacementAndPatch(unittest.TestCase):
+    def build(self, settings):
+        return normalize({"blocks": {"list": [{"id": "t", "type": "balancer", "kinds": [{"remark": {"contains": "x"}}], "settings": settings}]}})
+
+    def test_settings_reach_the_group(self):
+        pos = [{"when": {"remark": {"contains": "GC-"}}, "at": "last"}]
+        patch = [{"when": {"network": "xhttp"}, "merge": {"streamSettings": {"sockopt": {"tcpFastOpen": True}}}}]
+        rules = [{"port": "53", "network": "udp"}, {"network": "tcp,udp"}]
+        conf, problems = self.build({"member_position": pos, "member_patch": patch, "catchall_rules": rules, "fingerprint": "chrome"})
+        self.assertEqual([p for p in problems if "blocks" in p], [])
+        g = conf["groups"][0]
+        self.assertEqual((g["member_position"], g["catchall_rules"]), (pos, rules))
+        self.assertEqual(g["member_patch"][-1], patch[0])          # after the fingerprint steps
+        self.assertTrue(len(g["member_patch"]) > 1)
+
+    def test_validation(self):
+        for bad in ({"member_position": [{"at": "middle"}]}, {"member_patch": [{"merge": 3}]}, {"catchall_rules": []}):
+            self.assertTrue([p for p in self.build(bad)[1] if "settings." in p], bad)
+
+
+class ExpandAndEntryMerge(unittest.TestCase):
+    def test_settings_reach_group_and_chain(self):
+        ex = {"addresses": ["a.example.com", "b.example.com"], "copies": 2, "layout": "blocks", "server_by": {"field": "remark", "regex": "s(\\d)"}}
+        conf, problems = normalize({"blocks": {"list": [
+            {"id": "t", "type": "balancer", "kinds": [{"remark": {"contains": "x"}}], "settings": {"expand": ex}},
+            {"id": "w", "type": "warp", "kinds": [{"remark": {"contains": "y"}}], "settings": {"warp": "only", "entry_merge": {"streamSettings": {"sockopt": {"domainStrategy": "UseIP"}}}}}]}})
+        self.assertEqual([p for p in problems if "blocks" in p or "expand" in p or "entry_merge" in p], [])
+        self.assertEqual(conf["groups"][0]["expand"], ex)
+        self.assertEqual(conf["chains"][0]["entry_merge"]["streamSettings"]["sockopt"]["domainStrategy"], "UseIP")
+        _, problems = normalize({"blocks": {"list": [{"id": "t", "type": "balancer", "settings": {"expand": []}}]}})
+        self.assertTrue(any("settings.expand" in p for p in problems))
+
+
+class PlacementSettings(unittest.TestCase):
+    def test_balancer_and_warp_settings(self):
+        conf, problems = normalize({"blocks": {"list": [
+            {"id": "t", "type": "balancer", "kinds": [{"remark": {"contains": "x"}}],
+             "settings": {"min_members": 3, "keep_members": True, "position": "bottom", "include_balanced": True, "probe_kind": "observatory"}},
+            {"id": "w", "type": "warp", "kinds": [{"remark": {"contains": "y"}}], "settings": {"warp": "exit", "position": "top", "remove_exit": True}}]}})
+        self.assertEqual([p for p in problems if "blocks" in p], [])
+        g, c = conf["groups"][0], conf["chains"][0]
+        self.assertEqual((g["min_members"], g["remove_members_from_output"], g["position"], g["include_balanced"], g["probe_kind"]),
+                         (3, False, "bottom", True, "observatory"))
+        self.assertEqual((c["position"], c["remove_exit_from_output"]), ("top", True))
+        for bad in ({"min_members": 0}, {"position": "middle"}, {"keep_members": "yes"}, {"probe_kind": "x"}):
+            _, problems = normalize({"blocks": {"list": [{"id": "t", "type": "balancer", "settings": bad}]}})
+            self.assertTrue([p for p in problems if "settings." in p], bad)
+
+
+class WarpAndListLeftovers(unittest.TestCase):
+    def test_entry_choices_endpoints_and_patches(self):
+        patch = {"stage": "output", "target": "outbound", "merge": {"mux": {"enabled": False}}, "routing_prepend": [{"type": "field", "domain": ["example.org"], "outboundTag": "direct"}]}
+        conf, problems = normalize({"blocks": {"list": [
+            {"id": "w", "type": "warp", "kinds": [{"remark": {"contains": "y"}}],
+             "settings": {"choices": {"ep": ["1.1.1.1", "2.2.2.2"]}, "entry": "{account.masque.outbound}", "endpoints": ["a.example.com:443"]}},
+            {"id": "l", "type": "list", "kinds": [{"remark": {"contains": "z"}}], "settings": {"patches": [patch]}}]}})
+        self.assertEqual([p for p in problems if "blocks" in p], [])
+        c = conf["chains"][0]
+        self.assertEqual((c["choices"], c["endpoints"]), ({"ep": ["1.1.1.1", "2.2.2.2"]}, ["a.example.com:443"]))
+        self.assertTrue(any(x.get("routing_prepend") and x["merge"] == {"mux": {"enabled": False}} for x in conf["patches"]))
+        for bad in ({"choices": {"a": []}}, {"entry": "x"}, {"endpoints": "x"}):
+            _, problems = normalize({"blocks": {"list": [{"id": "w", "type": "warp", "settings": bad}]}})
+            self.assertTrue([p for p in problems if "settings." in p], bad)

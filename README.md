@@ -1,37 +1,87 @@
 # XraySubForge
 
-<p align="center"><img src="docs/assets/banner.png" alt="XraySubForge: the open-source subscription forge for 3x-ui panels" width="100%"></p>
+<p align="center"><img src="docs/assets/banner.png" alt="XraySubForge: rebuild, optimize, deliver. A lightweight bridge between your Xray panel and your users" width="100%"></p>
 
-[فارسی](README.fa.md) · English
+[فارسی](README.fa.md) · English · **v0.4.0-beta**
 
-An **advanced add-on for 3x-ui** and other Xray-core panels: a small Flask service that sits between your panel and
-your users' VPN apps. It reads the panel's subscription (Xray JSON, or the usual `vless://`, `vmess://`, `trojan://`,
-`ss://` links) and reshapes it with **conditional rules** you write, matching configs by
-condition or regular expression on any field (remark, protocol, security, port, ...).
+**An advanced reverse proxy for Xray subscriptions.** It sits between your 3x-ui panel (or another Xray-core panel) and
+your users' VPN apps. Users fetch their subscription from **your own domain, over HTTPS**; for every request
+XraySubForge asks the panel, **rebuilds the subscription with the rules and blocks you defined**, and hands the result to
+the app. The panel itself can stay on localhost or a private network and is never exposed.
 
-What it adds on top of the panel:
+It proxies the *subscription*, not the VPN traffic: your users' traffic still goes straight to your Xray servers.
 
-- **Conditional rules with regex.** Drop, keep, pin or reorder configs depending on what they are, not just on which host they came from.
-- **Pattern-based balancers per country.** Merge all configs whose name matches a pattern into one load-balanced config (Xray `leastLoad`, `leastPing`, `random`, ...), one balancer for each country (or any other group) the pattern captures.
-- **Per-user WARP chain.** Route a config through an outbound of your own (Cloudflare WARP, ...) with a separate WARP account for each user.
-- **Preview.** Enter a subscription id and see, in plain words, what happens to every config as you edit the rules.
-- **Patches** for anything else in the JSON (DNS, routing, mux, fragment, ...).
+```
+VPN app ──► XraySubForge (your domain, HTTPS) ──► your 3x-ui panel (JSON subscription)
+                 │
+                 └─ per request: rules, balancers, WARP, patches  ──►  the rebuilt subscription
+```
 
-It does not replace what 3x-ui already does. If the panel's own **Hosts** and **Sub Balancers** are enough for you,
-you do not need this; use it when you need rules, patterns or per-user logic that they cannot express.
+With no rules it is a plain reverse proxy: the panel's subscription passes through unchanged (even byte for byte, see
+[Just a reverse proxy](#just-a-reverse-proxy)). Add rules whenever you like, without changing anyone's link.
+
+<p align="center"><img src="docs/assets/screens/blocks.png" alt="The Blocks page: configs from the panel are dragged into blocks, and the preview shows what each config becomes" width="100%"></p>
+
+## What it can do
+
+**Reshape what users get**
+
+- **Blocks.** A drag-and-drop builder for the final subscription. Configs from the panel are grouped into *kinds*
+  (protocol, transport, security, country, ...); drag a kind into a **list**, a **balancer**, a **WARP** block, or *Removed*.
+  Blocks run top to bottom and the page shows how many configs each one takes.
+- **Conditional rules with regex.** Drop, keep, pin or reorder configs depending on what they *are*, not just where they
+  came from. Conditions are written in plain words and can use regular expressions.
+- **Balancers, one per country.** Merge all configs that share a country (or any other pattern) into one balanced config:
+  Xray `leastLoad`, `leastPing`, `random` or `roundRobin`, with every strategy parameter and the matching probe as a form field,
+  **costs per member** (prefer some servers), member order, extra routing rules for the balancer, several members per server
+  (different addresses), and fragment / cipher-suite / fingerprint presets that each member picks at random.
+- **Per-user WARP.** Route a config through an outbound of your own (Cloudflare WARP over MASQUE) with a separate WARP account for
+  each user, optionally registered automatically on the user's first request. WARP can follow a config's own server or stand alone,
+  with an optional decoy outbound for apps that refuse a lone MASQUE config.
+- **Patches** for anything else in the JSON (DNS, routing rules, mux, fragment, sockopt, ...): merge values, or add routing rules
+  before or after the existing ones.
+- **Settings you can see.** The built-in QUIC domain list, the base routing rules, the sniffing options and the ports of the
+  split inbounds are shown in the panel and can be edited. Nothing that changes the output is hidden in the code.
+
+**Run it comfortably**
+
+- **Preview and test.** Enter a subscription id, fetch that user's real subscription from the panel and watch what each config
+  becomes while you edit. *Test on users* checks several ids at once and reports configs in and out.
+- **Several services in one install (profiles).** Each profile is a complete config with its own panel, blocks and accounts. A
+  request is routed to a profile by path, by the request's host name, or by which panel knows the subscription id. Switch,
+  create, rename and delete profiles from the admin panel.
+- **Web admin panel** in English and Persian (right-to-left), with a step-by-step setup guide, undo/redo, a summary of changes
+  before you save, and light and dark themes. A **terminal menu** (`sforge`) does the same from SSH.
+- **One-command installer** with free **Let's Encrypt** certificates, several domains with a certificate each (SNI),
+  automatic renewal pick-up, a systemd service, and `sforge update`.
+- **Other formats.** Raw links and Clash subscriptions can be passed through on their own paths.
+
+It does not replace what 3x-ui already does. If the panel's own **Hosts** and **Sub Balancers** are enough for you, you do
+not need this; use it for rules, patterns, per-user logic or a front door on your own domain.
 
 It knows no naming scheme and no provider. You decide what each config is, what is removed and what is combined.
-With no rules it returns the panel's subscription unchanged.
 
-```
-client app ──► XraySubForge ──► your 3x-ui panel (JSON subscription)
-                    └─ applies your rules, returns the result
-```
+> Made and tested with 3x-ui. Other panels that give Xray JSON or standard links (Marzban, Remnawave, ...) should work too:
+> put `{id}` in the panel address where the subscription id goes. Please report how it goes.
 
-> Made and tested with 3x-ui. Other panels that give Xray JSON or standard links (Marzban, Remnawave, ...) should
-> work too: put `{id}` in the panel address where the subscription id goes. Please report how it goes.
+> **Beta (v0.4).** Covered by automated tests and in use on a real server, but not yet used by many people.
+> An independent project, not affiliated with Xray or 3x-ui.
 
-> Beta (v0.3). Covered by automated tests and in use on a real server, but not yet used by many people. An independent project, not affiliated with Xray or 3x-ui.
+## A balancer in a few clicks
+
+<p align="center"><img src="docs/assets/screens/balancer-strategy.png" alt="A balancer block: strategy, leastLoad parameters, per-member costs and probe settings" width="560"></p>
+
+Pick *Balancer*, tick *One per country*, drop the kinds you want into it, and choose how it picks a member. The strategy's own
+parameters (for `leastLoad`: `expected`, `maxRTT`, `tolerance`, `baselines`) and the probe that measures members live inside the
+**Strategy** setting, each with Xray's default shown as a hint. Costs are rows: *this condition costs this much, everything else
+costs that*. Switching to another strategy and back keeps what you typed.
+
+## Preview before anything reaches a user
+
+<p align="center"><img src="docs/assets/screens/preview.png" alt="The preview: what happens to each config of a user's subscription" width="360"></p>
+
+The preview explains in words what happens to each config (kept, merged into a balancer, moved, removed) and how many configs the
+user gets before and after. Save shows the same summary for your changes.
 
 ## Install on a server (one command)
 
@@ -60,11 +110,14 @@ sudo sforge update      # get the newest version, keeping your settings
 sudo sforge add-domain --domain other.example.com   # free Let's Encrypt certificate for one more domain (server.domains)
 ```
 
-Run `sudo sforge` with no arguments for an **interactive terminal menu** (English): service status/logs/restart/update, panel URL, port and HTTPS, the admin password, adding/editing/reordering rules, groups, chains and patches with guided questions (or as JSON in your editor), a live preview for a subscription id, and WARP accounts. Every change is validated before it is written.
+Run `sudo sforge` with no arguments for an **interactive terminal menu** (English): service status/logs/restart/update, panel URL,
+port and HTTPS, the admin password, profiles, blocks, rules, groups, chains and patches with guided questions (or as JSON in
+your editor), a live preview for a subscription id, and WARP accounts. Every change is validated before it is written.
 
 Everything can also be given as options for unattended installs (`--panel-url`, `--domain`, `--cert`/`--key`,
 `--letsencrypt`, `--port`, `--admin`, `--yes`, ...): run `install.sh --help`. Settings live in
-`/etc/xraysubforge/config.json`, the program in `/opt/xraysubforge`. To remove it: `sudo sforge uninstall`.
+`/etc/xraysubforge/config.json`, the program in `/opt/xraysubforge`. To remove it: `sudo sforge uninstall`. For a second
+service on the same server use `--service NAME`.
 
 > The installer has been tested on a real server. The 3x-ui detection reads setting names from memory of 3x-ui; if it finds nothing, it just asks you.
 > Please report problems.
@@ -126,7 +179,7 @@ server {
 
 ## Web admin panel
 
-Everything below can be edited in a browser instead of by hand. The panel is **off by default**; turn it on by
+Everything can be edited in a browser instead of by hand. The panel is **off by default**; turn it on by
 setting a password in `config.json`:
 
 ```bash
@@ -137,12 +190,30 @@ python -m xraysubforge hash-password        # asks for a password, prints a hash
 { "admin": { "password_hash": "<paste the hash here>" } }
 ```
 
-Then open `http://127.0.0.1:8080/admin` (path: `admin.path`) and log in. The **Blocks** page is the main editor: fetch a user's subscription, then drag its configs (grouped into kinds) into blocks of the final subscription (a list, a balancer, a WARP chain, or Removed), each with its own settings such as fragment and cipher presets, fingerprint, address pool and names. Items made the old way can be turned into blocks there, and Save shows what changes and how many configs users get before and after. The **Start** page is a step-by-step setup guide that checks everything (is the panel reachable, does a test subscription work, HTTPS, accounts, settings) and can create common setups for you (hide configs, balance configs, route through WARP). The other tabs are forms for filters, balancers, chains, advanced edits and settings (plus a raw JSON editor). Conditions are written in plain words (a field such as the name, a kind such as "ends with", and one or more words), with values to pick from your own subscription and a count of how many of your configs each condition matches; patterns (regex) are only needed under "Advanced". Balancers and chains pick how to split from a list ("one for each country", "first word of the name", "part of the name after a text", ...). There is also a **live preview** that explains in words what happens to each config: enter a subscription id, fetch the panel's
-real response, and watch what every config becomes as you edit. **Save** writes `config.json`; changes apply at once.
-English and Persian (right-to-left) are built in.
+Then open `http://127.0.0.1:8080/admin` (path: `admin.path`) and log in.
+
+- **Start** is a step-by-step guide that checks everything (is the panel reachable, does a test subscription work, HTTPS,
+  accounts, settings) and can create common setups for you (hide configs, balance configs, route through WARP).
+- **Blocks** is the main editor, described above. Each block has its own settings (*+ Setting*): fragment and cipher presets,
+  fingerprint, strategy, address pool, names, member order and patches, catch-all rules, copies per server, WARP entry, and more.
+  Settings that need structured data have forms (rows of *path = value*, rule cards), not JSON boxes.
+- **Settings** holds the server, panel connection, accounts and WARP registration, and the output options.
+- **Advanced** has the raw JSON editor and profile management. The older Rules, Groups, WARP and Patches tabs appear only while
+  they hold something; *Convert to block* moves such an item into a block (the old one is switched off, not deleted).
+
+Conditions are written in plain words (a field such as the name, a kind such as "ends with", and one or more words), with values
+to pick from your own subscription and a count of how many of your configs each condition matches; patterns (regex) are only
+needed under "Advanced". **Save** writes `config.json` and shows what changes first; changes apply at once.
 
 Use it only over HTTPS (or through an SSH tunnel): the password travels in the login request. Login settings
 (`admin.*`) can only be changed in `config.json`, never from the panel.
+
+## Several services in one install
+
+`config.json` is the default profile; every file in `profiles/` next to it is another one, with its own panel, blocks and
+accounts. One domain can then serve several panels or brands: a request goes to the profile that owns its path, or whose
+`server.hosts` holds its host name, or whose panel knows the subscription id. Profiles are read at startup; the admin panel
+(and the terminal menu) can create, rename and delete them. Details: [docs/config-reference.md](docs/config-reference.md#profiles-several-services-in-one-install).
 
 ## Just a reverse proxy
 
@@ -159,18 +230,31 @@ for all options and `examples/` for ready examples:
 
 | You want to | Use |
 |---|---|
+| build the final subscription visually | `blocks` (the Blocks page) |
 | remove or reorder configs | `rules` |
-| merge configs into one balancer (per country, per name prefix, ...) | `groups` |
-| put your own outbound (WARP, WireGuard, ...) in front of an exit config | `chains` + `accounts` |
+| merge configs into one balancer (per country, per name prefix, ...) | `groups` or a balancer block |
+| put your own outbound (WARP, WireGuard, ...) in front of an exit config | `chains` + `accounts` or a WARP block |
 | change anything else (DNS, routing, mux, fragment, ...) | `patches` |
-| change address, port, URL path, timeouts | `server`, `panel` |
+| serve several panels or brands from one install | `profiles/` |
+| change address, port, URL path, timeouts, domains | `server`, `panel` |
 
 ## Security notes
 
 - The subscription id is checked (`server.subid_regex`) before it is sent to the panel.
 - The public subscription route has no login and no rate limiting (the subscription id is the secret). Keep the port on localhost and use a reverse proxy. The admin panel has a password, signed session cookies, CSRF protection and a failed-login lockout.
-- Never commit `config.json` (the `.gitignore` excludes it).
+- Never commit `config.json` or an accounts file (the `.gitignore` excludes them).
 - The service never logs subscription ids or panel URLs.
+
+## What is new in 0.4.0-beta
+
+- Balancer blocks take their parameters inside the Strategy setting: `leastLoad` parameters, the `leastLoad` and `leastPing`
+  probes, and costs per member. Switching strategies no longer loses what you typed.
+- Settings for member order, member patches, catch-all rules, copies per server, minimum members, keeping single configs,
+  position, WARP entry changes, choices, endpoints and patches. Advanced edits that have a setting move there with
+  *Move to settings*.
+- Select several configs at once on the Blocks page (Ctrl/Cmd+click, Shift+click) and move them together.
+- Profiles, `sforge` as the short command, `add-domain`, `link`, built-in defaults (QUIC domains, base rules, sniffing) shown and editable.
+- The older Rules, Groups, WARP and Patches tabs show only while they hold something.
 
 ## Not included (yet)
 

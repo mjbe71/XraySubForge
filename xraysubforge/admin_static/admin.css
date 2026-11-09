@@ -235,3 +235,14 @@ header h1 .ver { font-size: 12px; font-weight: 500; color: var(--muted); margin-
 .domain-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) minmax(0, 1.3fr) auto; gap: 6px; margin-bottom: 6px; }
 @media (max-width: 760px) { .domain-row { grid-template-columns: minmax(0, 1fr) auto; } }
 .profiles{display:inline-flex;gap:.4rem;align-items:center}
+.b-kind { user-select: none; }
+.b-kind.selected { border-color: var(--accent, #22d3ee); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent, #22d3ee) 35%, transparent); }
+.b-costrow { margin: 6px 0; }
+.b-costrow > .row { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
+.b-costval { width: 5.5em; flex: none; }
+.b-posat { width: 6.5em; }
+.b-costwhen { flex: 1; min-width: 0; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.b-kv { display: flex; flex-direction: column; gap: .35rem; }
+.b-kv .row { flex-wrap: nowrap; }
+.b-kvpath { flex: 3; min-width: 0; }
+.b-kvval { flex: 1; min-width: 0; }

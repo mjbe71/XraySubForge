@@ -11,7 +11,7 @@ import re
 import sys
 import threading
 
-from .matching import check_when
+from .matching import check_catchall, check_member_patch, check_member_position, check_when
 
 CONFIG_ENV = "XRAYSUBFORGE_CONFIG"
 
@@ -216,38 +216,9 @@ def _check_item(kind, item, where):
             p.append('%s.position: must be "top" or "bottom"' % where)
         if "include_balanced" in item and not isinstance(item["include_balanced"], bool):
             p.append("%s.include_balanced: must be true or false" % where)
-        mp = item.get("member_position")
-        if mp is not None:
-            if not isinstance(mp, list):
-                p.append("%s.member_position: must be a list" % where)
-            else:
-                for i, e in enumerate(mp):
-                    if not (isinstance(e, dict) and e.get("at") in ("first", "last")):
-                        p.append('%s.member_position[%d]: needs {"when": {...}, "at": "first" or "last"}' % (where, i))
-                    else:
-                        p += check_when(e.get("when"), "%s.member_position[%d].when" % (where, i))
-        mpt = item.get("member_patch")
-        if mpt is not None:
-            if not isinstance(mpt, list):
-                p.append("%s.member_patch: must be a list" % where)
-            else:
-                for i, e in enumerate(mpt):
-                    w = "%s.member_patch[%d]" % (where, i)
-                    if not isinstance(e, dict):
-                        p.append("%s: must be an object" % w)
-                        continue
-                    for k in e:
-                        if k not in ("when", "merge", "random") and not k.startswith("_"):
-                            p.append("%s: unknown key %r" % (w, k))
-                    p += check_when(e.get("when"), w + ".when")
-                    if "merge" in e and not isinstance(e["merge"], dict):
-                        p.append("%s.merge: must be an object" % w)
-                    rnd = e.get("random")
-                    if rnd is not None and not (isinstance(rnd, dict) and all(isinstance(v, list) and v for v in rnd.values())):
-                        p.append('%s.random: must be {"dotted.path": [option, ...]}' % w)
-        cr = item.get("catchall_rules")
-        if cr is not None and not (isinstance(cr, list) and cr and all(isinstance(r, dict) for r in cr)):
-            p.append("%s.catchall_rules: must be a non-empty list of routing rules (the balancer tag is filled in)" % where)
+        for key, check in (("member_position", check_member_position), ("member_patch", check_member_patch), ("catchall_rules", check_catchall)):
+            if item.get(key) is not None:
+                p += check(item[key], "%s.%s" % (where, key))
         ex = item.get("expand")
         if ex is not None:
             w = where + ".expand"
