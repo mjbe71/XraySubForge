@@ -89,7 +89,7 @@ class Blocks(unittest.TestCase):
         self.assertEqual([c["remarks"] for c in out],
                          ["Fast " + DE, "Fast " + TR, "DE" + DE + "Reality1", "DE" + DE + "Reality2", "Old vmess 1"])
         de = out[0]
-        members = [o for o in de["outbounds"] if o.get("tag", "").startswith("blk-fast-")]
+        members = [o for o in de["outbounds"] if o.get("tag", "").startswith("proxy")]
         self.assertEqual(len(members), 6)                       # 3 servers x 2 pool addresses
         self.assertEqual(sorted({m["settings"]["vnext"][0]["address"] for m in members}), ["a.example.com", "b.example.com"])
         for m in members:
@@ -363,3 +363,190 @@ class WarpAndListLeftovers(unittest.TestCase):
         for bad in ({"choices": {"a": []}}, {"entry": "x"}, {"endpoints": "x"}):
             _, problems = normalize({"blocks": {"list": [{"id": "w", "type": "warp", "settings": bad}]}})
             self.assertTrue([p for p in problems if "settings." in p], bad)
+
+
+class PlainTagsRulesAndAccount(unittest.TestCase):
+    ACCOUNTS = {"default": {"masque": {"outbound": {"protocol": "masque", "settings": {"key": "shared"}}, "endpoints": ["1.1.1.1:443"]}},
+                "users": {"u1": {"masque": {"outbound": {"protocol": "masque", "settings": {"key": "mine"}}, "endpoints": ["1.1.1.1:443"]}}}}
+
+    def test_plain_tags_and_no_internal_marks(self):
+        conf, problems = normalize({"blocks": {"list": [
+            {"id": "b", "type": "balancer", "per_country": False, "kinds": [{"remark": {"contains": "m"}}]}]}})
+        out = process([cfg("m1"), cfg("m2"), cfg("m3")], conf)[0]
+        self.assertEqual(len(out), 1)
+        self.assertEqual([o["tag"] for o in out[0]["outbounds"]], ["proxy01", "proxy02", "proxy03", "direct"])
+        bal = out[0]["routing"]["balancers"][0]
+        self.assertEqual((bal["tag"], bal["selector"]), ("balancer", ["proxy"]))
+        self.assertEqual(out[0]["routing"]["rules"][-1]["balancerTag"], "balancer")
+        self.assertFalse([k for k in out[0] if k.startswith("_")])
+
+    def test_blocks_keep_their_order_without_block_tags(self):
+        conf, _ = normalize({"blocks": {"list": [
+            {"id": "second", "type": "balancer", "per_country": False, "kinds": [{"remark": {"contains": "B"}}]},
+            {"id": "first", "type": "balancer", "per_country": False, "kinds": [{"remark": {"contains": "A"}}]}]}})
+        out = process([cfg("A1"), cfg("A2"), cfg("B1"), cfg("B2")], conf)[0]
+        self.assertEqual([c["remarks"] for c in out], ["second", "first"])
+
+    def test_rules_of_a_list_block_point_at_its_proxy(self):
+        rules = [{"domain": ["example.org"]}, {"ip": ["geoip:private"], "outboundTag": "direct"}]
+        conf, problems = normalize({"blocks": {"list": [
+            {"id": "l", "type": "list", "kinds": [{"remark": {"contains": "z"}}], "settings": {"rules": rules}}]}})
+        self.assertEqual([p for p in problems if "blocks" in p], [])
+        out = process([cfg("z1"), cfg("other")], conf)[0]
+        z = next(c for c in out if c["remarks"] == "z1")
+        self.assertEqual(z["routing"]["rules"][:2], [{"type": "field", "domain": ["example.org"], "outboundTag": "proxy"},
+                                                    {"type": "field", "ip": ["geoip:private"], "outboundTag": "direct"}])
+        self.assertEqual(next(c for c in out if c["remarks"] == "other")["routing"]["rules"], [])
+        _, problems = normalize({"blocks": {"list": [{"id": "l", "settings": {"rules": []}}]}})
+        self.assertTrue([p for p in problems if "settings.rules" in p])
+
+    def test_warp_block_tags_rules_and_shared_account(self):
+        def run_it(settings, subid="u1"):
+            conf, problems = normalize({"blocks": {"list": [
+                {"id": "w", "type": "warp", "per_country": False, "kinds": [{"remark": {"contains": "w"}}],
+                 "settings": dict({"warp": "only"}, **settings)}]}})
+            self.assertEqual([p for p in problems if "blocks" in p], [])
+            return process([cfg("w1")], conf, subid=subid, accounts=self.ACCOUNTS)[0][0]
+        c = run_it({"rules": [{"domain": ["example.org"]}]})
+        self.assertEqual([(o["tag"], o["settings"]["key"]) for o in c["outbounds"]], [("warp", "mine")])
+        self.assertEqual(c["routing"]["rules"][0], {"type": "field", "domain": ["example.org"], "outboundTag": "warp"})
+        self.assertEqual(run_it({"account": "shared"})["outbounds"][0]["settings"]["key"], "shared")
+        self.assertEqual(run_it({"account": "personal"})["outbounds"][0]["settings"]["key"], "mine")
+        _, problems = normalize({"blocks": {"list": [{"id": "w", "type": "warp", "settings": {"account": "x"}}]}})
+        self.assertTrue([p for p in problems if "settings.account" in p])
+
+
+class ChainBlocks(unittest.TestCase):
+    """type "chain": the block's configs go through the hops (client -> hop 1 -> hop 2 -> the internet)."""
+    ACCOUNTS = {"default": {"masque": {"outbound": {"protocol": "masque", "settings": {"key": "shared", "address": "0.0.0.0", "port": 1}},
+                                       "endpoints": ["1.1.1.1:443"]},
+                            "exit": {"protocol": "vless", "settings": {"vnext": [{"address": "exit.example.com", "port": 443, "users": [{"id": "x"}]}]}}},
+                "users": {"u1": {"masque": {"outbound": {"protocol": "masque", "settings": {"key": "mine"}}, "endpoints": ["2.2.2.2:8443"]}}}}
+
+    def run_it(self, hops, configs=None, subid="u1", **block):
+        b = dict({"id": "c", "name": "Chain", "type": "chain", "kinds": [{"remark": {"contains": "z"}}]}, **block)
+        b["settings"] = dict({"hops": hops}, **(block.get("settings") or {}))
+        conf, problems = normalize({"blocks": {"list": [b]}})
+        self.assertEqual([p for p in problems if "blocks" in p], [])
+        out, report = process(configs or [cfg("z1"), cfg("z2"), cfg("other")], conf, subid=subid, accounts=self.ACCOUNTS)
+        self.assertEqual(report["errors"], [])
+        self.assertFalse([k for c in out for k in c if k.startswith("_")])
+        return out
+
+    @staticmethod
+    def dialer(ob):
+        return ((ob.get("streamSettings") or {}).get("sockopt") or {}).get("dialerProxy")
+
+    def test_warp_then_the_blocks_configs(self):
+        out = self.run_it([{"from": "warp"}, {"from": "block"}])
+        self.assertEqual([c["remarks"] for c in out], ["z1", "z2", "other"])          # one per config, names kept
+        z = out[0]
+        self.assertEqual([o["tag"] for o in z["outbounds"]], ["proxy01", "warp", "direct"])
+        self.assertEqual(z["outbounds"][0]["protocol"], "vless")
+        self.assertEqual(self.dialer(z["outbounds"][0]), "warp")                      # the config's server is reached through WARP
+        self.assertIsNone(self.dialer(z["outbounds"][1]))
+        warp = z["outbounds"][1]["settings"]
+        self.assertEqual((warp["key"], warp["address"], warp["port"]), ("mine", "2.2.2.2", 8443))
+
+    def test_the_blocks_configs_then_warp_with_the_shared_account(self):
+        out = self.run_it([{"from": "block"}, {"from": "warp", "account": "shared"}], per_country=False)
+        z = out[0]
+        self.assertEqual([(o["tag"], o["protocol"]) for o in z["outbounds"][:2]], [("proxy01", "masque"), ("hop1", "vless")])
+        self.assertEqual(self.dialer(z["outbounds"][0]), "hop1")
+        self.assertEqual(z["outbounds"][0]["settings"]["key"], "shared")
+
+    def test_custom_outbound_with_the_users_id_and_rules_follow(self):
+        custom = {"protocol": "vless", "settings": {"vnext": [{"address": "far.example.com", "port": 443, "users": [{"id": "{user.id}"}]}]}}
+        c = cfg("z1")
+        c["routing"]["rules"] = [{"type": "field", "domain": ["example.org"], "outboundTag": "proxy"}]
+        out = self.run_it([{"from": "block"}, {"from": "outbound", "outbound": custom}], [c, cfg("other")],
+                          settings={"name": "{block} {name}", "rules": [{"domain": ["a.example"]}]})
+        z = out[0]
+        self.assertEqual(z["remarks"], "Chain z1")
+        self.assertEqual(z["outbounds"][0]["settings"]["vnext"][0]["users"][0]["id"], "0" * 8)
+        self.assertEqual(z["routing"]["rules"], [{"type": "field", "domain": ["example.org"], "outboundTag": "proxy01"},
+                                                {"type": "field", "domain": ["a.example"], "outboundTag": "proxy01"}])
+
+    def test_another_config_of_the_subscription_and_one_per_country(self):
+        DE, TR = "\U0001F1E9\U0001F1EA", "\U0001F1F9\U0001F1F7"
+        configs = [cfg("z1" + DE), cfg("z2" + DE), cfg("z3" + TR), cfg("gate" + TR, address="gate-tr.example.com"), cfg("gate" + DE, address="gate-de.example.com")]
+        out = self.run_it([{"from": "config", "when": {"remark": {"contains": "gate"}}}, {"from": "block"}], configs, per_country=True)
+        by = {c["remarks"]: c for c in out}
+        self.assertEqual(sorted(by), sorted(["Chain " + DE, "Chain " + TR, "gate" + TR, "gate" + DE]))   # the gates stay as they are
+        de = by["Chain " + DE]
+        self.assertEqual(de["outbounds"][1]["settings"]["vnext"][0]["address"], "gate-de.example.com")   # the same country first
+        self.assertEqual(self.dialer(de["outbounds"][0]), "hop1")
+
+    def test_warp_alone_with_decoy_and_the_account_exit(self):
+        out = self.run_it([{"from": "warp"}], settings={"decoy": "vless"})
+        z = out[0]
+        self.assertEqual([o["tag"] for o in z["outbounds"][:2]], ["decoy", "proxy01"])
+        self.assertEqual(z["routing"]["rules"][-1], {"type": "field", "network": "tcp,udp", "outboundTag": "proxy01"})
+        out = self.run_it([{"from": "warp"}, {"from": "account_exit"}])
+        z = out[0]
+        self.assertEqual(z["outbounds"][0]["settings"]["vnext"][0], {"address": "exit.example.com", "port": 443, "users": [{"id": "0" * 8}]})
+        self.assertEqual(self.dialer(z["outbounds"][0]), "warp")
+
+    def test_validation_and_a_failed_hop_keeps_the_config(self):
+        for bad in ([], [{"from": "x"}], [{"from": "block"}, {"from": "block"}], [{"from": "outbound"}], [{"from": "config"}],
+                    [{"from": "warp", "account": "x"}], [{"from": "warp", "bogus": 1}]):
+            _, problems = normalize({"blocks": {"list": [{"id": "c", "type": "chain", "settings": {"hops": bad}}]}})
+            self.assertTrue([p for p in problems if "hops" in p], bad)
+        conf, _ = normalize({"blocks": {"list": [{"id": "c", "type": "chain", "kinds": [{"remark": {"contains": "z"}}],
+                                                  "settings": {"hops": [{"from": "config", "when": {"remark": "nothing"}}, {"from": "block"}]}}]}})
+        out, report = process([cfg("z1")], conf)
+        self.assertEqual([c["remarks"] for c in out], ["z1"])
+        self.assertTrue(report["errors"])
+
+    def test_registration_only_for_personal_warp(self):
+        from xraysubforge.server import needs_account
+        def conf_of(hops):
+            return normalize({"blocks": {"list": [{"id": "c", "type": "chain", "kinds": [{"remark": {"contains": "z"}}], "settings": {"hops": hops}}]}})[0]
+        self.assertTrue(needs_account(conf_of([{"from": "warp"}, {"from": "block"}]), [cfg("z1")]))
+        self.assertFalse(needs_account(conf_of([{"from": "warp", "account": "shared"}, {"from": "block"}]), [cfg("z1")]))
+        self.assertFalse(needs_account(conf_of([{"from": "block"}, {"from": "outbound", "outbound": {"protocol": "socks"}}]), [cfg("z1")]))
+
+
+class BlockRulesAtTheEnd(unittest.TestCase):
+    def test_early_rules_go_after_the_dns_rules_and_before_the_direct_ones(self):
+        conf, _ = normalize({"blocks": {"list": [
+            {"id": "l", "type": "list", "kinds": [{"remark": {"contains": "z"}}],
+             "settings": {"rules": [{"domain": ["early.example"], "position": "early"}, {"domain": ["late.example"]}]}}]}})
+        c = cfg("z1")
+        c["routing"]["rules"] = [{"type": "field", "inboundTag": ["socks"], "port": "53", "outboundTag": "dns-out"},
+                                 {"type": "field", "inboundTag": ["dedicated-dns"], "outboundTag": "direct"},
+                                 {"type": "field", "ip": ["geoip:private"], "outboundTag": "direct"},
+                                 {"type": "field", "network": "tcp,udp", "outboundTag": "proxy"}]
+        rules = process([c], conf)[0][0]["routing"]["rules"]
+        self.assertEqual([r.get("domain") or r.get("ip") or r.get("inboundTag") for r in rules],
+                         [["socks"], ["dedicated-dns"], ["early.example"], ["geoip:private"], ["late.example"], None])
+        self.assertTrue(all("position" not in r for r in rules))
+
+    def test_a_bad_position_is_reported(self):
+        _, problems = normalize({"blocks": {"list": [
+            {"id": "l", "type": "list", "kinds": [{"remark": {"contains": "z"}}], "settings": {"rules": [{"domain": ["a"], "position": "top"}]}}]}})
+        self.assertTrue(any("position" in x for x in problems))
+
+    def test_block_rules_are_added_after_the_panels_rules(self):
+        conf, _ = normalize({"output": {"direct_dns": True}, "blocks": {"list": [
+            {"id": "l", "type": "list", "kinds": [{"remark": {"contains": "z"}}], "settings": {"rules": [{"domain": ["example.org"]}]}}]}})
+        c = cfg("z1")
+        c["dns"] = {"servers": ["1.1.1.1"]}
+        c["routing"]["rules"] = [{"type": "field", "domain": ["panel.example"], "outboundTag": "direct"}]
+        rules = process([c], conf)[0][0]["routing"]["rules"]
+        self.assertEqual(rules[0]["inboundTag"], ["domestic-dns_0_0", "domestic-dns_1_0"])
+        self.assertEqual(rules[1]["domain"], ["panel.example"])
+        self.assertEqual(rules[-1], {"type": "field", "domain": ["example.org"], "outboundTag": "proxy"})
+
+    def test_rules_go_in_front_of_a_trailing_catch_all_and_empty_fields_are_dropped(self):
+        conf, _ = normalize({"blocks": {"list": [
+            {"id": "l", "type": "list", "kinds": [{"remark": {"contains": "z"}}],
+             "settings": {"rules": [{"domain": [], "inboundTag": ["dns-module"]}, {"domain": ["example.org"], "port": ""}]}}]}})
+        c = cfg("z1")
+        c["routing"]["rules"] = [{"type": "field", "domain": ["panel.example"], "outboundTag": "direct"},
+                                 {"type": "field", "network": "tcp,udp", "outboundTag": "proxy"}]
+        rules = process([c], conf)[0][0]["routing"]["rules"]
+        self.assertEqual(rules, [{"type": "field", "domain": ["panel.example"], "outboundTag": "direct"},
+                                 {"type": "field", "inboundTag": ["dns-module"], "outboundTag": "proxy"},
+                                 {"type": "field", "domain": ["example.org"], "outboundTag": "proxy"},
+                                 {"type": "field", "network": "tcp,udp", "outboundTag": "proxy"}])

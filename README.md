@@ -2,7 +2,7 @@
 
 <p align="center"><img src="docs/assets/banner.png" alt="XraySubForge: rebuild, optimize, deliver. A lightweight bridge between your Xray panel and your users" width="100%"></p>
 
-[فارسی](README.fa.md) · English · **v0.4.0-beta**
+[فارسی](README.fa.md) · English · **v0.5.0**
 
 **An advanced reverse proxy for Xray subscriptions.** It sits between your 3x-ui panel (or another Xray-core panel) and
 your users' VPN apps. Users fetch their subscription from **your own domain, over HTTPS**; for every request
@@ -38,6 +38,14 @@ With no rules it is a plain reverse proxy: the panel's subscription passes throu
 - **Per-user WARP.** Route a config through an outbound of your own (Cloudflare WARP over MASQUE) with a separate WARP account for
   each user, optionally registered automatically on the user's first request. WARP can follow a config's own server or stand alone,
   with an optional decoy outbound for apps that refuse a lone MASQUE config.
+- **Chains.** A chain block sends a config through up to four hops, client → hop 1 → hop 2 → the internet: WARP (personal or shared
+  account), another config of the subscription, or an outbound imported from a `vless://`, `vmess://`, `trojan://` or `ss://` link with
+  per-user placeholders. Outbound tags are plain (`proxy01`, `proxy02`, ...).
+- **Routing rules per block.** List, WARP and chain blocks can carry their own routing rules, each placed at the end of the list
+  (in front of the final catch-all, so it is never dead) or early (after the DNS rules, in front of the direct rules).
+- **DNS.** Forms for your own DNS servers and hosts (edit as JSON, import a JSON), a dedicated DNS for the names your proxies connect to,
+  and domestic DNS servers with a direct routing rule.
+- **Account clean-up.** Optionally remove, once a day, the WARP accounts of users who were deleted from the panel (with safety guards).
 - **Patches** for anything else in the JSON (DNS, routing rules, mux, fragment, sockopt, ...): merge values, or add routing rules
   before or after the existing ones.
 - **Settings you can see.** The built-in QUIC domain list, the base routing rules, the sniffing options and the ports of the
@@ -64,7 +72,7 @@ It knows no naming scheme and no provider. You decide what each config is, what 
 > Made and tested with 3x-ui. Other panels that give Xray JSON or standard links (Marzban, Remnawave, ...) should work too:
 > put `{id}` in the panel address where the subscription id goes. Please report how it goes.
 
-> **Beta (v0.4).** Covered by automated tests and in use on a real server, but not yet used by many people.
+> **v0.5.** Covered by automated tests and in use on a real server, but not yet used by many people.
 > An independent project, not affiliated with Xray or 3x-ui.
 
 ## A balancer in a few clicks
@@ -245,7 +253,20 @@ for all options and `examples/` for ready examples:
 - Never commit `config.json` or an accounts file (the `.gitignore` excludes them).
 - The service never logs subscription ids or panel URLs.
 
-## What is new in 0.4.0-beta
+## What is new in 0.5.0
+
+- **Chain blocks** (the WARP block grows into them): any config through WARP, another config of the subscription, or an imported
+  outbound; several hops; plain outbound tags.
+- **Routing rules for list, WARP and chain blocks**, with a per-rule position (end, or early); rules are added in front of a
+  trailing catch-all rule so they are never dead; empty rule fields are dropped.
+- **DNS forms**: your own `dns` (servers, hosts, `tag`, edit as JSON, import JSON), dedicated DNS with several servers, domestic DNS
+  that really adds servers, the `dns` inbound tag in the form.
+- **`accounts.prune`**: removes the WARP accounts of users the panel no longer has (`python -m xraysubforge prune-accounts --dry-run`
+  to look first). Off by default.
+- Personal or shared WARP account per block, selectable Xray values (fingerprint and others), duplicate a block, scrolling while dragging.
+- Balancer *Catch-all rules* are now called *Routing rules*.
+
+## What was new in 0.4.0-beta
 
 - Balancer blocks take their parameters inside the Strategy setting: `leastLoad` parameters, the `leastLoad` and `leastPing`
   probes, and costs per member. Switching strategies no longer loses what you typed.

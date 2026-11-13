@@ -15,7 +15,7 @@ NON_PROXY = ("freedom", "blackhole", "dns", "loopback")
 FLAG_RE = re.compile("[\U0001F1E6-\U0001F1FF]{2}")
 
 # fields that are always available in `when` / `split_by` (anything else can be reached with a dotted path)
-FIELDS = ("remark", "protocol", "tag", "address", "port", "network", "security", "sni", "host", "path", "flag")
+FIELDS = ("remark", "protocol", "tag", "address", "port", "network", "security", "sni", "host", "path", "flag", "made_by")
 
 
 @lru_cache(maxsize=512)
@@ -59,6 +59,7 @@ def fields_of(cfg):
     f = {"remark": str(cfg.get("remarks") or "")}
     m = FLAG_RE.search(f["remark"])
     f["flag"] = m.group(0) if m else None
+    f["made_by"] = cfg.get("_by")      # the group or chain that built this config (None for the panel's own configs)
     i = main_index(cfg)
     if i is None:
         return f
@@ -221,3 +222,56 @@ def check_catchall(cr, where):
     if not (isinstance(cr, list) and cr and all(isinstance(r, dict) for r in cr)):
         return ["%s: must be a non-empty list of routing rules (the balancer tag is filled in)" % where]
     return []
+
+
+HOP_KEYS = {
+    "block": set(),
+    "warp": {"account", "pick", "entry", "endpoints", "merge"},
+    "outbound": {"outbound"},
+    "config": {"when"},
+    "account_exit": {"from_account", "default_account", "user_id"},
+}
+
+
+def check_hops(hops, where):
+    """The hops of a chain in "hops" mode: client -> hops[0] -> hops[1] -> ... -> the internet."""
+    if not (isinstance(hops, list) and 1 <= len(hops) <= 4 and all(isinstance(h, dict) for h in hops)):
+        return ["%s: must be a list of 1 to 4 hops" % where]
+    p = []
+    for n, hop in enumerate(hops):
+        w = "%s[%d]" % (where, n)
+        kind = hop.get("from")
+        if kind not in HOP_KEYS:
+            p.append("%s.from: must be one of %s" % (w, ", ".join(sorted(HOP_KEYS))))
+            continue
+        for k in hop:
+            if k != "from" and k not in HOP_KEYS[kind] and not k.startswith("_"):
+                p.append("%s: unknown key %r" % (w, k))
+        if kind == "warp":
+            if hop.get("account", "personal") not in ("personal", "shared"):
+                p.append('%s.account: must be "personal" or "shared"' % w)
+            if hop.get("pick", "random") not in ("random", "per_user"):
+                p.append('%s.pick: must be "random" or "per_user"' % w)
+            en = hop.get("entry")
+            if en is not None and not ((isinstance(en, dict) and en) or (isinstance(en, str) and re.fullmatch(r"\{account\.[A-Za-z0-9_.\-]+\}", en))):
+                p.append("%s.entry: an outbound object, or one {account.x} placeholder" % w)
+            ep = hop.get("endpoints")
+            if ep is not None and not ((isinstance(ep, list) and ep and all(isinstance(x, str) for x in ep)) or (isinstance(ep, str) and ep.startswith("{account."))):
+                p.append("%s.endpoints: a list of addresses, or one {account.x} placeholder" % w)
+            if "merge" in hop and not isinstance(hop["merge"], dict):
+                p.append("%s.merge: must be an object" % w)
+        elif kind == "outbound":
+            ob = hop.get("outbound")
+            if not (isinstance(ob, dict) and isinstance(ob.get("protocol"), str) and ob["protocol"]):
+                p.append("%s.outbound: required; an Xray outbound object with a protocol" % w)
+        elif kind == "config":
+            if not (isinstance(hop.get("when"), dict) and hop["when"]):
+                p.append("%s.when: required; which config of the subscription to use" % w)
+            else:
+                p += check_when(hop["when"], w + ".when")
+        elif kind == "account_exit":
+            if "user_id" in hop and not isinstance(hop["user_id"], bool):
+                p.append("%s.user_id: must be true or false" % w)
+    if sum(1 for h in hops if h.get("from") == "block") > 1:
+        p.append("%s: only one hop can be the block's own configs" % where)
+    return p

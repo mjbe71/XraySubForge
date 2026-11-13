@@ -83,7 +83,7 @@ The panel edits every other section of `config.json` but never shows or changes 
 
 ## Conditions (`when`)
 
-Used by rules, groups, patches and `member_cost`. A `when` is an object; **all** its entries must hold. A missing or
+Used by rules, groups, patches and `member_cost`. Besides the fields of a config, `made_by` is the id of the group or chain that built an output config (missing for the panel's own configs); it is useful in `order` and output-stage patches. A `when` is an object; **all** its entries must hold. A missing or
 empty `when` matches every config.
 
 ```json
@@ -153,6 +153,7 @@ A list, evaluated in order. Each group collects the configs matching `when` (dro
 | `min_members` | `1` | Buckets with fewer members are not built (their configs stay as they were). |
 | `remove_members_from_output` | `true` | `false` keeps the original single configs next to the balancer. |
 | `position` | where the first member was | `"top"` or `"bottom"`. |
+| `member_tag`, `balancer_tag` | none | Plain outbound tags: with `"member_tag": "proxy"` the members are tagged `proxy01`, `proxy02`, ... and the balancer `balancer` (or `balancer_tag`), instead of tags built from the group id. Blocks always use this. |
 
 Notes: routing rules that pointed at the first member's outbound are re-pointed to the balancer, and a final
 "all traffic → balancer" rule is added. The old `observatory`/`burstObservatory` of the template are removed
@@ -188,6 +189,8 @@ outbound** (for example a WARP/masque or WireGuard outbound), which in turn is d
 | `through_exit` | `true` | `false` = no exit: the config only borrows DNS/inbounds/routing from the first match and its own outbound is replaced by `entry`. |
 | `remove_exit_from_output` | `false` | Remove the exit config from the result. |
 | `position` | where the exit was | `"top"` or `"bottom"`. |
+| `entry_tag`, `exit_tag` | from the chain id | The tags of the two outbounds. WARP blocks use `warp` and `proxy01`. |
+| `account` | personal | `"shared"`: this chain always uses the default account, never a user's personal one. |
 
 **Placeholders** inside `entry` (strings only): `{choice.<name>}` (one value from this chain's `choices`), `{account.<key>}` values from [`accounts`](#accounts), `{exit.<field>}`
 any field of the exit config (`address`, `port`, `remark`, ...), `{split}`, `{n}`. A string that is *only* a placeholder
@@ -236,6 +239,28 @@ first fetch takes a couple of seconds longer.
 Manual creation: `python -m xraysubforge register-account [--subid ID] [--force]` (no id = the shared account), or the
 button in the admin panel (Settings tab). Only WARP over **MASQUE** accounts are created (WireGuard accounts work differently and are not supported yet). Needs the `cryptography` package (in `requirements.txt`).
 
+### `accounts.prune`: remove the accounts of users who left (optional, off by default)
+
+Personal accounts stay in the accounts file after a user is deleted from the panel. With `accounts.prune` the service
+asks the panel about every user that has a personal account, about once per `interval_hours`, and removes the accounts
+of users the panel no longer has. A removed user who comes back simply gets a new account (with `accounts.register`).
+
+| Key | Default | Meaning |
+|---|---|---|
+| `enabled` | `false` | Needs `accounts.file`. The check starts from subscription requests, so a service nobody uses checks nothing. |
+| `after_days` | `3` | A user must be missing in at least two checks, this many days apart, before the account is removed. `0` removes at the first check. |
+| `max_percent` | `50` | With 10 or more users: when more than this share look missing in one check, nothing is removed (the panel is more likely wrong than the users gone). |
+| `interval_hours` | `24` | Time between two automatic checks. |
+
+What "no such user" looks like is learned from the panel: a random id is asked first, and only users answered exactly
+like it (the same 4xx status, or an empty reply) count as missing. Nothing is removed when the panel cannot be reached,
+or answers a random id with configs or with a server error. A panel that still serves expired users keeps their
+accounts; only users the panel no longer answers for are removed. The bookkeeping (who is missing since when, the
+time of the last check) is kept in the accounts file under `_prune`.
+
+By hand: `python -m xraysubforge prune-accounts [--dry-run]`, or the two buttons in the admin panel (Settings tab):
+*Check now* only counts, *Run now* is one normal check.
+
 ## `patches`: change anything
 
 Merge JSON of your own into matching configs. This is how you add DNS, routing rules, fragment/mux settings, etc.
@@ -259,7 +284,8 @@ The program ships none of these.
 | `when` | everything | Condition on the config. |
 | `merge` | none | Deep-merged: objects are merged, lists and values replaced, **`null` deletes** the key. |
 | `random` | none | `{"dotted.path": [choice, ...]}`: one random choice per config (or per outbound with `target: "outbound"`), e.g. a fragment profile or a cipher list. |
-| `routing_prepend`, `routing_append` | none | Lists of routing rules added before / after the existing ones. |
+| `routing_early` | none | Rules added after the DNS rules at the top (the DNS interception and the `inboundTag`-only rules) and in front of the private / domestic direct rules. Used by block rules with `"position": "early"`. |
+| `routing_prepend`, `routing_append` | none | Lists of routing rules added before / after the existing ones (`routing_append`: in front of a trailing catch-all rule, which would otherwise make it dead). `"outboundTag": "{main}"` is replaced by the outbound (or balancer) that carries the config's traffic. |
 
 ## `blocks`: the final subscription as blocks
 
@@ -285,7 +311,7 @@ order items (ids starting with `blk-`), placed after your own ones, so everythin
 |---|---|
 | `rest` | `keep` (default): configs no block takes come last, as they are. `top`: they come first (for example the panel's info config). `hide`: they are removed. |
 | `list[].id` | Letters, digits, `-` and `_`. |
-| `list[].type` | `list` (default): the configs as they are. `balancer`: one balancer (or one per country with `per_country`). `drop`: removed. |
+| `list[].type` | `list` (default): the configs as they are. `balancer`: one balancer (or one per country with `per_country`). `chain`: each config goes through a chain of hops (below). `warp`: the older WARP block (still works; the panel converts it to a chain block). `drop`: removed. |
 | `list[].flagless` | Balancers with `per_country`: `own` (default) puts configs without a flag into one balancer of their own; `single` leaves them as they are. |
 | `list[].kinds` | A list of conditions; the block takes configs matching any of them. |
 | `list[].enabled` | `false` switches the block off; its configs go on to the next blocks. |
@@ -302,12 +328,43 @@ order items (ids starting with `blk-`), placed after your own ones, so everythin
 | `settings.keep_members` | Balancers: `true` keeps the original single configs next to the balancer. |
 | `settings.include_balanced` | Balancers: `true` also uses configs that already have a balancer of the panel's own. |
 | `settings.probe_kind` | Balancers: `burst` or `observatory`; default by strategy (`burst` for `leastLoad`). |
-| `settings.position` | Balancers and WARP blocks: `top` or `bottom`. |
+| `settings.position` | Old setting (still honoured, no longer offered): `top` or `bottom`, ignoring the block order. Order the blocks instead. |
+| `settings.hops` | Chain blocks: the path of the traffic, a list of 1 to 4 hops (see [Chain blocks](#chain-blocks)). Default `[{"from": "warp"}, {"from": "block"}]`. |
+| `settings.account` | WARP blocks: `personal` (default: the user's own account, else the shared one) or `shared` (always the default account; no personal account is created for this block). |
+| `settings.rules` | List, WARP and chain blocks: routing rules added at the end of the config's rules, but in front of a trailing catch-all rule (one that matches all tcp and udp traffic: a balancer's, a decoy's), since a rule after it would never apply. Empty fields (`"domain": []`) are dropped. A rule without `outboundTag` / `balancerTag` goes to the block's own proxy. Each rule can have `"position": "early"` (a key of ours, not Xray's, removed from the output): that rule goes after the DNS rules at the top and in front of the private / domestic direct rules, so it can override them. Default `"end"`. |
 | `settings.remove_exit` | WARP blocks: `true` removes the exit config from the result. |
 | `settings.patches` | List blocks: a list of patches (`stage`, `target`, `when`, `merge`, `routing_prepend`, `routing_append`) for this block's configs. |
 | `settings.choices`, `settings.entry`, `settings.endpoints` | WARP blocks: the chain keys of the same names (`choices`: object of lists; `entry`: outbound or `{account.x}` placeholder; `endpoints`: list or placeholder). |
 | `settings.pool` | Balancers: every member gets one copy per address in this list. |
 | `settings.name` | Balancers: the name, with `{block}`, `{country}` (the flag) and `{n}` (members). Default `{block} {country}` or `{block}`. |
+
+### Chain blocks
+
+A chain block sends the traffic of its configs through several outbounds, one after the other:
+client → hop 1 → hop 2 → the internet. In Xray terms every hop is dialed through the hop before it
+(`streamSettings.sockopt.dialerProxy`); the last hop is tagged `proxy01`, the ones before it `warp` or `hop1`, `hop2`.
+Each config in the block gives one chained config (with `per_country`: the first config of each country), and the
+block's own configs are replaced by the chained ones. The same thing as the classic `chains` item with `"mode": "hops"`.
+
+```json
+{ "id": "far", "name": "Far", "type": "chain", "kinds": [ { "remark": { "contains": "gate" } } ],
+  "settings": { "hops": [ { "from": "block" },
+                          { "from": "outbound", "outbound": { "protocol": "vless", "settings": { "vnext": [
+                              { "address": "far.example.com", "port": 443, "users": [ { "id": "{user.id}" } ] } ] } } } ] } }
+```
+
+| `from` | The hop's outbound | Other keys |
+|---|---|---|
+| `block` | The config itself (its main outbound). At most one hop. | none |
+| `warp` | The WARP outbound of the account (`{account.masque.outbound}`), with one of the account's endpoints. | `account`: `personal` (default) or `shared`; `pick`: `random` (default) or `per_user`; `endpoints`, `entry`: your own list / outbound instead of the account's; `merge`: an object merged into the outbound |
+| `outbound` | An outbound you write (the panel can import it from a `vless://`, `vmess://`, `trojan://` or `ss://` link). Placeholders are filled in: `{user.id}` (the user's own id, the most frequent one among the user's configs), `{account.x}`, `{choice.x}`. | `outbound` (required) |
+| `config` | Another config of the same subscription: the first one matching `when`, one with the same flag first. That config also stays in the list. | `when` (required) |
+| `account_exit` | The exit template of the accounts file (`exits` by flag, else `exit`) with the user's id filled in: what the older WARP block calls "the exit". | `from_account`, `default_account`, `user_id` |
+
+Other settings of a chain block: `name` (`{block}`, `{name}` = the config's own name, `{country}`; default `{name}`, or
+`{block} {country}` with `per_country`), `decoy` (`"vless"`: an unused outbound in front), `choices`, `rules`. When a hop
+cannot be built for a user (no account, no matching config), that config is left as it was and the error is listed in
+the preview.
 
 ## More options for `groups`
 
@@ -379,8 +436,9 @@ Everything is off unless you turn it on. `when` limits it to some configs.
 | `dns_out` | Add a `dns-out` outbound and a rule that sends DNS queries from the `socks` inbound to Xray's own DNS module. Only for configs that have DNS servers. |
 | `block_udp_443` + `quic_domains` | Block QUIC (UDP 443) for these domains (a built-in list unless you set `quic_domains`). |
 | `base_rules` | `true`: private and `.ir` destinations go direct. Or give your own list of rules. |
-| `direct_dns` | `true` or `{"tag_regex": "..."}`: queries of the config's own DNS servers whose tag matches (default `^domestic-dns`) go direct. |
-| `dedicated_dns` | `true` or `{"ip": "8.8.8.8", "tag": "dedicated-dns"}`: the names the proxies themselves connect to (address, SNI, host) are resolved by this DNS, directly. |
+| `direct_dns` | `true` or `{"ips": ["223.5.5.5"], "domains": [["geosite:private"], ["domain:ir", "geosite:category-ir"]], "tag_regex": "^domestic-dns"}`: domestic DNS servers for domestic names, asked directly. One server entry is added in front of `dns.servers` for each line of `domains` and each IP (`finalQuery`, `skipFallback`, tags `domestic-dns_<line>_<ip>`), and a routing rule sends the queries of every server whose tag matches `tag_regex` direct. `true` uses the values shown. Servers of the panel that already have a matching tag are used instead of ours; `"ips": []` adds none (only the rule). Only for configs that have a `dns` section. |
+| `dedicated_dns` | `true` or `{"ips": ["8.8.8.8", "1.1.1.1"], "tag": "dedicated-dns"}`: the names the proxies themselves connect to (address, SNI, host) are resolved by these DNS servers, directly (`"ip": "..."` is still accepted for one server). |
+| `dns` | Your own DNS settings for every config: `{"hosts": {...}, "servers": [...], "servers_at": "replace" \| "first" \| "last", ...}`. `hosts` and any other key of Xray's `dns` object (`queryStrategy`, `disableCache`, ...) are merged into the config's `dns`; `servers` replace the config's servers (default), or go before / after them. A config without `dns` gets one. Applied before `dedicated_dns` and `direct_dns`. |
 | `replace_routing` | Drop the template's routing rules and keep only balancer rules (and rules made by chains). With `domain_strategy` set, also sets it. |
 | `sampling` | Observatory `sampling` of **our** balancers: `{"fixed": 2}` or `{"members_div": 2, "extra": 2}` (members ÷ 2 + 2). |
 | `panel_balancers` | Tune the panel's own `leastLoad` balancers: `{"max_rtt": "2500ms", "few_max_members": 2, "expected_few": 1, "expected_many": 2}`. |

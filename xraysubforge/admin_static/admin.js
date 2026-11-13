@@ -41,6 +41,8 @@
       throughExit: "Dial the entry through the exit config", removeExit: "Remove the exit config from the output", hint_chain_split: "Empty regex = one chain from the first match",
       accounts: "Accounts (values for {account.*})", accountFile: "Accounts file", accountHint: "JSON file next to config.json; keep it private.", accountDefault: "Shared account (JSON, optional; the file wins)",
       regTitle: "Automatic WARP accounts", regEnabled: "Create a WARP account for each new user automatically (needs the accounts file; uses Cloudflare's unofficial API)", regRetry: "Wait after a failure (s)", regApi: "API address (optional)", regVersion: "Client version (optional)",
+      pruneEnabled: "Remove the WARP accounts of users the panel no longer has (checked about once per interval)", pruneDays: "Remove after this many days missing", prunePercent: "Remove nothing when more than this % look missing", pruneHours: "Hours between checks",
+      pruneCheck: "Check now (changes nothing)", pruneRun: "Run now", pruneResult: "{users} users with an account, {missing} missing on the panel, {removed} removed, {waiting} waiting.", pruneDry: "{users} users with an account, {missing} missing on the panel, {removed} would be removed now, {waiting} waiting.",
       regNow: "Create account now", regSubid: "Subscription id (empty = the shared account)", regSaveFirst: "Save the settings first (the accounts file must be saved).", regOk: "Account created.", regExists: "That user already has an account.",
     },
     fa: {
@@ -77,6 +79,8 @@
       throughExit: "ورودی از داخل کانفیگ خروجی عبور کند", removeExit: "کانفیگ خروجی از نتیجه حذف شود", hint_chain_split: "regex خالی = یک زنجیره از اولین مطابق",
       accounts: "حساب‌ها (مقدار {account.*})", accountFile: "فایل حساب‌ها", accountHint: "فایل JSON کنار config.json؛ محرمانه نگه دارید.", accountDefault: "حساب مشترک (JSON، اختیاری؛ فایل اولویت دارد)",
       regTitle: "حساب WARP خودکار", regEnabled: "برای هر کاربر جدید خودکار حساب WARP بساز (به فایل حساب‌ها نیاز دارد؛ از API غیررسمی Cloudflare استفاده می‌کند)", regRetry: "صبر پس از شکست (ثانیه)", regApi: "آدرس API (اختیاری)", regVersion: "نسخهٔ کلاینت (اختیاری)",
+      pruneEnabled: "حساب WARP کاربرانی که دیگر در پنل نیستند را حذف کن (تقریباً هر بازه یک بار بررسی می‌شود)", pruneDays: "حذف پس از این تعداد روز غیبت", prunePercent: "اگر بیش از این درصد غایب بودند چیزی حذف نکن", pruneHours: "ساعت بین دو بررسی",
+      pruneCheck: "الان بررسی کن (چیزی تغییر نمی‌کند)", pruneRun: "الان اجرا کن", pruneResult: "{users} کاربر حساب دارند، {missing} در پنل نیستند، {removed} حذف شد، {waiting} در انتظار.", pruneDry: "{users} کاربر حساب دارند، {missing} در پنل نیستند، {removed} الان حذف می‌شد، {waiting} در انتظار.",
       regNow: "همین الان حساب بساز", regSubid: "شناسهٔ ساب (خالی = حساب مشترک)", regSaveFirst: "ابتدا تنظیمات را ذخیره کنید (فایل حساب‌ها باید ذخیره شده باشد).", regOk: "حساب ساخته شد.", regExists: "این کاربر از قبل حساب دارد.",
     },
   };
@@ -204,7 +208,14 @@
     domainStrategy: "Domain strategy", baseRules: "Base routing rules", baseOff: "off", baseBuiltin: "built-in (private and Iran go direct)", baseCustom: "custom list",
     baseRulesList: "Rules (JSON list)", baseRulesHint: "Rules added to every config; the built-in set sends private addresses and Iranian sites direct.",
     dedicatedDns: "Dedicated DNS for the proxies' own domains", ddIp: "DNS server IP", ddTag: "Tag",
-    directDns: "Resolve domestic domains with the domestic DNS", ddRegex: "Domestic DNS tag pattern (regex)",
+    directDns: "Resolve domestic domains with a domestic DNS, asked directly", ddRegex: "Domestic DNS tag pattern (regex)",
+    ddIps: "DNS server IPs (comma separated)", dnIps: "Domestic DNS server IPs (comma separated; empty = add none, only the direct rule)", dnDomains: "Domains (one server entry per line; comma separated)",
+    dnHint: "Adds these servers in front of dns.servers (tags domestic-dns_N_N) and a routing rule that sends their queries direct. Servers the panel already sent with a matching tag are used instead.",
+    dnsModuleTag: "DNS inbound tag", dnsModuleTagHint: "The name routing rules use as inboundTag to match the DNS module's own queries (for example to send them direct or through a proxy).",
+    dnsJson: "Edit as JSON", dnsForm: "Edit as form", dnsImport: "Import JSON", dnsImportHint: "Paste a whole dns object (hosts, servers, tag, ...). It replaces what is set here; servers stay in the order given.", dnsBad: "This is not valid JSON.", dnsNotObj: "A dns object is expected: {\"hosts\": {...}, \"servers\": [...]}", dnsImported: "Imported: {h} hosts, {s} servers.",
+    dnsOn: "Set DNS for every config", dnsHosts: "Hosts", dnsHostName: "name", dnsHostAddr: "address(es), comma separated", dnsHostAdd: "+ Host",
+    dnsServers: "Servers", dnsServerAdd: "+ Server", dnsServer: "Server", dnsAt: "These servers", dnsAtReplace: "replace the config's servers", dnsAtFirst: "go before the config's servers", dnsAtLast: "go after the config's servers",
+    dnsAddress: "address", dnsDomains: "domains", dnsExpect: "expectIPs", dnsTag: "tag", dnsQuery: "queryStrategy", dnsOther: "Other keys (kept as they are): {k}",
     samplingTitle: "Observatory sampling", samplingOff: "off (leave as is)", samplingFixed: "fixed number", samplingDiv: "from the number of members",
     samplingFixedN: "Samples", samplingDivN: "Members per sample", samplingExtra: "Extra samples",
     panelBal: "Tune the panel's own balancers", pbRtt: "Max RTT", pbFew: "\"Few\" means at most this many members", pbExpFew: "Expected (few members)", pbExpMany: "Expected (many members)",
@@ -223,7 +234,7 @@
     exLayout: "Layout", exGrouped: "grouped", exBlocks: "blocks (rotated per block)", exPick: "Pick", exWhen: "Only for members matching",
     includeBalanced: "Also use configs that already are balancers",
     memberPosition: "Member position (JSON list)", memberPositionHint: "[{\"when\": {...}, \"at\": \"first\"|\"last\"}]",
-    catchall: "Catch-all rules (JSON list)", catchallHint: "Routing rules sent to this balancer; the balancer tag is filled in.",
+    catchall: "Routing rules (JSON list)", catchallHint: "Routing rules sent to this balancer; the balancer tag is filled in.",
     memberPatch: "Member patches (JSON list)", memberPatchHint: "[{\"when\": {...}, \"merge\": {...}, \"random\": {...}}]",
     modeTitle: "What should it do?", modeEngine: "Reshape subscriptions with my rules (advanced)", modeProxy: "Only forward my panel's subscriptions (simple reverse proxy)",
     modeProxyHelp: "Users get the panel's subscriptions unchanged, from your domain. The panel itself can stay on localhost. Rules, balancers and chains are not applied.",
@@ -258,7 +269,14 @@
     domainStrategy: "استراتژی دامنه", baseRules: "قوانین پایهٔ مسیریابی", baseOff: "خاموش", baseBuiltin: "داخلی (آی‌پی خصوصی و سایت‌های ایران مستقیم)", baseCustom: "فهرست دلخواه",
     baseRulesList: "قوانین (فهرست JSON)", baseRulesHint: "قوانینی که به هر کانفیگ اضافه می‌شوند؛ مجموعهٔ داخلی آی‌پی‌های خصوصی و سایت‌های ایرانی را مستقیم می‌کند.",
     dedicatedDns: "DNS اختصاصی برای دامنه‌های خود پروکسی‌ها", ddIp: "آی‌پی سرور DNS", ddTag: "تگ",
-    directDns: "دامنه‌های داخلی با DNS داخلی حل شوند", ddRegex: "الگوی تگ DNS داخلی (regex)",
+    directDns: "دامنه‌های داخلی با DNS داخلی و به‌صورت direct حل شوند", ddRegex: "الگوی تگ DNS داخلی (regex)",
+    ddIps: "آی‌پی سرورهای DNS (با کاما جدا کنید)", dnIps: "آی‌پی سرورهای DNS داخلی (با کاما؛ خالی = سروری اضافه نشود، فقط قانون direct)", dnDomains: "دامنه‌ها (هر خط یک server؛ با کاما جدا کنید)",
+    dnHint: "این سرورها را ابتدای dns.servers می‌گذارد (تگ‌های domestic-dns_N_N) و یک قانون routing که کوئری‌هایشان را direct می‌فرستد. اگر پنل خودش سروری با همین تگ فرستاده باشد، همان استفاده می‌شود.",
+    dnsModuleTag: "تگ inbound مربوط به DNS", dnsModuleTagHint: "نامی که قوانین routing در inboundTag برای تطبیق کوئری‌های خود ماژول DNS استفاده می‌کنند (مثلاً برای فرستادن آن‌ها direct یا از یک پروکسی).",
+    dnsJson: "ویرایش به‌صورت JSON", dnsForm: "ویرایش به‌صورت فرم", dnsImport: "Import JSON", dnsImportHint: "یک شیء dns کامل (hosts، servers، tag و ...) را بچسبانید. جایگزین چیزی که اینجا تنظیم شده می‌شود؛ سرورها به همان ترتیب می‌مانند.", dnsBad: "این JSON معتبر نیست.", dnsNotObj: "یک شیء dns لازم است: {\"hosts\": {...}, \"servers\": [...]}", dnsImported: "Import شد: {h} host، {s} server.",
+    dnsOn: "تنظیم DNS برای همهٔ کانفیگ‌ها", dnsHosts: "Hosts", dnsHostName: "نام", dnsHostAddr: "آدرس(ها)، با کاما", dnsHostAdd: "+ Host",
+    dnsServers: "Servers", dnsServerAdd: "+ Server", dnsServer: "Server", dnsAt: "این سرورها", dnsAtReplace: "جایگزین سرورهای کانفیگ شوند", dnsAtFirst: "قبل از سرورهای کانفیگ بیایند", dnsAtLast: "بعد از سرورهای کانفیگ بیایند",
+    dnsAddress: "address", dnsDomains: "domains", dnsExpect: "expectIPs", dnsTag: "tag", dnsQuery: "queryStrategy", dnsOther: "کلیدهای دیگر (همان‌طور نگه داشته می‌شوند): {k}",
     samplingTitle: "نمونه‌گیری observatory", samplingOff: "خاموش (دست نخورد)", samplingFixed: "عدد ثابت", samplingDiv: "بر اساس تعداد اعضا",
     samplingFixedN: "تعداد نمونه", samplingDivN: "تعداد عضو به‌ازای هر نمونه", samplingExtra: "نمونهٔ اضافه",
     panelBal: "بالانسرهای خود پنل هم تنظیم شوند", pbRtt: "حداکثر RTT", pbFew: "«کم» یعنی حداکثر این تعداد عضو", pbExpFew: "expected (عضو کم)", pbExpMany: "expected (عضو زیاد)",
@@ -277,7 +295,7 @@
     exLayout: "چیدمان", exGrouped: "گروهی", exBlocks: "بلوکی (چرخش در هر بلوک)", exPick: "انتخاب", exWhen: "فقط برای اعضای مطابق",
     includeBalanced: "کانفیگ‌هایی که از قبل بالانسر هستند هم استفاده شوند",
     memberPosition: "جای اعضا (فهرست JSON)", memberPositionHint: "[{\"when\": {...}, \"at\": \"first\"|\"last\"}]",
-    catchall: "قوانین catch-all (فهرست JSON)", catchallHint: "قوانین مسیریابی که به این بالانسر می‌روند؛ تگ بالانسر خودکار پر می‌شود.",
+    catchall: "قوانین مسیریابی (فهرست JSON)", catchallHint: "قوانین مسیریابی که به این بالانسر می‌روند؛ تگ بالانسر خودکار پر می‌شود.",
     memberPatch: "پچ اعضا (فهرست JSON)", memberPatchHint: "[{\"when\": {...}, \"merge\": {...}, \"random\": {...}}]",
   });
 
@@ -381,16 +399,18 @@
     s_keep_members: "Keep single configs", h_keep_members: "Keep the original single configs next to the balancer instead of replacing them.", bKeepMembers: "kept next to the balancer",
     s_include_balanced: "Include panel balancers", h_include_balanced: "Also use configs that already have a balancer of the panel's own.", bIncludeBalanced: "included",
     s_probe_kind: "Probe type", h_probe_kind: "Which Xray probe measures the members. Default: burstObservatory for leastLoad, observatory for the others.",
-    s_position: "Position", h_position: "Put the result at the top or the bottom of the subscription, whatever the block order says.", bPosTop: "top", bPosBottom: "bottom",
+    s_position: "Position", h_position: "Old setting: puts the result at the top or the bottom of the subscription, ignoring the block order. Remove it and order the blocks instead.", bPosTop: "top", bPosBottom: "bottom",
     s_remove_exit: "Remove the exit config", h_remove_exit: "Take the config the WARP chain starts from out of the result.", bRemoveExit: "removed",
     s_expand: "Copies per server", h_expand: "Several members per server: one copy of each config per address, grouped by server. Replaces the plain address pool.",
     s_entry_merge: "Entry changes", h_entry_merge: "Values merged into the WARP entry outbound, e.g. sockopt or the account's keys ({account.privateKey?}).",
-    kvPath: "path (a.b.c)", kvValue: "value", kvAdd: "+ Value", kvHint: "A value is JSON when it parses (true, 5, null, [..]); otherwise text. null deletes the key.",
+    kvPath: "path (a.b.c)", kvValue: "value", kvAdd: "+ Value", kvHint: "Common Xray paths and their values are suggested as you type. A value is JSON when it parses (true, 5, null, [..]); otherwise text. null deletes the key.",
+    bRulePos: "Position", bPosEnd: "End of the list (before the final catch-all) — safe default",
+    bPosEarly: "Early: after the DNS rules, before the private / domestic (Iran) direct rules",
     bRule: "Rule", bRuleAdd: "+ Rule", bRuleKept: "Also kept as they are: {k}", bExpandSum: "{n} copies", bNPaths: "{n} values",
     s_member_position: "Member order", h_member_position: "Where matching configs sit inside the balancer. The first rule that matches a config decides.",
     s_member_patch: "Member patches", h_member_patch: "Changes applied to every config that joins this balancer (for example alpn or sockopt). Patches run in order.",
-    s_catchall_rules: "Catch-all rules", h_catchall_rules: "The routing rules sent to the balancer, in this order (JSON list; the balancer tag is filled in). Default: tcp and udp.",
-    bMoveAdv: "Move to settings", bMoveAdvHint: "Parameters, probe, cost, member order, catch-all rules and member patches have settings of their own. Moving them changes nothing in the result.",
+    s_catchall_rules: "Routing rules", h_catchall_rules: "The routing rules whose traffic goes to this balancer (the balancer tag is filled in). They come after the panel's rules, in this order. Default: one rule for all tcp and udp traffic.",
+    bMoveAdv: "Move to settings", bMoveAdvHint: "Parameters, probe, cost, member order, routing rules and member patches have settings of their own. Moving them changes nothing in the result.",
     bNSteps: "{n} patches", bNRules: "{n} rules", bPosAt: "position", bPos_first: "first", bPos_last: "last", bPosAdd: "+ Order rule",
     s_fragment: "Fragment", s_cipher: "Cipher suites", s_fingerprint: "Fingerprint", s_strategy: "Strategy", s_pool: "Address pool", s_name: "Name",
     h_fragment: "Pick one or more. With several, each config gets one of them at random.",
@@ -403,11 +423,20 @@
     bOldBalancer: "balancer", bOldDrop: "removes", bOldRule: "rule", bOldWarp: "WARP chain", bConvert: "Convert to block", bOpenOld: "Open",
     bTakesNothing: "Takes no config of this sample.", bNoSampleShort: "Fetch a subscription to see what it takes.", bOldCond: "condition of {id}",
     advRules: "Rules and order", advPatches: "Patches", advJson: "JSON",
-    bWarp: "WARP", bAddWarp: "+ WARP block", bNewWarp: "WARP {n}", s_warp: "Route", s_pick: "WARP endpoint",
-    h_warp: "WARP, then the exit server of the config; or WARP alone.", h_pick: "Which WARP endpoint each user gets.",
+    bWarp: "WARP", bAddWarp: "+ WARP block", bNewWarp: "WARP {n}", bChain: "Chain", bAddChain: "+ Chain block", bNewChain: "Chain {n}", bWarpOld: "WARP (old)", bToChain: "Convert to a chain block",
+    s_hops: "Chain", h_hops: "The path of the traffic. Each hop is reached through the one before it; the last hop is where the traffic leaves.",
+    hopClient: "Client", hopInternet: "Internet", hopN: "Hop {n}", hopNone: "— none —", hop_block: "This block's configs", hop_warp: "WARP", hop_outbound: "My own outbound (link or JSON)", hop_config: "Another config of the subscription", hop_account_exit: "Exit template from the accounts file",
+    hopBlockHint: "Each config dropped in this block becomes one chained config (with One per country: the first config of each country).",
+    hopAcctHint: "The outbound template in the accounts file (exits by country flag, else exit), with the user's own id filled in.",
+    hopConfigHint: "The first config of the same subscription that matches (the same country first). It also stays in the list as it is.",
+    hopLink: "Link (vless://, vmess://, trojan://, ss://)", hopImport: "Import", hopUserId: "Use each user's own id ({user.id})", hopOutHint: "Placeholders: {user.id} = the user's own id, {account.x} = a value of the account, {choice.x} = a value of Choices.", hopEndpoints: "Endpoints (empty = the account's)", hopEntry: "Entry outbound (empty = {account.masque.outbound})", hopMerge: "Changes to the WARP outbound", hopJson: "Edit as JSON", hopRows: "Edit as rows", hopImported: "Imported: {name}", s_warp: "Route", s_pick: "WARP endpoint",
+    h_warp: "The config dropped here is only a placeholder. With an exit: the result is [exit, WARP], where the exit is the outbound template in the accounts file (exits by country flag, else exit) with the user's own id filled in, dialed through WARP. WARP only: WARP alone, no exit.",
+    s_account: "WARP account", h_account: "Each user their own account (from the accounts file, or made automatically), or the one shared account (default) for everybody.", bAcctPersonal: "personal (per user)", bAcctShared: "shared (default account)",
+    s_rules: "Routing rules", h_rules: "Routing rules added at the end of the config's rules. A rule without outboundTag goes to this block's own proxy; write direct or block to send it elsewhere.",
+    bDuplicate: "Duplicate this block (settings only, without its configs)", bCopyOf: "{name} copy", bLegacy: "old setting", bLiftPresets: "Move the fragment / cipher presets to their own settings", bLiftHint: "A step here only picks fragment or cipher presets: the Fragment and Cipher settings do the same.", h_pick: "Which WARP endpoint each user gets.",
     bCostTitle: "Cost per member", bCostHint: "The first rule that matches a config sets its cost (higher = chosen less often). A rule without a condition is the default.", bCostValue: "cost", bCostWhen: "when", bCostAdd: "+ Cost rule", bCostAll: "every other config",
     bLoadParams: "leastLoad parameters (empty = Xray default)", bProbeParams: "Probe (how members are measured)", bNoParams: "This strategy has no parameters.", s_load: "leastLoad parameters", h_load: "expected, maxRTT and tolerance of the leastLoad strategy. Empty fields use Xray's own defaults.", s_probe: "Probe", h_probe: "How the balancer measures its members: URL, method, interval, number of samples and timeout.",
-    s_decoy: "Decoy outbound", h_decoy: "With WARP only: an unused vless+TLS outbound in front, so apps that refuse a lone masque config load it.", bDecoyVless: "vless + TLS (unused)", bWarpExit: "WARP, then the exit", bWarpOnly: "WARP only", bPickRandom: "random on every update", bPickUser: "fixed per user",
+    s_decoy: "Decoy outbound", h_decoy: "With WARP only: an unused vless+TLS outbound in front, so apps that refuse a lone masque config load it.", bDecoyVless: "vless + TLS (unused)", bWarpExit: "WARP → exit server from the accounts file", bWarpOnly: "WARP only", bPickRandom: "random on every update", bPickUser: "fixed per user",
     bAdvancedJson: "Advanced (JSON)", bAdvBalancer: "\"group\": extra balancer keys (params, probe, expand, …); \"member_patch\": extra steps for every member.",
     bAdvList: "\"patches\": a list of patches (merge, random, routing_prepend, …) applied to this block's configs.",
     bAdvWarp: "\"chain\": extra chain keys (entry, endpoints, exit, entry_merge, before, …).",
@@ -454,8 +483,17 @@
     bOldBalancer: "بالانسر", bOldDrop: "حذف", bOldRule: "قانون", bOldWarp: "زنجیرهٔ WARP", bConvert: "تبدیل به بلوک", bOpenOld: "باز کردن",
     bTakesNothing: "هیچ کانفیگی از این نمونه را برنمی‌دارد.", bNoSampleShort: "برای دیدن، یک ساب بگیرید.", bOldCond: "شرط {id}",
     advRules: "قوانین و ترتیب", advPatches: "پچ‌ها", advJson: "JSON",
-    bAddWarp: "+ بلوک WARP", bNewWarp: "WARP {n}", s_warp: "مسیر", s_pick: "endpoint وارپ",
-    h_warp: "اول WARP، بعد سرور خروجی کانفیگ؛ یا فقط WARP.", h_pick: "هر کاربر کدام endpoint وارپ را بگیرد.",
+    bAddWarp: "+ بلوک WARP", bNewWarp: "WARP {n}", bChain: "Chain", bAddChain: "+ بلوک Chain", bNewChain: "Chain {n}", bWarpOld: "WARP (قدیمی)", bToChain: "تبدیل به بلوک Chain",
+    s_hops: "Chain", h_hops: "مسیر ترافیک. هر hop از داخل hop قبلی وصل می‌شود؛ ترافیک از آخرین hop خارج می‌شود.",
+    hopClient: "کاربر", hopInternet: "اینترنت", hopN: "Hop {n}", hopNone: "— هیچ —", hop_block: "کانفیگ‌های همین بلوک", hop_warp: "WARP", hop_outbound: "outbound دلخواه (لینک یا JSON)", hop_config: "یک کانفیگ دیگر همین اشتراک", hop_account_exit: "قالب exit از فایل حساب‌ها",
+    hopBlockHint: "هر کانفیگی که در این بلوک بگذارید یک کانفیگ chain می‌شود (با «یکی برای هر کشور»: اولین کانفیگ هر کشور).",
+    hopAcctHint: "قالب outbound داخل فایل حساب‌ها (exits بر اساس پرچم کشور، وگرنه exit) که id خود کاربر در آن گذاشته می‌شود.",
+    hopConfigHint: "اولین کانفیگ همین اشتراک که شرط را داشته باشد (اول هم‌کشور). خودش هم بدون تغییر در لیست می‌ماند.",
+    hopLink: "لینک (vless://، vmess://، trojan://، ss://)", hopImport: "Import", hopUserId: "id خود هر کاربر گذاشته شود ({user.id})", hopOutHint: "Placeholderها: {user.id} = id خود کاربر، {account.x} = مقداری از حساب، {choice.x} = مقداری از Choices.", hopEndpoints: "Endpointها (خالی = مال حساب)", hopEntry: "Entry outbound (خالی = {account.masque.outbound})", hopMerge: "تغییرات روی outbound وارپ", hopJson: "ویرایش به‌صورت JSON", hopRows: "ویرایش به‌صورت ردیف", hopImported: "Import شد: {name}", s_warp: "مسیر", s_pick: "endpoint وارپ",
+    h_warp: "کانفیگی که اینجا می‌کشید فقط جانگهدار است. با exit: نتیجه [exit, WARP] است؛ exit همان قالب outbound داخل فایل حساب‌هاست (exits بر اساس پرچم کشور، وگرنه exit) که id خود کاربر در آن گذاشته می‌شود و از داخل WARP وصل می‌شود. فقط WARP: خود WARP بدون exit.",
+    s_account: "حساب WARP", h_account: "هر کاربر حساب خودش (از فایل حساب‌ها یا ساخت خودکار)، یا یک حساب مشترک (default) برای همه.", bAcctPersonal: "شخصی (هر کاربر جدا)", bAcctShared: "مشترک (حساب default)",
+    s_rules: "قوانین مسیریابی", h_rules: "قوانین routing که به انتهای قوانین کانفیگ اضافه می‌شوند. قانونی که outboundTag ندارد به پروکسی خود همین بلوک می‌رود؛ برای مقصد دیگر direct یا block بنویسید.",
+    bDuplicate: "کپی این بلوک (فقط تنظیمات، بدون کانفیگ‌ها)", bCopyOf: "کپی {name}", bLegacy: "تنظیم قدیمی", bLiftPresets: "انتقال presetهای fragment / cipher به تنظیم خودشان", bLiftHint: "یک مرحله در اینجا فقط preset فرگمنت یا cipher انتخاب می‌کند: تنظیم‌های Fragment و Cipher همین کار را می‌کنند.", h_pick: "هر کاربر کدام endpoint وارپ را بگیرد.",
     bCostTitle: "Cost هر عضو", bCostHint: "اولین قانونی که با یک کانفیگ جور شود cost آن را تعیین می‌کند (بیشتر = کمتر انتخاب می‌شود). قانون بدون شرط، پیش‌فرض است.", bCostValue: "cost", bCostWhen: "شرط", bCostAdd: "+ قانون cost", bCostAll: "بقیهٔ کانفیگ‌ها",
     pMerge: "ادغام", pRoutePre: "قوانین مسیریابی که اول اضافه می‌شوند", pRoutePost: "قوانین مسیریابی که آخر اضافه می‌شوند",
     s_choices: "Choices", h_choices: "لیست‌هایی از مقدار؛ هر کاربر از هر لیست یک مقدار می‌گیرد (همیشه همان) و در entry به شکل {choice.name} قابل استفاده است.", chName: "نام", chValues: "مقدارها، با ویرگول جدا شوند", chAdd: "+ لیست",
@@ -466,19 +504,21 @@
     s_keep_members: "نگه‌داشتن کانفیگ‌های تکی", h_keep_members: "کانفیگ‌های تکی اصلی کنار بالانسر می‌مانند و جایگزین نمی‌شوند.", bKeepMembers: "کنار بالانسر می‌ماند",
     s_include_balanced: "شامل بالانسرهای پنل", h_include_balanced: "کانفیگ‌هایی که از قبل بالانسر خود پنل را دارند هم استفاده می‌شوند.", bIncludeBalanced: "شامل",
     s_probe_kind: "نوع probe", h_probe_kind: "کدام probe ایکس‌ری اعضا را اندازه بگیرد. پیش‌فرض: burstObservatory برای leastLoad و observatory برای بقیه.",
-    s_position: "جایگاه", h_position: "نتیجه بالا یا پایین اشتراک قرار بگیرد، فارغ از ترتیب بلوک‌ها.", bPosTop: "بالا", bPosBottom: "پایین",
+    s_position: "جایگاه", h_position: "تنظیم قدیمی: نتیجه را فارغ از ترتیب بلوک‌ها بالا یا پایین اشتراک می‌گذارد. آن را حذف کنید و به‌جایش ترتیب بلوک‌ها را عوض کنید.", bPosTop: "بالا", bPosBottom: "پایین",
     s_remove_exit: "حذف کانفیگ خروج", h_remove_exit: "کانفیگی که زنجیرهٔ WARP از آن شروع می‌شود از نتیجه حذف می‌شود.", bRemoveExit: "حذف می‌شود",
     s_expand: "Copies per server", h_expand: "چند عضو برای هر سرور: از هر کانفیگ به ازای هر آدرس یک کپی، گروه‌بندی‌شده بر اساس سرور. جایگزین Address pool ساده می‌شود.",
     s_entry_merge: "تغییرات Entry", h_entry_merge: "مقادیری که در outbound ورودی WARP ادغام می‌شوند، مثل sockopt یا کلیدهای حساب ({account.privateKey?}).",
-    kvPath: "مسیر (a.b.c)", kvValue: "مقدار", kvAdd: "+ مقدار", kvHint: "مقدار اگر JSON معتبر باشد (true، 5، null، [..]) همان است، وگرنه متن. null کلید را حذف می‌کند.",
+    kvPath: "مسیر (a.b.c)", kvValue: "مقدار", kvAdd: "+ مقدار", kvHint: "مسیرهای رایج Xray و مقادیرشان هنگام تایپ پیشنهاد می‌شوند. مقدار اگر JSON معتبر باشد (true، 5، null، [..]) همان است، وگرنه متن. null کلید را حذف می‌کند.",
+    bRulePos: "جایگاه", bPosEnd: "ته لیست (قبل از قانون فراگیر آخر) — پیش‌فرض امن",
+    bPosEarly: "اول: بعد از قوانین DNS و قبل از قوانین مستقیمِ private و ایران",
     bRule: "قانون", bRuleAdd: "+ قانون", bRuleKept: "این‌ها هم همان‌طور نگه داشته می‌شوند: {k}", bExpandSum: "{n} کپی", bNPaths: "{n} مقدار",
     s_member_position: "ترتیب اعضا", h_member_position: "جای کانفیگ‌های جورشده داخل بالانسر. اولین قانونی که با کانفیگ جور شود تعیین می‌کند.",
     s_member_patch: "Patch اعضا", h_member_patch: "تغییراتی که روی هر کانفیگ عضو این بالانسر اعمال می‌شود (مثلاً alpn یا sockopt). به ترتیب اجرا می‌شوند.",
-    s_catchall_rules: "قوانین Catch-all", h_catchall_rules: "قوانین مسیریابی که به بالانسر می‌روند، به همین ترتیب (لیست JSON؛ تگ بالانسر خودکار پر می‌شود). پیش‌فرض: tcp و udp.",
-    bMoveAdv: "انتقال به Settings", bMoveAdvHint: "پارامترها، probe، cost، ترتیب اعضا، قوانین catch-all و patchهای اعضا Setting خودشان را دارند. انتقال، نتیجه را تغییر نمی‌دهد.",
+    s_catchall_rules: "قوانین مسیریابی", h_catchall_rules: "قوانین routing که ترافیکشان به این بالانسر می‌رود (تگ بالانسر خودکار پر می‌شود). بعد از قوانین پنل و به همین ترتیب می‌آیند. پیش‌فرض: یک قانون برای همهٔ ترافیک tcp و udp.",
+    bMoveAdv: "انتقال به Settings", bMoveAdvHint: "پارامترها، probe، cost، ترتیب اعضا، قوانین مسیریابی و patchهای اعضا Setting خودشان را دارند. انتقال، نتیجه را تغییر نمی‌دهد.",
     bNSteps: "{n} patch", bNRules: "{n} قانون", bPosAt: "جایگاه", bPos_first: "اول", bPos_last: "آخر", bPosAdd: "+ قانون ترتیب",
     bLoadParams: "پارامترهای leastLoad (خالی = پیش‌فرض Xray)", bProbeParams: "Probe (نحوهٔ اندازه‌گیری اعضا)", bNoParams: "این استراتژی پارامتری ندارد.", s_load: "پارامترهای leastLoad", h_load: "expected و maxRTT و tolerance در استراتژی leastLoad. فیلد خالی = پیش‌فرض Xray.", s_probe: "Probe", h_probe: "نحوهٔ اندازه‌گیری اعضای بالانسر: آدرس، متد، فاصله، تعداد نمونه و timeout.",
-    s_decoy: "outbound طعمه", h_decoy: "فقط با WARP تنها: یک outbound خالی vless+TLS در ابتدا می‌آید تا برنامه‌هایی که masque تنها را قبول نمی‌کنند، کانفیگ را باز کنند.", bDecoyVless: "vless + TLS (بدون استفاده)", bWarpExit: "WARP، بعد خروجی", bWarpOnly: "فقط WARP", bPickRandom: "تصادفی در هر به‌روزرسانی", bPickUser: "ثابت برای هر کاربر",
+    s_decoy: "outbound طعمه", h_decoy: "فقط با WARP تنها: یک outbound خالی vless+TLS در ابتدا می‌آید تا برنامه‌هایی که masque تنها را قبول نمی‌کنند، کانفیگ را باز کنند.", bDecoyVless: "vless + TLS (بدون استفاده)", bWarpExit: "WARP ← سرور exit از فایل حساب‌ها", bWarpOnly: "فقط WARP", bPickRandom: "تصادفی در هر به‌روزرسانی", bPickUser: "ثابت برای هر کاربر",
     domainsTitle: "دامنه‌های بیشتر", domainsHint: "هر دامنه گواهی خودش را دارد و بر اساس نامی که اپ به آن وصل می‌شود انتخاب می‌شود (مثلاً یکی پشت Cloudflare با گواهی Origin کلادفلر، یکی پشت یک CDN دیگر). همهٔ دامنه‌ها باید به این سرور اشاره کنند. نیاز به راه‌اندازی دوباره دارد.",
     dom_name: "دامنه", dom_cert: "گواهی (fullchain)", dom_key: "کلید خصوصی", domainAdd: "+ دامنه",
     cancel: "انصراف", bEditCond: "ویرایش این شرط", bDone: "تمام", bDragBlock: "برای جابه‌جایی بلوک بکشید",
@@ -1126,10 +1166,28 @@
       btn.disabled = false;
       msg.textContent = res.ok ? (res.data.created ? t("regOk") : t("regExists")) : (res.data.error || "error");
     } }, t("regNow"));
+    const pr = (a.prune = a.prune || {});
+    const pmsg = h("span", { class: "hint" });
+    const pruneBtn = (run) => {
+      const b = h("button", { type: "button", onclick: async () => {
+        if (isDirty()) { pmsg.textContent = t("regSaveFirst"); return; }
+        b.disabled = true; pmsg.textContent = "…";
+        const res = await api("prune-accounts", { run });
+        b.disabled = false;
+        pmsg.textContent = res.data.error || (res.data.users === undefined ? "error" : t(run ? "pruneResult" : "pruneDry", res.data));
+      } }, t(run ? "pruneRun" : "pruneCheck"));
+      return b;
+    };
     return h("div", {},
       h("label", { class: "check" }, bindBool(r, "enabled", false), t("regEnabled")),
       field(t("regSubid"), subid),
       h("div", {}, btn, " ", msg),
+      h("label", { class: "check" }, bindBool(pr, "enabled", false), t("pruneEnabled")),
+      h("div", { class: "grid" },
+        field(t("pruneDays"), bindText(pr, "after_days", { num: true, placeholder: "3" })),
+        field(t("prunePercent"), bindText(pr, "max_percent", { num: true, placeholder: "50" })),
+        field(t("pruneHours"), bindText(pr, "interval_hours", { num: true, placeholder: "24" }))),
+      h("div", {}, pruneBtn(false), " ", pruneBtn(true), " ", pmsg),
       moreBox(...extraMore, h("div", { class: "grid" },
         field(t("regRetry"), bindText(r, "retry_seconds", { num: true, placeholder: "600" })),
         field(t("regApi"), bindText(r, "api")),
@@ -1716,12 +1774,14 @@
 
   // ---------- blocks: the drag-and-drop builder ----------
   const B_SETTINGS = [
+    { key: "hops", kind: "custom", fixed: true, def: [{ from: "warp" }, { from: "block" }], types: ["chain"] },
     { key: "warp", kind: "one", options: ["exit", "only"], labels: { exit: "bWarpExit", only: "bWarpOnly" }, def: "exit", types: ["warp"] },
+    { key: "account", kind: "one", options: ["personal", "shared"], labels: { personal: "bAcctPersonal", shared: "bAcctShared" }, def: "shared", types: ["warp"] },
     { key: "pick", kind: "one", options: ["random", "per_user"], labels: { random: "bPickRandom", per_user: "bPickUser" }, def: "random", types: ["warp"] },
-    { key: "decoy", kind: "one", options: ["vless"], labels: { vless: "bDecoyVless" }, def: "vless", types: ["warp"] },
+    { key: "decoy", kind: "one", options: ["vless"], labels: { vless: "bDecoyVless" }, def: "vless", types: ["warp", "chain"] },
     { key: "fragment", kind: "multi", options: ["tlshello-0-len", "tlshello-6-98"], def: ["tlshello-0-len", "tlshello-6-98"], ph: "bCustomFrag", add: "bAddCustom", types: ["list", "balancer"] },
     { key: "cipher", kind: "multi", options: ["semi-python", "real-firefox"], def: ["semi-python", "real-firefox"], ph: "bCustomCipher", add: "bAddCustom", types: ["list", "balancer"] },
-    { key: "fingerprint", kind: "one", options: ["chrome", "firefox", "safari", "ios", "android", "edge", "random", "randomized"], def: "chrome", types: ["list", "balancer"] },
+    { key: "fingerprint", kind: "one", options: ["chrome", "firefox", "safari", "ios", "android", "edge", "360", "qq", "random", "randomized", "unsafe"], def: "chrome", types: ["list", "balancer"] },
     { key: "strategy", kind: "one", options: ["leastLoad", "leastPing", "random", "roundRobin"], def: "leastLoad", types: ["balancer"] },
     // the parameters of the chosen strategy are edited inside the Strategy setting (see bStrategyFields), not as settings of their own
     { key: "load", kind: "fields", hidden: true, def: {}, types: ["balancer"] },
@@ -1734,21 +1794,23 @@
     { key: "keep_members", kind: "one", options: ["keep"], labels: { keep: "bKeepMembers" }, def: true, types: ["balancer"] },
     { key: "include_balanced", kind: "one", options: ["include"], labels: { include: "bIncludeBalanced" }, def: true, types: ["balancer"] },
     { key: "probe_kind", kind: "one", options: ["burst", "observatory"], labels: { burst: "burstObservatory", observatory: "observatory" }, def: "burst", types: ["balancer"] },
-    { key: "position", kind: "one", options: ["top", "bottom"], labels: { top: "bPosTop", bottom: "bPosBottom" }, def: "top", types: ["balancer", "warp"] },
+    { key: "position", kind: "one", options: ["top", "bottom"], labels: { top: "bPosTop", bottom: "bPosBottom" }, def: "top", legacy: true, types: ["balancer", "warp"] },
     { key: "remove_exit", kind: "one", options: ["remove"], labels: { remove: "bRemoveExit" }, def: true, types: ["warp"] },
     { key: "expand", kind: "custom", def: { copies: 2 }, types: ["balancer"] },
     { key: "entry_merge", kind: "custom", def: {}, types: ["warp"] },
-    { key: "choices", kind: "custom", def: { endpoint: ["1.2.3.4", "5.6.7.8"] }, types: ["warp"] },
+    { key: "choices", kind: "custom", def: { endpoint: ["1.2.3.4", "5.6.7.8"] }, types: ["warp", "chain"] },
     { key: "entry", kind: "custom", def: "{account.masque.outbound}", types: ["warp"] },
     { key: "endpoints", kind: "custom", def: "{account.masque.endpoints}", types: ["warp"] },
     { key: "patches", kind: "custom", def: [], types: ["list"] },
+    { key: "rules", kind: "custom", def: [{ domain: ["example.com"] }], types: ["list", "warp", "chain"] },
     { key: "pool", kind: "list", def: ["a.example.com", "b.example.com"], ph: "bAddressPh", add: "bAddAddress", types: ["balancer"] },
-    { key: "name", kind: "text", def: "{block} {country}", types: ["list", "balancer", "warp"] },
+    { key: "name", kind: "text", def: "{block} {country}", types: ["list", "balancer", "warp", "chain"] },
   ];
   const bType = (blk) => blk.type || "list";
   const bAllowed = (d, blk) => d.types.includes(bType(blk));
-  const bNameDefault = (blk) => (bType(blk) === "list" ? "{block} {n}" : blk.per_country ? "{block} {country}" : "{block}");
-  const bTokens = (blk) => (bType(blk) === "list" ? ["{block}", "{name}", "{country}", "{n}"] : ["{block}", "{country}", "{n}"]);
+  const bNameDefault = (blk) => (bType(blk) === "list" ? "{block} {n}" : bType(blk) === "chain" ? (blk.per_country ? "{block} {country}" : "{name}") : blk.per_country ? "{block} {country}" : "{block}");
+  const bTokens = (blk) => (bType(blk) === "list" ? ["{block}", "{name}", "{country}", "{n}"] : bType(blk) === "chain" ? ["{block}", "{name}", "{country}"] : ["{block}", "{country}", "{n}"]);
+  const hopLabel = (hp) => t("hop_" + ((hp && hp.from) || "block")) + (hp && hp.from === "warp" && hp.account === "shared" ? " (" + t("bAcctShared") + ")" : "");
   const bLabel = (d, v) => (d.labels && d.labels[v] ? t(d.labels[v]) : String(v));
   const B_ADV_HINT = { balancer: "bAdvBalancer", list: "bAdvList", warp: "bAdvWarp" };
   const B_DEF = Object.fromEntries(B_SETTINGS.map((x) => [x.key, x]));
@@ -1845,6 +1907,16 @@
   const bHasPick = () => !!(bSel.length || bPick);
   const bCond = (k) => Object.assign({ _label: (k.flag ? k.flag + " " : "") + k.label }, k.when);
   let bDragSource = false;
+  // the page scrolls by itself while something is dragged near its top or bottom edge
+  let bScrollBy = 0, bScrollTimer = null;
+  const bScrollStop = () => { bScrollBy = 0; if (bScrollTimer) { clearInterval(bScrollTimer); bScrollTimer = null; } };
+  document.addEventListener("dragover", (e) => {
+    if (bDrag === null && bBlockDrag === null) return;
+    const edge = 90, y = e.clientY, hgt = window.innerHeight;
+    bScrollBy = y < edge ? -Math.ceil((edge - y) / 4) : y > hgt - edge ? Math.ceil((y - (hgt - edge)) / 4) : 0;
+    if (bScrollBy && !bScrollTimer) bScrollTimer = setInterval(() => { if (bScrollBy) window.scrollBy(0, bScrollBy); else bScrollStop(); }, 16);
+  });
+  ["dragend", "drop"].forEach((ev) => document.addEventListener(ev, bScrollStop, true));
   function bDragProps(cond, fromSource) {
     return { draggable: "true", ondragstart: (e) => { bDrag = cond; bDragSource = !!fromSource; try { e.dataTransfer.setData("text/plain", "kind"); e.dataTransfer.effectAllowed = "move"; } catch (x) { /* ignore */ } },
       ondragend: () => { bDrag = null; if (bOver !== null) { bOver = null; drawEditor(); } } };
@@ -1858,6 +1930,7 @@
   function bSummary(key, v) {
     const d = B_DEF[key];
     if (d.kind === "multi") return v.map((x) => (d.options.includes(x) ? x : t("bCustom"))).join(" · ") + (v.length > 1 ? ", " + t("bRandom") : "");
+    if (key === "hops") return v.map(hopLabel).join(" → ");
     if (key === "expand") return t("bExpandSum", { n: v.copies || 1 });
     if (key === "entry_merge") return t("bNPaths", { n: kvFlat(v, "", []).length });
     if (key === "choices") return t("bNLists", { n: Object.keys(v).length });
@@ -1959,16 +2032,48 @@
   };
   const kvText = (v) => { if (typeof v === "string") { try { JSON.parse(v); return JSON.stringify(v); } catch (e) { return v; } } return JSON.stringify(v); };
   const kvValue = (x) => { try { return JSON.parse(x); } catch (e) { return x; } };
+  // paths of an Xray outbound / config whose values are a fixed set: offered as suggestions (anything else can still be typed)
+  const FP_VALUES = ["chrome", "firefox", "safari", "ios", "android", "edge", "360", "qq", "random", "randomized", "unsafe"];
+  const DS_VALUES = ["AsIs", "UseIP", "UseIPv4", "UseIPv6", "UseIPv4v6", "UseIPv6v4", "ForceIP", "ForceIPv4", "ForceIPv6", "ForceIPv4v6", "ForceIPv6v4"];
+  const BOOL_VALUES = ["true", "false"];
+  const KNOWN_PATHS = {
+    "streamSettings.tlsSettings.fingerprint": FP_VALUES, "streamSettings.realitySettings.fingerprint": FP_VALUES,
+    "streamSettings.tlsSettings.alpn": ['["h2","http/1.1"]', '["h3"]', '["h3","h2"]', '["h2"]', '["http/1.1"]'],
+    "streamSettings.tlsSettings.allowInsecure": BOOL_VALUES, "streamSettings.tlsSettings.serverName": [],
+    "streamSettings.tlsSettings.cipherSuites": [], "streamSettings.tlsSettings.echConfigList": [],
+    "streamSettings.sockopt.domainStrategy": DS_VALUES, "streamSettings.sockopt.tcpFastOpen": BOOL_VALUES,
+    "streamSettings.sockopt.tcpMptcp": BOOL_VALUES, "streamSettings.sockopt.tcpNoDelay": BOOL_VALUES, "streamSettings.sockopt.penetrate": BOOL_VALUES,
+    "streamSettings.sockopt.tcpcongestion": ["bbr", "cubic", "reno"], "streamSettings.sockopt.interface": [], "streamSettings.sockopt.mark": [],
+    "streamSettings.sockopt.tcpKeepAliveInterval": [], "streamSettings.sockopt.tcpKeepAliveIdle": [], "streamSettings.sockopt.dialerProxy": [],
+    "streamSettings.sockopt.happyEyeballs.tryDelayMs": ["250"], "streamSettings.sockopt.happyEyeballs.prioritizeIPv6": BOOL_VALUES,
+    "streamSettings.xhttpSettings.mode": ["auto", "packet-up", "stream-up", "stream-one"], "streamSettings.xhttpSettings.host": [], "streamSettings.xhttpSettings.path": [],
+    "streamSettings.xhttpSettings.extra.xPaddingBytes": ["100-1000"], "streamSettings.xhttpSettings.extra.noGRPCHeader": BOOL_VALUES,
+    "streamSettings.xhttpSettings.extra.xmux.maxConcurrency": ["16-32"], "streamSettings.xhttpSettings.extra.xmux.hMaxRequestTimes": ["600-900"],
+    "streamSettings.wsSettings.heartbeatPeriod": [], "streamSettings.grpcSettings.multiMode": BOOL_VALUES,
+    "mux.enabled": BOOL_VALUES, "mux.concurrency": ["8", "-1"], "mux.xudpConcurrency": ["16", "-1"], "mux.xudpProxyUDP443": ["reject", "allow", "skip"],
+    "settings.vnext.0.users.0.flow": ["xtls-rprx-vision", "xtls-rprx-vision-udp443"], "settings.vnext.0.users.0.encryption": ["none"],
+    "settings.domainStrategy": DS_VALUES,
+    "routing.domainStrategy": ["AsIs", "IPIfNonMatch", "IPOnDemand"], "routing.domainMatcher": ["hybrid", "linear"],
+    "dns.queryStrategy": ["UseIP", "UseIPv4", "UseIPv6"], "dns.disableCache": BOOL_VALUES, "dns.disableFallback": BOOL_VALUES, "dns.tag": [],
+    "log.loglevel": ["debug", "info", "warning", "error", "none"],
+  };
+  let kvSeq = 0;
   function mergeEditor(obj, key, keep) {
     const box = h("div", { class: "b-kv" });
     const rows = kvFlat(isObj(obj[key]) ? obj[key] : {}, "", []);
     const commit = () => { const o = kvNest(rows); if (Object.keys(o).length || keep) obj[key] = o; else delete obj[key]; changed(); };
     const draw = () => {
-      box.replaceChildren(...rows.map((row, n) => h("div", { class: "row" },
-        h("input", { type: "text", class: "mono b-kvpath", value: row[0], placeholder: t("kvPath"), "aria-label": t("kvPath"), oninput: (e) => { row[0] = e.target.value; commit(); } }),
-        h("span", { class: "dim" }, "="),
-        h("input", { type: "text", class: "mono b-kvval", value: kvText(row[1]), placeholder: t("kvValue"), "aria-label": t("kvValue"), oninput: (e) => { row[1] = kvValue(e.target.value); commit(); } }),
-        h("button", { type: "button", class: "icon danger", "aria-label": t("bDelete"), title: t("bDelete"), onclick: () => { rows.splice(n, 1); commit(); draw(); } }, "×"))),
+      box.replaceChildren(...rows.map((row, n) => {
+        const dl = h("datalist", { id: "dl-kv" + (++kvSeq) });
+        const fill = () => dl.replaceChildren(...(KNOWN_PATHS[row[0]] || []).map((x) => h("option", { value: x })));
+        fill();
+        return h("div", { class: "row" },
+          h("input", { type: "text", class: "mono b-kvpath", value: row[0], placeholder: t("kvPath"), "aria-label": t("kvPath"), list: "dl-paths", oninput: (e) => { row[0] = e.target.value; fill(); commit(); } }),
+          h("span", { class: "dim" }, "="),
+          h("input", { type: "text", class: "mono b-kvval", value: kvText(row[1]), placeholder: t("kvValue"), "aria-label": t("kvValue"), list: dl.id, oninput: (e) => { row[1] = kvValue(e.target.value); commit(); } }),
+          dl,
+          h("button", { type: "button", class: "icon danger", "aria-label": t("bDelete"), title: t("bDelete"), onclick: () => { rows.splice(n, 1); commit(); draw(); } }, "×"));
+      }),
         h("button", { type: "button", class: "small", onclick: () => { rows.push(["", ""]); draw(); } }, t("kvAdd")),
         h("span", { class: "hint" }, t("kvHint")));
     };
@@ -1979,6 +2084,8 @@
   const RULE_FIELDS = [["network", "text", "tcp,udp"], ["port", "text", "0-65535"], ["protocol", "list", "http, tls, bittorrent"],
     ["domain", "list", "geosite:google"], ["ip", "list", "geoip:private"], ["inboundTag", "list", "tag"], ["source", "list", "10.0.0.0/8"], ["sourcePort", "text", "1000-2000"]];
   const ROUTE_FIELDS = RULE_FIELDS.concat([["outboundTag", "text", "direct"], ["balancerTag", "text", ""]]);
+  // rules of a list / WARP / chain block: these configs have no balancer; an empty outboundTag = the block's own proxy
+  const BLOCK_RULE_FIELDS = RULE_FIELDS.concat([["outboundTag", "text", "this block's proxy"]]);
   function catchallEditor(st, key = "catchall_rules", newRule = { network: "tcp,udp" }, keepEmpty = false, fields = RULE_FIELDS) {
     const box = h("div", {});
     const draw = () => {
@@ -1991,7 +2098,10 @@
           if (!v) delete rule[k]; else rule[k] = kind === "list" ? v.split(",").map((x) => x.trim()).filter(Boolean) : v;
           sync();
         };
-        const other = Object.keys(rule).filter((k) => k !== "type" && !fields.some((f) => f[0] === k));
+        const other = Object.keys(rule).filter((k) => k !== "type" && k !== "position" && !fields.some((f) => f[0] === k));
+        const posSel = fields === BLOCK_RULE_FIELDS ? field(t("bRulePos"), h("select", { "aria-label": "position",
+          onchange: (e) => { if (e.target.value) rule.position = e.target.value; else delete rule.position; sync(); } },
+          [["", t("bPosEnd")], ["early", t("bPosEarly")]].map(([v, label]) => h("option", { value: v, selected: (rule.position || "") === v }, label)))) : null;
         return h("div", { class: "b-costrow" },
           h("div", { class: "row" }, h("strong", { class: "hint", style: "flex:1" }, t("bRule") + " " + (n + 1)),
             h("button", { type: "button", class: "icon", "aria-label": t("bUp"), title: t("bUp"), disabled: n === 0, onclick: () => move(n - 1) }, "↑"),
@@ -1999,6 +2109,7 @@
             h("button", { type: "button", class: "icon danger", "aria-label": t("bDelete"), title: t("bDelete"), disabled: !keepEmpty && list.length === 1, onclick: () => { list.splice(n, 1); sync(); draw(); } }, "×")),
           h("div", { class: "grid" }, fields.map(([k, kind, ph]) => field(k, h("input", { type: "text", placeholder: ph, "aria-label": k,
             value: Array.isArray(rule[k]) ? rule[k].join(", ") : rule[k] === undefined ? "" : rule[k], oninput: (e) => set(k, kind, e.target.value) })))),
+          posSel ? h("div", { class: "grid" }, posSel) : null,
           other.length ? h("p", { class: "hint" }, t("bRuleKept", { k: other.join(", ") })) : null);
       }), h("button", { type: "button", class: "small", onclick: () => { list.push(Object.assign({}, newRule)); sync(); draw(); } }, t("bRuleAdd")));
     };
@@ -2146,6 +2257,117 @@
     return box;
   }
 
+  // a chain block's path: client -> hop 1 -> hop 2 -> the internet; each hop picks where its outbound comes from
+  const HOP_KINDS = ["block", "warp", "outbound", "config", "account_exit"];
+  const hopJsonMode = new WeakSet();
+  function hopsEditor(st) {
+    const box = h("div", {});
+    const draw = () => {
+      const hops = Array.isArray(st.hops) && st.hops.length ? st.hops : (st.hops = [{ from: "warp" }, { from: "block" }]);
+      const setKind = (n, kind) => {
+        if (kind === "") { hops.splice(n, 1); } else {
+          const fresh = kind === "outbound" ? { from: kind, outbound: { protocol: "vless" } } : kind === "config" ? { from: kind, when: { remark: { contains: "" } } } : { from: kind };
+          if (n < hops.length) hops[n] = fresh; else hops.push(fresh);
+          if (kind === "block") hops.forEach((x, j) => { if (j !== n && x.from === "block") hops[j] = { from: "warp" }; });
+        }
+        changed(); draw();
+      };
+      const body = (hp) => {
+        if (hp.from === "block") return h("p", { class: "hint" }, t("hopBlockHint"));
+        if (hp.from === "account_exit") return h("p", { class: "hint" }, t("hopAcctHint"));
+        if (hp.from === "config") return h("div", {}, h("p", { class: "hint" }, t("hopConfigHint")), whenEditor(hp));
+        if (hp.from === "warp") {
+          const ep = h("input", { type: "text", class: "mono", value: Array.isArray(hp.endpoints) ? hp.endpoints.join(", ") : hp.endpoints || "", placeholder: "{account.masque.endpoints}  /  host:port, host:port",
+            oninput: (e) => { const v = e.target.value.trim(); if (!v) delete hp.endpoints; else hp.endpoints = v.startsWith("{") ? v : v.split(",").map((x) => x.trim()).filter(Boolean); changed(); } });
+          const en = h("input", { type: "text", class: "mono", value: typeof hp.entry === "string" ? hp.entry : "", placeholder: "{account.masque.outbound}",
+            oninput: (e) => { const v = e.target.value.trim(); if (v) hp.entry = v; else delete hp.entry; changed(); } });
+          return h("div", {}, h("div", { class: "grid" },
+            field(t("s_account"), bindSelect(hp, "account", [["", t("bAcctPersonal")], ["shared", t("bAcctShared")]])),
+            field(t("s_pick"), bindSelect(hp, "pick", [["", t("bPickRandom")], ["per_user", t("bPickUser")]]))),
+            moreBox(field(t("hopEndpoints"), ep, null, true), field(t("hopEntry"), en, null, true),
+              h("div", { class: "f wide" }, t("hopMerge"), mergeEditor(hp, "merge"))));
+        }
+        // outbound: import from a link, then edit as rows (or JSON)
+        const link = h("input", { type: "text", class: "mono", placeholder: "vless://…", "aria-label": t("hopLink") });
+        const uid = h("input", { type: "checkbox", checked: true });
+        const msg = h("span", { class: "hint" });
+        const imp = h("button", { type: "button", onclick: async () => {
+          const text = link.value.trim();
+          if (!text) return;
+          if (text.startsWith("{")) {
+            try { const o = JSON.parse(text); if (!isObj(o) || !o.protocol) throw new Error("x"); hp.outbound = o; changed(); draw(); } catch (e) { msg.textContent = "JSON?"; }
+            return;
+          }
+          imp.disabled = true; msg.textContent = "…";
+          const res = await api("parse-link", { link: text, user_id: uid.checked });
+          imp.disabled = false;
+          if (!res.ok) { msg.textContent = res.data.error || "error"; return; }
+          hp.outbound = res.data.outbound; changed(); draw();
+        } }, t("hopImport"));
+        const asJson = hopJsonMode.has(hp);
+        return h("div", {},
+          field(t("hopLink"), h("div", { class: "row" }, link, imp), null, true),
+          h("div", { class: "row" }, h("label", { class: "check small" }, uid, t("hopUserId")), msg),
+          h("div", { class: "row" }, h("strong", { class: "hint", style: "flex:1" }, (hp.outbound && hp.outbound.protocol) || ""),
+            h("button", { type: "button", class: "small", onclick: () => { if (asJson) hopJsonMode.delete(hp); else hopJsonMode.add(hp); draw(); } }, t(asJson ? "hopRows" : "hopJson"))),
+          asJson ? bindJSON(hp, "outbound", 10) : mergeEditor(hp, "outbound", true),
+          h("p", { class: "hint" }, t("hopOutHint")));
+      };
+      const slot = (n) => {
+        const hp = hops[n];
+        const sel = h("select", { "aria-label": t("hopN", { n: n + 1 }), onchange: () => setKind(n, sel.value) },
+          (n > 0 ? [["", t("hopNone")]] : []).concat(HOP_KINDS.map((k) => [k, t("hop_" + k)])).map(([v, l]) => h("option", { value: v, selected: (hp ? hp.from : "") === v }, l)));
+        return h("div", { class: "b-costrow" }, h("div", { class: "row" }, h("strong", { class: "hint" }, t("hopN", { n: n + 1 })), sel), hp ? body(hp) : null);
+      };
+      const slots = hops.map((x, n) => slot(n));
+      if (hops.length < 2) slots.push(slot(hops.length));
+      box.replaceChildren(
+        h("p", { class: "b-path" }, [t("hopClient")].concat(hops.map(hopLabel), [t("hopInternet")]).join("  →  ")),
+        ...slots);
+    };
+    draw();
+    return box;
+  }
+  function bWarpToChain(i) {
+    bChange((b) => {
+      const x = b.list[i], s = x.settings || {}, c = (x.advanced && x.advanced.chain) || {};
+      const warp = { from: "warp" };
+      if (s.account === "shared") warp.account = "shared";
+      if (s.pick === "per_user") warp.pick = "per_user";
+      const merge = s.entry_merge || c.entry_merge, entry = s.entry || c.entry, eps = s.endpoints || c.endpoints;
+      if (isObj(merge) && Object.keys(merge).length) warp.merge = merge;
+      if (entry && entry !== "{account.masque.outbound}") warp.entry = entry;
+      if (eps && eps !== "{account.masque.endpoints}") warp.endpoints = eps;
+      const hops = [warp];
+      if (s.warp !== "only" && c.exit !== false) hops.push(Object.assign({ from: "account_exit" }, isObj(c.exit) ? c.exit : {}));
+      const ns = { hops };
+      ["name", "rules"].forEach((k) => { if (s[k] !== undefined) ns[k] = s[k]; });
+      if (s.decoy && hops.length === 1) ns.decoy = s.decoy;
+      const ch = s.choices || c.choices;
+      if (isObj(ch) && Object.keys(ch).length) ns.choices = ch;
+      if (!x.per_country && ns.name === undefined) ns.name = "{block}";
+      x.type = "chain"; x.settings = ns; delete x.advanced;
+    });
+  }
+  // member patch steps that only pick fragment / cipher presets: the same thing the Fragment and Cipher settings do
+  function bLiftable(st) {
+    const out = [];
+    (Array.isArray(st.member_patch) ? st.member_patch : []).forEach((step, n) => {
+      if (!isObj(step) || !isObj(step.random)) return;
+      const fr = step.random[B_FRAG_PATH], cs = step.random[B_CS_PATH];
+      if (!step.when && st.fragment === undefined && fragOk(fr)) out.push([n, "fragment", B_FRAG_PATH, fr.map((x) => presetName(x, FRAG_PRESETS) || x)]);
+      if ((!step.when || canon(step.when) === canon({ security: "tls" })) && st.cipher === undefined && csOk(cs)) out.push([n, "cipher", B_CS_PATH, cs.map((x) => presetName(x, CS_PRESETS) || x)]);
+    });
+    return out;
+  }
+  function bLift(st) {
+    bLiftable(st).forEach(([n, key, path, names]) => { st[key] = names; delete st.member_patch[n].random[path]; });
+    st.member_patch = st.member_patch.filter((step) => {
+      if (isObj(step.random) && !Object.keys(step.random).length) delete step.random;
+      return Object.keys(step).some((k) => k !== "when");
+    });
+    if (!st.member_patch.length) delete st.member_patch;
+  }
   function bSettingEditor(blk, i, key) {
     const d = B_DEF[key], v = blk.settings[key];
     const put = (nv) => bChange((b) => { b.list[i].settings[key] = nv; }, true);
@@ -2179,6 +2401,10 @@
     if (key === "member_position") box.append(positionEditor(blk.settings));
     if (key === "member_patch") box.append(memberPatchEditor(blk.settings));
     if (key === "catchall_rules") box.append(catchallEditor(blk.settings));
+    if (key === "hops") box.append(hopsEditor(blk.settings));
+    if (key === "rules") box.append(catchallEditor(blk.settings, "rules", { domain: [] }, false, BLOCK_RULE_FIELDS));
+    if (key === "member_patch" && bLiftable(blk.settings).length) box.append(h("div", { class: "row" },
+      h("button", { type: "button", class: "small", onclick: () => bChange((b) => { bLift(b.list[i].settings); }, true) }, t("bLiftPresets")), h("span", { class: "hint" }, t("bLiftHint"))));
     if (key === "expand") box.append(expandEditor(blk.settings));
     if (key === "entry_merge") box.append(mergeEditor(blk.settings, "entry_merge", true));
     if (key === "choices") box.append(choicesEditor(blk.settings));
@@ -2212,6 +2438,7 @@
   let bBlockDrag = null;
   function bBlockCard(blk, i, all, names, counts) {
     const isBal = blk.type === "balancer";
+    if (blk.type === "chain" && !(blk.settings && Array.isArray(blk.settings.hops))) blk.settings = Object.assign({ hops: JSON.parse(JSON.stringify(B_DEF.hops.def)) }, blk.settings || {});
     const s = blk.settings || {};
     const id = blk.id;
     const nameIn = h("input", { type: "text", class: "b-name", value: blk.name || "", placeholder: prettyId(id), "aria-label": t("bBlockName"),
@@ -2221,30 +2448,38 @@
         const x = b.list[i];
         if (bType(x) === k) return;
         x.type = k;
-        if (k === "list") delete x.per_country; else if (x.per_country === undefined) x.per_country = true;
+        if (k === "list" || k === "chain") delete x.per_country; else if (x.per_country === undefined) x.per_country = true;
         if (x.settings) {
           Object.keys(x.settings).forEach((q) => { if (!B_DEF[q] || !bAllowed(B_DEF[q], x)) delete x.settings[q]; });
           if (!Object.keys(x.settings).length) delete x.settings;
         }
         if (k === "warp" && !(x.settings && x.settings.warp)) x.settings = Object.assign({ warp: "exit" }, x.settings || {});
+        if (k === "chain" && !(x.settings && x.settings.hops)) x.settings = Object.assign({ hops: JSON.parse(JSON.stringify(B_DEF.hops.def)) }, x.settings || {});
         delete x.advanced;                          // its keys depend on the type
       }) }, label);
     const grip = h("span", { class: "b-grip", draggable: "true", title: t("bDragBlock"), "aria-hidden": "true",
       ondragstart: (e) => { bBlockDrag = i; try { e.dataTransfer.setData("text/plain", "block"); e.dataTransfer.effectAllowed = "move"; } catch (x) { /* ignore */ } },
       ondragend: () => { bBlockDrag = null; } }, "⠿");
     const head = h("div", { class: "b-head" }, grip, nameIn,
-      h("div", { class: "seg", role: "group" }, typeBtn("list", t("bList")), typeBtn("balancer", t("bBalancer")), typeBtn("warp", t("bWarp"))),
-      isBal || blk.type === "warp" ? h("label", { class: "check small b-pc" }, h("input", { type: "checkbox", checked: !!blk.per_country, onchange: () => bChange((b) => { b.list[i].per_country = !b.list[i].per_country; }) }), t("bPerCountry")) : null,
+      h("div", { class: "seg", role: "group" }, typeBtn("list", t("bList")), typeBtn("balancer", t("bBalancer")), typeBtn("chain", t("bChain")), blk.type === "warp" ? typeBtn("warp", t("bWarpOld")) : null),
+      blk.type === "warp" ? h("button", { type: "button", class: "small primary", onclick: () => bWarpToChain(i) }, t("bToChain")) : null,
+      isBal || blk.type === "warp" || blk.type === "chain" ? h("label", { class: "check small b-pc" }, h("input", { type: "checkbox", checked: !!blk.per_country, onchange: () => bChange((b) => { b.list[i].per_country = !b.list[i].per_country; }) }), t("bPerCountry")) : null,
       h("button", { type: "button", class: "icon", "aria-label": t("bUp"), title: t("bUp"), onclick: () => { const prev = all[all.indexOf(i) - 1]; if (prev !== undefined) bChange((b) => { const x = b.list.splice(i, 1)[0]; b.list.splice(prev, 0, x); }); } }, "↑"),
       h("button", { type: "button", class: "icon", "aria-label": t("bDown"), title: t("bDown"), onclick: () => { const next = all[all.indexOf(i) + 1]; if (next !== undefined) bChange((b) => { const x = b.list.splice(i, 1)[0]; b.list.splice(next, 0, x); }); } }, "↓"),
+      h("button", { type: "button", class: "icon", "aria-label": t("bDuplicate"), title: t("bDuplicate"), onclick: () => bChange((b) => {
+        const copy = JSON.parse(JSON.stringify(b.list[i]));
+        copy.id = nextId("block", b.list); copy.kinds = [];
+        copy.name = t("bCopyOf", { name: copy.name || prettyId(blk.id) });
+        b.list.splice(i + 1, 0, copy);
+      }) }, "⧉"),
       h("button", { type: "button", class: "icon danger", "aria-label": t("bDelete"), title: t("bDelete"), onclick: () => bChange((b) => { b.list.splice(i, 1); }) }, "×"));
     const keys = B_SETTINGS.filter((d) => !d.hidden && s[d.key] !== undefined && bAllowed(d, blk)).map((d) => d.key);
     const pills = h("div", { class: "b-pills" }, keys.map((key) => {
       const open = bOpen === id + ":" + key;
       return h("span", { class: "b-pill" + (open ? " open" : "") },
         h("button", { type: "button", "aria-expanded": String(open), onclick: () => { bOpen = open ? null : id + ":" + key; bDraft = ""; drawEditor(); } },
-          h("strong", {}, t("s_" + key)), " ", h("span", { class: "dim" }, bSummary(key, s[key])), open ? " ▴" : " ▾"),
-        h("button", { type: "button", class: "x", "aria-label": t("remove"), onclick: () => bChange((b) => { delete b.list[i].settings[key]; if (!Object.keys(b.list[i].settings).length) delete b.list[i].settings; }) }, "×"));
+          h("strong", {}, t("s_" + key)), " ", h("span", { class: "dim" }, bSummary(key, s[key]) + (B_DEF[key].legacy ? " · " + t("bLegacy") : "")), open ? " ▴" : " ▾"),
+        B_DEF[key].fixed ? null : h("button", { type: "button", class: "x", "aria-label": t("remove"), onclick: () => bChange((b) => { delete b.list[i].settings[key]; if (!Object.keys(b.list[i].settings).length) delete b.list[i].settings; }) }, "×"));
     }), blk.advanced ? (() => {
       const open = bOpen === id + ":advanced";
       return h("span", { class: "b-pill adv" + (open ? " open" : "") },
@@ -2253,11 +2488,11 @@
         h("button", { type: "button", class: "x", "aria-label": t("remove"), onclick: () => bChange((b) => { delete b.list[i].advanced; }) }, "×"));
     })() : null, h("button", { type: "button", class: "b-add", "aria-expanded": String(bMenu === id), onclick: () => { bMenu = bMenu === id ? null : id; drawEditor(); } }, t("bAddSetting")));
     const menu = bMenu === id ? (() => {
-      const avail = B_SETTINGS.filter((d) => !d.hidden && s[d.key] === undefined && bAllowed(d, blk));
+      const avail = B_SETTINGS.filter((d) => !d.hidden && !d.legacy && s[d.key] === undefined && bAllowed(d, blk));
       const items = avail.map((d) => h("button", { type: "button", onclick: () => bChange((b) => {
         const x = b.list[i]; x.settings = x.settings || {}; x.settings[d.key] = d.key === "name" ? bNameDefault(x) : JSON.parse(JSON.stringify(d.def));
       }, true) }, t("s_" + d.key)));
-      if (!blk.advanced) items.push(h("button", { type: "button", onclick: () => { bChange((b) => { b.list[i].advanced = {}; }, true); bOpen = id + ":advanced"; bMenu = null; drawEditor(); } }, t("bAdvancedJson")));
+      if (!blk.advanced && blk.type !== "chain") items.push(h("button", { type: "button", onclick: () => { bChange((b) => { b.list[i].advanced = {}; }, true); bOpen = id + ":advanced"; bMenu = null; drawEditor(); } }, t("bAdvancedJson")));
       return h("div", { class: "b-menu" }, items.length ? items : h("span", { class: "hint" }, t("bAllSettings")));
     })() : null;
     const openKey = keys.find((key) => bOpen === id + ":" + key);
@@ -2312,7 +2547,7 @@
       bHasPick() ? h("button", { type: "button", class: "b-movehere", onclick: () => bMove(bPicked(), i, bSel.length ? true : bPickSource) }, t("bMoveHere")) : null));
     // list blocks leave no trace in the preview report: count the sample configs of their kinds instead
     const n = counts[PREFIX_BLK + id] || (bType(blk) === "list" ? (blk.kinds || []).reduce((sum, w) => sum + ((names[kkey(w)] || {}).count || 0), 0) : 0);
-    const card = h("div", { class: "b-block" + (blk.type === "warp" ? " warp" : "") }, head, h("p", { class: "hint b-takes" }, sample ? t("bTakes", { n }) : ""),
+    const card = h("div", { class: "b-block" + (blk.type === "warp" || blk.type === "chain" ? " warp" : "") }, head, h("p", { class: "hint b-takes" }, sample ? t("bTakes", { n }) : ""),
       pills, menu, openKey ? bSettingEditor(blk, i, openKey) : extraEditor, zone);
     // blocks move by dragging their grip onto another block (it goes before or after, by where it is dropped)
     card.addEventListener("dragover", (e) => {
@@ -2420,7 +2655,8 @@
     const blocks = order.map((i) => bBlockCard(v.list[i], i, order, names, counts));
     const nb = (type) => bChange((b) => {
       const n = b.list.filter((x) => x.type !== "drop").length + 1;
-      const item = { id: nextId("block", b.list), name: t(type === "balancer" ? "bNewBalancer" : type === "warp" ? "bNewWarp" : "bNewBlock", { n }), type, kinds: [] };
+      const item = { id: nextId("block", b.list), name: t(type === "balancer" ? "bNewBalancer" : type === "warp" ? "bNewWarp" : type === "chain" ? "bNewChain" : "bNewBlock", { n }), type, kinds: [] };
+      if (type === "chain") item.settings = { hops: JSON.parse(JSON.stringify(B_DEF.hops.def)) };
       if (type === "balancer") { item.per_country = true; item.settings = { strategy: "leastLoad" }; }
       if (type === "warp") { item.per_country = true; item.settings = { warp: "exit" }; }
       const firstDrop = b.list.findIndex((x) => x.type === "drop");
@@ -2472,7 +2708,7 @@
         classicBox,
         ...blocks,
         h("div", { class: "row" }, h("button", { type: "button", class: "b-new", onclick: () => nb("list") }, t("bAddList")), h("button", { type: "button", class: "b-new", onclick: () => nb("balancer") }, t("bAddBalancer")),
-          h("button", { type: "button", class: "b-new", onclick: () => nb("warp") }, t("bAddWarp"))),
+          h("button", { type: "button", class: "b-new", onclick: () => nb("chain") }, t("bAddChain"))),
         rest, trash));
   }
 
@@ -2568,8 +2804,9 @@
   }
   // ---------- output tab ----------
   const OUT_DEFAULTS = {
-    dedicated_dns: () => ({ ip: "8.8.8.8", tag: "dedicated-dns" }),
-    direct_dns: () => ({ tag_regex: "^domestic-dns" }),
+    dedicated_dns: () => ({ ips: ["8.8.8.8"], tag: "dedicated-dns" }),
+    direct_dns: () => ({ ips: ["223.5.5.5"], domains: [["geosite:private"], ["domain:ir", "geosite:category-ir"]], tag_regex: "^domestic-dns" }),
+    dns: () => ({ servers_at: "replace", servers: [], hosts: {} }),
     panel_balancers: () => ({ max_rtt: "2500ms", few_max_members: 2, expected_few: 1, expected_many: 2 }),
   };
   function optSection(obj, key, labelKey, bodyFn) {
@@ -2701,6 +2938,124 @@
       h("div", { class: "grid" }, field(t("socksPort"), bindText(o, "socks_port", { num: true })), field(t("httpPort"), bindText(o, "http_port", { num: true }))));
   }
 
+  // a comma separated list <-> an array; `keepEmpty`: an emptied field is stored as [] (it means "none"), not removed
+  function csvInput(obj, key, ph, shown, onEdit, keepEmpty) {
+    const cur = Array.isArray(obj[key]) ? obj[key] : shown || [];
+    return h("input", { type: "text", class: "mono", value: cur.join(", "), placeholder: ph || "", oninput: (e) => {
+      const v = e.target.value.split(",").map((x) => x.trim()).filter(Boolean);
+      if (v.length || keepEmpty) obj[key] = v; else delete obj[key];
+      if (onEdit) onEdit();
+      changed();
+    } });
+  }
+  // lines of comma separated values <-> an array of arrays
+  function setsInput(obj, key, shown) {
+    const cur = Array.isArray(obj[key]) ? obj[key] : shown || [];
+    const ta = h("textarea", { rows: Math.max(2, cur.length), class: "mono", spellcheck: "false" });
+    ta.value = cur.map((x) => x.join(", ")).join("\n");
+    ta.addEventListener("input", () => {
+      const v = ta.value.split("\n").map((line) => line.split(",").map((x) => x.trim()).filter(Boolean)).filter((x) => x.length);
+      if (v.length) obj[key] = v; else delete obj[key];
+      changed();
+    });
+    return ta;
+  }
+  // output.dns: hosts and servers as forms; any other key of Xray's dns object is kept as it is
+  const DNS_KNOWN = ["hosts", "servers", "servers_at", "tag", "queryStrategy", "disableCache", "disableFallback"];
+  const DNS_SERVER_LISTS = [["domains", "dnsDomains", "geosite:google, domain:example.com"], ["expectIPs", "dnsExpect", "geoip:ir"]];
+  const dnsJsonMode = new WeakSet();
+  function dnsEditor(d) {
+    const box = h("div", {});
+    const replaceWith = (o) => { Object.keys(d).forEach((k) => delete d[k]); Object.assign(d, o); };
+    const parseObj = (text, note) => {
+      let o;
+      try { o = JSON.parse(text); } catch (e) { note.textContent = t("dnsBad"); return null; }
+      if (!isObj(o) || Array.isArray(o)) { note.textContent = t("dnsNotObj"); return null; }
+      note.textContent = "";
+      return o;
+    };
+    let hostRows = [], servers = [];
+    const load = () => {
+      hostRows = Object.entries(isObj(d.hosts) ? d.hosts : {}).map(([k, v]) => [k, Array.isArray(v) ? v : [v]]);
+      servers = (Array.isArray(d.servers) ? d.servers : []).map((x) => (isObj(x) ? x : { address: String(x) }));
+    };
+    load();
+    const commitHosts = () => {
+      const o = {};
+      hostRows.forEach(([k, v]) => { if (k.trim() && v.length) o[k.trim()] = v.length === 1 ? v[0] : v; });
+      if (Object.keys(o).length) d.hosts = o; else delete d.hosts;
+      changed();
+    };
+    const commitServers = () => {
+      const list = servers.filter((x) => x.address).map((x) => (Object.keys(x).length === 1 ? x.address : x));
+      if (list.length) d.servers = list; else delete d.servers;
+      changed();
+    };
+    const rebuild = () => { load(); draw(); };
+    const draw = () => {
+      const other = Object.keys(d).filter((k) => !DNS_KNOWN.includes(k));
+      const note = h("span", { class: "hint" });
+      const modeBtn = h("button", { type: "button", class: "small", onclick: () => { if (dnsJsonMode.has(d)) dnsJsonMode.delete(d); else dnsJsonMode.add(d); rebuild(); } }, t(dnsJsonMode.has(d) ? "dnsForm" : "dnsJson"));
+      if (dnsJsonMode.has(d)) {
+        const ta = h("textarea", { rows: 16, class: "mono", spellcheck: "false", "aria-label": "dns" });
+        ta.value = JSON.stringify(d, null, 2);
+        ta.addEventListener("input", () => { const o = parseObj(ta.value, note); if (o) { replaceWith(o); changed(); } });
+        box.replaceChildren(h("div", { class: "row" }, modeBtn, note), ta);
+        return;
+      }
+      const paste = h("textarea", { rows: 4, class: "mono", spellcheck: "false", placeholder: '{"hosts": {...}, "servers": [...]}', "aria-label": t("dnsImport") });
+      const doImport = h("button", { type: "button", class: "small", onclick: () => {
+        const o = parseObj(paste.value, note);
+        if (!o) return;
+        replaceWith(o); changed(); rebuild();
+        const n = h("span", { class: "hint" }, t("dnsImported", { h: Object.keys(isObj(o.hosts) ? o.hosts : {}).length, s: (Array.isArray(o.servers) ? o.servers : []).length }));
+        box.append(n);
+      } }, t("dnsImport"));
+      box.replaceChildren(
+        h("div", { class: "row" }, modeBtn, doImport, note),
+        paste, h("p", { class: "hint" }, t("dnsImportHint")),
+        h("strong", { class: "hint" }, t("dnsHosts")),
+        h("div", { class: "b-kv" }, hostRows.map((row, n) => h("div", { class: "row" },
+          h("input", { type: "text", class: "mono b-kvpath", value: row[0], placeholder: t("dnsHostName"), "aria-label": t("dnsHostName"), oninput: (e) => { row[0] = e.target.value; commitHosts(); } }),
+          h("span", { class: "dim" }, "="),
+          h("input", { type: "text", class: "mono b-kvval", value: row[1].join(", "), placeholder: t("dnsHostAddr"), "aria-label": t("dnsHostAddr"),
+            oninput: (e) => { row[1] = e.target.value.split(",").map((x) => x.trim()).filter(Boolean); commitHosts(); } }),
+          h("button", { type: "button", class: "icon danger", "aria-label": t("bDelete"), title: t("bDelete"), onclick: () => { hostRows.splice(n, 1); commitHosts(); draw(); } }, "×"))),
+          h("div", {}, h("button", { type: "button", class: "small", onclick: () => { hostRows.push(["", []]); draw(); } }, t("dnsHostAdd")))),
+        h("strong", { class: "hint" }, t("dnsServers")),
+        ...servers.map((sv, n) => {
+          const move = (to) => { if (to >= 0 && to < servers.length) { servers.splice(to, 0, servers.splice(n, 1)[0]); commitServers(); draw(); } };
+          const qs = h("select", { "aria-label": t("dnsQuery"), onchange: () => { if (qs.value) sv.queryStrategy = qs.value; else delete sv.queryStrategy; commitServers(); } },
+            ["", "UseIP", "UseIPv4", "UseIPv6"].map((x) => h("option", { value: x, selected: (sv.queryStrategy || "") === x }, x || "—")));
+          const check = (k) => h("label", { class: "check small" }, h("input", { type: "checkbox", checked: sv[k] === true, onchange: (e) => { if (e.target.checked) sv[k] = true; else delete sv[k]; commitServers(); } }), k);
+          const kept = Object.keys(sv).filter((k) => !["address", "domains", "expectIPs", "tag", "queryStrategy", "skipFallback", "finalQuery"].includes(k));
+          return h("div", { class: "b-costrow" },
+            h("div", { class: "row" }, h("strong", { class: "hint", style: "flex:1" }, t("dnsServer") + " " + (n + 1)),
+              h("button", { type: "button", class: "icon", "aria-label": t("bUp"), title: t("bUp"), disabled: n === 0, onclick: () => move(n - 1) }, "↑"),
+              h("button", { type: "button", class: "icon", "aria-label": t("bDown"), title: t("bDown"), disabled: n === servers.length - 1, onclick: () => move(n + 1) }, "↓"),
+              h("button", { type: "button", class: "icon danger", "aria-label": t("bDelete"), title: t("bDelete"), onclick: () => { servers.splice(n, 1); commitServers(); draw(); } }, "×")),
+            h("div", { class: "grid" },
+              field(t("dnsAddress"), h("input", { type: "text", class: "mono", value: sv.address || "", placeholder: "1.1.1.1  /  https://dns.google/dns-query  /  localhost", list: "dl-dns", oninput: (e) => { sv.address = e.target.value.trim(); commitServers(); } })),
+              ...DNS_SERVER_LISTS.map(([k, label, ph]) => field(t(label), h("input", { type: "text", class: "mono", value: (sv[k] || []).join(", "), placeholder: ph,
+                oninput: (e) => { const v = e.target.value.split(",").map((x) => x.trim()).filter(Boolean); if (v.length) sv[k] = v; else delete sv[k]; commitServers(); } }))),
+              field(t("dnsTag"), h("input", { type: "text", class: "mono", value: sv.tag || "", oninput: (e) => { if (e.target.value.trim()) sv.tag = e.target.value.trim(); else delete sv.tag; commitServers(); } })),
+              field(t("dnsQuery"), qs)),
+            h("div", { class: "row" }, check("skipFallback"), check("finalQuery")),
+            kept.length ? h("p", { class: "hint" }, t("bRuleKept", { k: kept.join(", ") })) : null);
+        }),
+        h("button", { type: "button", class: "small", onclick: () => { servers.push({ address: "" }); draw(); } }, t("dnsServerAdd")),
+        h("div", { class: "grid" },
+          field(t("dnsAt"), bindSelect(d, "servers_at", [["replace", t("dnsAtReplace")], ["first", t("dnsAtFirst")], ["last", t("dnsAtLast")]])),
+          field(t("dnsQuery"), bindSelect(d, "queryStrategy", [["", "—"], ["UseIP", "UseIP"], ["UseIPv4", "UseIPv4"], ["UseIPv6", "UseIPv6"]])),
+          field(t("dnsModuleTag"), bindText(d, "tag", { placeholder: "dns-module" }))),
+        h("p", { class: "hint" }, t("dnsModuleTagHint")),
+        h("div", { class: "row" }, h("label", { class: "check small" }, bindBool(d, "disableCache", false), "disableCache"), h("label", { class: "check small" }, bindBool(d, "disableFallback", false), "disableFallback")),
+        ...(other.length ? [h("p", { class: "hint" }, t("dnsOther", { k: other.join(", ") }))] : []));
+    };
+    draw();
+    return box;
+  }
+
   function outputEditor() {
     const o = (cfg.output = cfg.output && typeof cfg.output === "object" && !Array.isArray(cfg.output) ? cfg.output : {});
     const quic = Array.isArray(o.quic_domains) ? o.quic_domains : [];
@@ -2721,9 +3076,14 @@
         field(t("domainStrategy"), dom),
         baseRulesEditor(o)), true),
       detailsBox("sectDns", h("div", {},
+        optSection(o, "dns", "dnsOn", dnsEditor),
         optSection(o, "dedicated_dns", "dedicatedDns", (v) => h("div", { class: "grid" },
-          field(t("ddIp"), bindText(v, "ip")), field(t("ddTag"), bindText(v, "tag")))),
-        optSection(o, "direct_dns", "directDns", (v) => h("div", { class: "grid" }, field(t("ddRegex"), bindText(v, "tag_regex")))))),
+          field(t("ddIps"), csvInput(v, "ips", "8.8.8.8, 1.1.1.1", v.ip ? [v.ip] : [], () => { delete v.ip; })), field(t("ddTag"), bindText(v, "tag")))),
+        optSection(o, "direct_dns", "directDns", (v) => h("div", {},
+          h("p", { class: "hint" }, t("dnHint")),
+          field(t("dnIps"), csvInput(v, "ips", "223.5.5.5", ["223.5.5.5"], null, true), null, true),
+          field(t("dnDomains"), setsInput(v, "domains", [["geosite:private"], ["domain:ir", "geosite:category-ir"]]), null, true),
+          field(t("ddRegex"), bindText(v, "tag_regex")))))),
       detailsBox("sectTuning", h("div", {},
         samplingEditor(o),
         optSection(o, "panel_balancers", "panelBal", (v) => h("div", { class: "grid" },
@@ -2960,6 +3320,8 @@
   function datalists() {
     return [
       h("datalist", { id: "dl-fields" }, FIELDS.map((f) => h("option", { value: f }))),
+      h("datalist", { id: "dl-dns" }, ["localhost", "1.1.1.1", "8.8.8.8", "223.5.5.5", "https://1.1.1.1/dns-query", "https://dns.google/dns-query", "https+local://1.1.1.1/dns-query", "quic+local://dns.adguard.com", "fakedns"].map((f) => h("option", { value: f }))),
+      h("datalist", { id: "dl-paths" }, Object.keys(KNOWN_PATHS).map((f) => h("option", { value: f }))),
       h("datalist", { id: "dl-types" }, ["leastLoad", "leastPing", "random", "roundRobin"].map((f) => h("option", { value: f }))),
     ];
   }

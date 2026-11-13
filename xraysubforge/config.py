@@ -11,7 +11,7 @@ import re
 import sys
 import threading
 
-from .matching import check_catchall, check_member_patch, check_member_position, check_when
+from .matching import check_catchall, check_hops, check_member_patch, check_member_position, check_when
 
 CONFIG_ENV = "XRAYSUBFORGE_CONFIG"
 
@@ -54,6 +54,12 @@ DEFAULTS = {
             "background": False,                 # true: register in a background thread; the request never waits for the API
             "min_interval_seconds": 0,           # least time between two registrations (be gentle with the API)
             "max_users": 0,                      # stop creating personal accounts at this many (0 = no limit)
+        },
+        "prune": {                               # optional: remove the personal accounts of users the panel no longer has
+            "enabled": False,                    # true: check about once per `interval_hours` (needs accounts.file)
+            "after_days": 3,                     # remove an account once its user has been missing this many days (0 = at once)
+            "max_percent": 50,                   # with 10+ users: more than this share missing in one check = remove nothing
+            "interval_hours": 24,                # time between two automatic checks
         },
     },
     "rules": [],
@@ -139,7 +145,15 @@ SECTION_CHECKS = {
         "file": (lambda v: isinstance(v, str), "a file path (string)"),
         "default": (lambda v: isinstance(v, dict), "an object"),
         "register": (lambda v: isinstance(v, dict), "an object"),
+        "prune": (lambda v: isinstance(v, dict), "an object"),
     },
+}
+
+PRUNE_CHECKS = {
+    "enabled": (lambda v: isinstance(v, bool), "true or false"),
+    "after_days": (lambda v: _is_num(v) and v >= 0, "a number >= 0"),
+    "max_percent": (lambda v: _is_num(v) and 0 < v <= 100, "a number from 1 to 100"),
+    "interval_hours": (lambda v: _is_num(v) and v >= 1, "a number >= 1"),
 }
 
 REGISTER_CHECKS = {
@@ -155,11 +169,13 @@ REGISTER_CHECKS = {
 ITEM_KEYS = {
     "rules": {"id", "enabled", "when", "do"},
     "groups": {"id", "enabled", "when", "split_by", "name", "type", "params", "probe", "probe_kind",
-               "member_cost", "min_members", "remove_members_from_output", "position", "expand", "include_balanced", "member_position", "catchall_rules", "member_patch"},
+               "member_cost", "min_members", "remove_members_from_output", "position", "expand", "include_balanced", "member_position", "catchall_rules", "member_patch",
+               "member_tag", "balancer_tag"},
     "chains": {"id", "enabled", "exit_when", "split_by", "name", "entry", "choices", "through_exit",
-               "remove_exit_from_output", "position", "mode", "exit", "endpoints", "pick", "entry_merge", "before"},
+               "remove_exit_from_output", "position", "mode", "exit", "endpoints", "pick", "entry_merge", "before",
+               "entry_tag", "exit_tag", "account", "hops", "each"},
     "order": {"id", "enabled", "when", "rank"},
-    "patches": {"id", "enabled", "stage", "target", "when", "merge", "random", "rename", "routing_prepend", "routing_append"},
+    "patches": {"id", "enabled", "stage", "target", "when", "merge", "random", "rename", "routing_prepend", "routing_append", "routing_early"},
 }
 
 
@@ -255,10 +271,14 @@ def _check_item(kind, item, where):
                         p += check_when(e.get("when"), "%s.member_cost[%d].when" % (where, i))
     elif kind == "chains":
         en = item.get("entry")
-        if not ((isinstance(en, dict) and en) or (isinstance(en, str) and re.fullmatch(r"\{account\.[A-Za-z0-9_.\-]+\}", en))):
+        if item.get("mode") == "hops":
+            p += check_hops(item.get("hops"), where + ".hops")
+        elif not ((isinstance(en, dict) and en) or (isinstance(en, str) and re.fullmatch(r"\{account\.[A-Za-z0-9_.\-]+\}", en))):
             p.append("%s.entry: required; the outbound (JSON object, or one {account.x} placeholder) to dial through the exit" % where)
-        if item.get("mode") not in (None, "entry_first", "exit_first"):
-            p.append('%s.mode: must be "entry_first" or "exit_first"' % where)
+        if item.get("mode") not in (None, "entry_first", "exit_first", "hops"):
+            p.append('%s.mode: must be "entry_first", "exit_first" or "hops"' % where)
+        if "each" in item and not isinstance(item["each"], bool):
+            p.append("%s.each: must be true or false" % where)
         if item.get("pick") not in (None, "random", "per_user"):
             p.append('%s.pick: must be "random" or "per_user"' % where)
         ex = item.get("exit")
@@ -299,7 +319,7 @@ def _check_item(kind, item, where):
         rnd = item.get("random")
         if rnd is not None and not (isinstance(rnd, dict) and all(isinstance(v, list) and v for v in rnd.values())):
             p.append("%s.random: must be an object of non-empty lists (path -> choices)" % where)
-        for k in ("routing_prepend", "routing_append"):
+        for k in ("routing_prepend", "routing_append", "routing_early"):
             if k in item and not (isinstance(item[k], list) and all(isinstance(r, dict) for r in item[k])):
                 p.append("%s.%s: must be a list of objects" % (where, k))
     return p
@@ -358,18 +378,26 @@ def normalize(raw):
             conf["server"][key] = ""
         elif path:
             taken.add(path)
-    reg = dict(DEFAULTS["accounts"]["register"])
-    if isinstance(conf["accounts"]["register"], dict) and conf["accounts"]["register"] is not DEFAULTS["accounts"]["register"]:
-        for k, v in conf["accounts"]["register"].items():
-            check = REGISTER_CHECKS.get(k)
-            if check is None:
-                if not k.startswith("_"):
-                    problems.append("accounts.register.%s: unknown key; ignored" % k)
-            elif not check[0](v):
-                problems.append("accounts.register.%s: must be %s; ignored" % (k, check[1]))
-            else:
-                reg[k] = v
-    conf["accounts"]["register"] = reg
+    def sub_section(name, checks):
+        out = dict(DEFAULTS["accounts"][name])
+        given = conf["accounts"][name]
+        if isinstance(given, dict) and given is not DEFAULTS["accounts"][name]:
+            for k, v in given.items():
+                check = checks.get(k)
+                if check is None:
+                    if not k.startswith("_"):
+                        problems.append("accounts.%s.%s: unknown key; ignored" % (name, k))
+                elif not check[0](v):
+                    problems.append("accounts.%s.%s: must be %s; ignored" % (name, k, check[1]))
+                else:
+                    out[k] = v
+        conf["accounts"][name] = out
+        return out
+    reg = sub_section("register", REGISTER_CHECKS)
+    prune = sub_section("prune", PRUNE_CHECKS)
+    if prune["enabled"] and not conf["accounts"]["file"]:
+        problems.append("accounts.prune: needs accounts.file; it stays off")
+        prune["enabled"] = False
     if reg["enabled"] and not conf["accounts"]["file"]:
         problems.append("accounts.register: needs accounts.file to save the accounts; automatic registration stays off")
         reg["enabled"] = False

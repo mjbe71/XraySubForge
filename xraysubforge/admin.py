@@ -603,10 +603,34 @@ def register(app, store):
             return reply({"error": "could not create the account: %s" % e}, 502)
         return reply({"ok": True, "created": new_id is not None, "device": new_id or ""})
 
+    @guarded
+    def parse_link(conf, sess):
+        """A share link (vless://, vmess://, trojan://, ss://) -> the Xray outbound it describes, for a chain block's hop."""
+        from .engine import set_user_id
+        from .links import parse_link as parse
+        data = body()
+        link = data.get("link") if isinstance(data.get("link"), str) else ""
+        try:
+            parsed = parse(link.strip())
+        except Exception:
+            parsed = None
+        if not parsed:
+            return reply({"error": "this is not a link I can read (vless://, vmess://, trojan://, ss://)"}, 400)
+        ob, remark = parsed
+        if data.get("user_id") and ob.get("protocol") in ("vless", "vmess"):
+            set_user_id(ob, "{user.id}")
+        return reply({"ok": True, "outbound": ob, "remark": remark})
+
+    @guarded
+    def prune_accounts(conf, sess):
+        report = cur().accounts.prune(dry=not body().get("run"))
+        return reply(dict(report, ok=not report["error"]))
+
     for name, fn, methods in (("login", login, ["POST"]), ("logout", logout, ["POST"]), ("me", me, ["GET"]),
                               ("state", state, ["GET"]), ("preview", preview, ["POST"]),
                               ("sample", sample, ["POST"]), ("facts", facts, ["POST"]), ("kinds", kinds, ["POST"]), ("save", save, ["POST"]),
-                              ("register-account", register_account, ["POST"]), ("checks", checks, ["POST"]),
+                              ("register-account", register_account, ["POST"]),
+                              ("prune-accounts", prune_accounts, ["POST"]), ("parse-link", parse_link, ["POST"]), ("checks", checks, ["POST"]),
                               ("restart", restart, ["POST"]), ("profile-new", profile_new, ["POST"]),
                               ("profile-rename", profile_rename, ["POST"]), ("profile-delete", profile_delete, ["POST"])):
         app.add_url_rule("%s/api/%s" % (base, name), "admin_api_" + name, fn, methods=methods)

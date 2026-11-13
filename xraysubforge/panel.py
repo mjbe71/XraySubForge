@@ -36,6 +36,22 @@ def fetch_raw(url, panel, subid):
     return r
 
 
+def probe(panel, subid):
+    """How the panel answers for this id -> "ok" (it has configs), "empty" (200 with nothing in it) or the HTTP status
+    (int) when it is not 200. Raises PanelError when the panel cannot be reached. Never prints the URL."""
+    url = panel["raw_url"] if panel.get("source") == "raw" else panel["url"]
+    if not url:
+        raise PanelError("the panel address is not set", 503)
+    try:
+        r = requests.get(with_id(url, subid), headers=panel["headers"], timeout=panel["timeout"],
+                         verify=panel["verify_tls"])
+    except requests.RequestException:
+        raise PanelError("panel unreachable", 502)
+    if r.status_code != 200:
+        return r.status_code
+    return "empty" if r.content.strip() in (b"", b"[]", b"{}", b"null") else "ok"
+
+
 def raw_configs(panel, subid):
     """-> (response, configs built from the links of the raw subscription). Raises PanelError."""
     from .links import link_to_config, parse_raw

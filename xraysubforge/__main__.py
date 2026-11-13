@@ -9,6 +9,7 @@
     python -m xraysubforge config-set KEY=VALUE ...    change settings in config.json (VALUE is JSON or text)
     python -m xraysubforge register-account [--subid ID]   create a WARP account now and save it in accounts.file
     python -m xraysubforge register-account --pool [--count N]   add shared accounts to the pool
+    python -m xraysubforge prune-accounts [--dry-run]  remove the accounts of users the panel no longer has (accounts.prune)
     python -m xraysubforge detect-xui [--certs|--suggest]  look for a 3x-ui panel on this machine
     python -m xraysubforge preview panel.json [config.json] [--subid ID] [--full]
                                                       run the rules on a saved panel response, no network
@@ -96,6 +97,9 @@ def main(argv=None):
     ra.add_argument("--count", type=int, default=1, help="with --pool: how many accounts to add")
     ra.add_argument("--delay", type=int, default=30, help="with --pool and --count: seconds between registrations")
     ra.add_argument("--config")
+    pa = sub.add_parser("prune-accounts")
+    pa.add_argument("--dry-run", action="store_true", help="only count; change nothing")
+    pa.add_argument("--config")
     p = sub.add_parser("preview")
     p.add_argument("panel_json")
     p.add_argument("config", nargs="?")
@@ -160,7 +164,15 @@ def main(argv=None):
         _write_atomic(path, raw)
         return 0
 
-    store = ConfigStore(_path(getattr(a, "config", None)) if a.cmd in ("config-get", "register-account") else a.config)
+    store = ConfigStore(_path(getattr(a, "config", None)) if a.cmd in ("config-get", "register-account", "prune-accounts") else a.config)
+    if a.cmd == "prune-accounts":
+        rep = AccountStore(store).prune(dry=a.dry_run)
+        print("%d users with an account, %d missing on the panel, %d %s, %d waiting for accounts.prune.after_days"
+              % (rep["users"], rep["missing"], rep["removed"], "would be removed" if a.dry_run else "removed", rep["waiting"]))
+        if rep["error"]:
+            print(rep["error"], file=sys.stderr)
+            return 1
+        return 0
     if a.cmd == "register-account" and a.pool:
         import time
         from .warp import ApiError

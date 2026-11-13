@@ -16,7 +16,8 @@ from .profiles import Resolver, load_profiles
 
 def needs_account(conf, configs):
     """True when one of this user's configs is matched by an enabled chain (only then is an account of any use)."""
-    chains = [c for c in conf["chains"] if c.get("enabled", True)]
+    chains = [c for c in conf["chains"] if c.get("enabled", True) and c.get("account") != "shared" and (
+        c.get("mode") != "hops" or any(h.get("from") == "warp" and h.get("account") != "shared" for h in c.get("hops") or []))]
     return any(match(c.get("exit_when"), cfg) for c in chains for cfg in configs if isinstance(cfg, dict))
 
 
@@ -146,7 +147,12 @@ def create_app(store=None, resolver=None):
 
     def make_view(kind, candidates):
         handler = sub if kind == "sub" else other_format(kind)
-        return lambda subid: handler(choose(candidates, subid), subid)
+
+        def view(subid):
+            prof = choose(candidates, subid)
+            prof.accounts.tick()                        # accounts.prune: the periodic check starts from here
+            return handler(prof, subid)
+        return view
 
     for n, ((kind, path), candidates) in enumerate(by_path.items()):
         app.add_url_rule(path + "/<subid>", "fmt%d" % n, make_view(kind, candidates))

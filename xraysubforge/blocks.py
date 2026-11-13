@@ -21,14 +21,15 @@ drop block took.
 import copy
 import re
 
-from .matching import check_catchall, check_member_patch, check_member_position, check_when
+from .matching import check_catchall, check_hops, check_member_patch, check_member_position, check_when
 
-BLOCK_TYPES = ("list", "balancer", "warp", "drop")
+BLOCK_TYPES = ("list", "balancer", "warp", "chain", "drop")
 BLOCK_KEYS = {"id", "name", "type", "kinds", "per_country", "flagless", "settings", "enabled", "advanced"}
 # group keys a balancer block may carry as they are (kept when a classic group is turned into a block)
 ADVANCED_GROUP_KEYS = {"params", "probe", "probe_kind", "member_cost", "min_members", "remove_members_from_output", "position",
                        "expand", "include_balanced", "member_position", "catchall_rules", "name", "split_by"}
 LIST_SETTINGS = {"fragment", "cipher", "fingerprint", "name"}
+MEMBER_TAG = "proxy"          # plain outbound tags in what a block builds: proxy01, proxy02, ... / balancer / warp
 BALANCER_SETTINGS = LIST_SETTINGS | {"strategy", "pool", "load", "probe", "cost", "member_position", "member_patch", "catchall_rules", "expand",
                                           "min_members", "keep_members", "position", "include_balanced", "probe_kind"}
 # leastLoad parameters ("load": the strategy's settings) and how members are probed ("probe"). Xray has two probes:
@@ -36,7 +37,10 @@ BALANCER_SETTINGS = LIST_SETTINGS | {"strategy", "pool", "load", "probe", "cost"
 LOAD_KEYS = {"expected": int, "maxRTT": str, "tolerance": float, "baselines": list}
 PROBE_KEYS = {"leastLoad": {"destination": str, "connectivity": str, "interval": str, "sampling": int, "timeout": str, "httpMethod": str},
               "leastPing": {"probeUrl": str, "probeInterval": str, "enableConcurrency": bool}}
-WARP_SETTINGS = {"warp", "pick", "name", "decoy", "entry_merge", "position", "remove_exit", "choices", "entry", "endpoints"}
+WARP_SETTINGS = {"warp", "pick", "name", "decoy", "entry_merge", "position", "remove_exit", "choices", "entry", "endpoints", "account", "rules"}
+# a chain block: its configs go through the hops in settings.hops (client -> hop 1 -> hop 2 -> the internet)
+CHAIN_SETTINGS = {"hops", "name", "decoy", "choices", "rules"}
+DEFAULT_HOPS = [{"from": "warp"}, {"from": "block"}]
 # "decoy": "vless" puts an unused vless+TLS outbound in front of a WARP-only entry (some apps only load a masque config then)
 WARP_DECOY = [{"protocol": "vless", "tag": "decoy",
                "settings": {"address": "{entry.address}", "port": "{entry.port}", "id": "{user.id}", "encryption": "none"},
@@ -158,7 +162,7 @@ def _check_block(b, where):
     s = b.get("settings", {})
     if not isinstance(s, dict):
         return p + ["%s.settings: must be an object" % where]
-    allowed = {"balancer": BALANCER_SETTINGS, "list": LIST_SETTINGS | {"patches"}, "warp": WARP_SETTINGS}.get(btype, set())
+    allowed = {"balancer": BALANCER_SETTINGS, "list": LIST_SETTINGS | {"patches", "rules"}, "warp": WARP_SETTINGS, "chain": CHAIN_SETTINGS}.get(btype, set())
     for k in s:
         if k not in allowed:
             p.append("%s.settings.%s: not available for a %s block" % (where, k, b.get("type", "list")))
@@ -241,6 +245,17 @@ def _check_block(b, where):
         p.append('%s.settings.warp: must be "exit" (WARP, then the exit) or "only" (WARP alone)' % where)
     if "decoy" in s and s["decoy"] != "vless":
         p.append('%s.settings.decoy: must be "vless"' % where)
+    if "hops" in s:
+        p += check_hops(s["hops"], "%s.settings.hops" % where)
+    if "account" in s and s["account"] not in ("personal", "shared"):
+        p.append('%s.settings.account: must be "personal" (each user their own account) or "shared" (the default account)' % where)
+    if "rules" in s and not (isinstance(s["rules"], list) and s["rules"] and all(isinstance(r, dict) for r in s["rules"])):
+        p.append("%s.settings.rules: must be a non-empty list of routing rules" % where)
+    elif "rules" in s:
+        for r in s["rules"]:
+            if r.get("position", "end") not in ("end", "early"):
+                p.append('%s.settings.rules: "position" must be "end" (default) or "early" (before the private / domestic rules, after the DNS rules)' % where)
+                break
     if "pick" in s and s["pick"] not in ("random", "per_user"):
         p.append('%s.settings.pick: must be "random" or "per_user"' % where)
     return p
@@ -314,7 +329,22 @@ def compile_blocks(raw):
             taken += kinds
         rank = len(out["order"]) + 1
         s, btype, gid = b.get("settings") or {}, b.get("type", "list"), PREFIX + bid
-        not_ours = {"not": {"tag": {"regex": "^%s" % re.escape(PREFIX)}}}
+        not_ours = {"made_by": {"exists": False}}       # a config of the panel, not one a group or chain built
+
+        def own_rules(when, s=s, gid=gid):              # settings.rules: routing rules in front; no target = this block's proxy
+            if s.get("rules"):
+                rules = [dict({"type": "field"}, **{k: copy.deepcopy(v) for k, v in r.items() if v not in ([], "", None)}) for r in s["rules"]]
+                for r in rules:
+                    if not r.get("outboundTag") and not r.get("balancerTag"):
+                        r["outboundTag"] = "{main}"
+                early = [r for r in rules if r.get("position") == "early"]     # "position" is ours, not an Xray key
+                for r in rules:
+                    r.pop("position", None)
+                patch = {"id": gid + "-rules", "stage": "output", "when": when,
+                         "routing_append": [r for r in rules if not any(r is e for e in early)]}
+                if early:
+                    patch["routing_early"] = early
+                out["patches"].append(patch)
 
         if btype == "drop":
             out["rules"].append({"id": gid, "when": claim, "do": "drop"})
@@ -335,11 +365,28 @@ def compile_blocks(raw):
             if s.get("name"):    # {name} = the config's own name, {country} = its flag, {n} = its number in the block
                 out["patches"].append({"id": gid + "-name", "stage": "output", "when": {"all": [claim, not_ours]},
                                        "rename": s["name"].replace("{block}", b.get("name") or bid)})
+            own_rules({"all": [claim, not_ours]})
             out["order"].append({"id": gid, "when": {"all": [claim, not_ours]}, "rank": rank})
+            continue
+        if btype == "chain":
+            hops = copy.deepcopy(s.get("hops") or DEFAULT_HOPS)
+            tmpl = s.get("name") or ("{block} {country}" if b.get("per_country") else "{name}")
+            chain = {"id": gid, "mode": "hops", "exit_when": claim, "hops": hops,
+                     "name": tmpl.replace("{block}", b.get("name") or bid)}
+            if b.get("per_country"):
+                chain["split_by"] = {"field": "flag", "regex": "(.+)"}
+            if s.get("decoy") == "vless":
+                chain["before"] = copy.deepcopy(WARP_DECOY)
+            if s.get("choices"):
+                chain["choices"] = copy.deepcopy(s["choices"])
+            out["chains"].append(chain)
+            own_rules({"made_by": gid})
+            out["order"].append({"id": gid, "when": {"made_by": gid}, "rank": rank})
             continue
         if btype == "warp":
             chain = {"id": gid, "mode": "exit_first", "exit_when": claim, "entry": "{account.masque.outbound}",
                      "endpoints": "{account.masque.endpoints}", "pick": s.get("pick", "random"),
+                     "entry_tag": "warp", "exit_tag": MEMBER_TAG + "01",
                      "name": _name(s.get("name"), b.get("name") or bid, b.get("per_country", False))}
             if b.get("per_country"):
                 chain["split_by"] = {"field": "flag", "regex": "(.+)"}
@@ -354,16 +401,18 @@ def compile_blocks(raw):
                 chain["position"] = s["position"]
             if s.get("remove_exit"):
                 chain["remove_exit_from_output"] = True
+            if s.get("account") == "shared":
+                chain["account"] = "shared"
             if isinstance(s.get("entry_merge"), dict) and s["entry_merge"]:
                 chain["entry_merge"] = copy.deepcopy(s["entry_merge"])
             chain.update((b.get("advanced") or {}).get("chain") or {})
             out["chains"].append(chain)
-            gtag = re.escape(re.sub(r"[^A-Za-z0-9]+", "-", gid).strip("-"))
-            out["order"].append({"id": gid, "when": {"tag": {"regex": "^%s-\\d+-(entry|exit)$" % gtag}}, "rank": rank})
+            own_rules({"made_by": gid})
+            out["order"].append({"id": gid, "when": {"made_by": gid}, "rank": rank})
             continue
 
         strategy = s.get("strategy", "leastLoad")
-        group = {"id": gid, "when": claim, "type": strategy,
+        group = {"id": gid, "when": claim, "type": strategy, "member_tag": MEMBER_TAG,
                  "name": _name(s.get("name"), b.get("name") or bid, b.get("per_country", False))}
         if strategy == "leastLoad":
             group["probe"] = dict(DEFAULT_PROBE)
@@ -419,13 +468,12 @@ def compile_blocks(raw):
                               s["name"].replace("{block}", b.get("name") or bid).replace("{country}", "").strip())
             rest_group.pop("split_by")
             out["groups"].append(rest_group)
-        gtag = re.escape(re.sub(r"[^A-Za-z0-9]+", "-", gid).strip("-"))
-        out["order"].append({"id": gid, "when": {"tag": {"regex": "^%s(-noflag)?-\\d+-\\d+$" % gtag}}, "rank": rank})
+        out["order"].append({"id": gid, "when": {"made_by": {"in": [gid, gid + "--noflag"]}}, "rank": rank})
         out["order"].append({"id": gid + "-single", "when": {"all": [claim, not_ours]}, "rank": rank})
 
     if rest == "top" and clean:
         out["order"].append({"id": PREFIX + "rest", "when": {"all": [{"not": {"any": list(everything)}},
-                                                                     {"not": {"tag": {"regex": "^%s" % re.escape(PREFIX)}}}]}, "rank": 0})
+                                                                     {"made_by": {"exists": False}}]}, "rank": 0})
     if rest == "hide" and clean:
         out["rules"].append({"id": PREFIX + "rest", "when": {"not": {"any": list(everything)}}, "do": "drop"})
     return {"rest": rest, "list": clean}, out, problems

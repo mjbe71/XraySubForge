@@ -11,6 +11,7 @@ never lists the file's contents, but a preview of a chain shows the filled-in ou
 """
 import json
 import os
+import secrets
 import sys
 import threading
 import time
@@ -23,6 +24,11 @@ except ImportError:          # not on Windows: no cross-process lock there
 
 def _log(msg):
     print("[accounts] " + msg, file=sys.stderr, flush=True)
+
+
+GONE_STATUS = set(range(400, 500)) - {401, 403, 407, 408, 429}    # answers that can mean "no such user"
+PRUNE_LOOK_SECONDS = 600                               # a running service looks this often whether a check is due
+PRUNE_PAUSE = 0.02                                     # between two questions to the panel
 
 
 def parse(raw):
@@ -46,6 +52,7 @@ class AccountStore:
         self._worker = None                            # background mode: the running thread
         self._last_reg = 0.0                           # time of the last registration attempt
         self._lock = threading.Lock()
+        self._prune_looked = 0.0                       # last time this process looked whether a check is due
         self._sig = None
         self._file_data = {"default": {}, "users": {}}
 
@@ -209,3 +216,115 @@ class AccountStore:
             if wait > 0:
                 time.sleep(wait)
             self._try_register(subid, reg)
+
+    # ---- removing the accounts of users the panel no longer has (accounts.prune) ----
+    def prune(self, dry=False, now=None, probe=None, pause=PRUNE_PAUSE):
+        """Ask the panel about every user that has a personal account and remove the accounts of users it no longer has.
+        -> {"users", "missing", "removed", "waiting", "error"}. `dry`: only count (what a real run would remove now).
+
+        What "no such user" looks like is learned from the panel itself: a random id is asked first, and only users
+        answered exactly like it count as missing. Nothing is removed when the panel cannot be reached, answers a
+        random id with configs or with an error that is not about the id, or when too many users look missing at once."""
+        from .panel import PanelError, probe as panel_probe
+        probe = probe or panel_probe
+        conf = self.config_store.get()
+        pr, panel = conf["accounts"]["prune"], conf["panel"]
+        path = self._file_path(conf["accounts"]["file"])
+        now = time.time() if now is None else now
+        users = sorted(self.get()["users"])
+        report = {"users": len(users), "missing": 0, "removed": 0, "waiting": 0, "error": ""}
+
+        def stop(why):
+            report["error"] = why
+            return report
+        if not path:
+            return stop("accounts.file is not set")
+        if not users:
+            return report
+        try:
+            gone = probe(panel, "x" + secrets.token_hex(8))
+            if gone == "ok":
+                return stop("the panel answers an unknown id with configs; missing users cannot be told apart")
+            if gone != "empty" and gone not in GONE_STATUS:
+                return stop("the panel answered an unknown id with HTTP %s; nothing was removed" % gone)
+            missing = set()
+            for sid in users:
+                if probe(panel, sid) == gone:
+                    missing.add(sid)
+                if pause:
+                    time.sleep(pause)
+        except PanelError as e:
+            return stop("%s; nothing was removed" % e.message)
+        report["missing"] = len(missing)
+        if len(users) >= 10 and len(missing) * 100 > pr["max_percent"] * len(users):
+            return stop("%d of %d users look missing (more than %s%%); nothing was removed"
+                        % (len(missing), len(users), pr["max_percent"]))
+        need = pr["after_days"] * 86400 - 3600           # one hour of slack: daily checks do not run at the same second
+
+        def due(entry):
+            return pr["after_days"] == 0 or (entry["seen"] >= 2 and now - entry["since"] >= need)
+
+        def apply(raw):
+            state = raw.setdefault("_prune", {})
+            seen = state.get("missing") if isinstance(state.get("missing"), dict) else {}
+            keep = {}
+            for sid in missing:
+                if sid not in raw["users"]:
+                    continue
+                old = seen.get(sid) if isinstance(seen.get(sid), dict) else {}
+                entry = {"since": old.get("since", now), "seen": int(old.get("seen", 0)) + 1}
+                if due(entry):
+                    del raw["users"][sid]
+                    report["removed"] += 1
+                else:
+                    keep[sid] = entry
+            state["missing"], state["last_run"] = keep, now
+            return None
+        if dry:
+            try:
+                with open(path, encoding="utf-8") as f:
+                    raw = json.load(f)
+            except (OSError, ValueError):
+                raw = {}
+            raw = raw if isinstance(raw, dict) else {}
+            raw.setdefault("users", {sid: {} for sid in users})
+            apply(raw)
+        else:
+            self._locked_update(path, apply)
+            _log("prune: %d users checked, %d missing, %d removed" % (len(users), len(missing), report["removed"]))
+        report["waiting"] = report["missing"] - report["removed"]
+        return report
+
+    def tick(self):
+        """Called on subscription requests: start the periodic check in a thread when one is due. Never raises."""
+        try:
+            pr = self.config_store.get()["accounts"]["prune"]
+            now = time.time()
+            if not pr["enabled"] or now - self._prune_looked < PRUNE_LOOK_SECONDS:
+                return
+            self._prune_looked = now
+            threading.Thread(target=self._prune_if_due, name="accounts-prune", daemon=True).start()
+        except Exception:
+            pass
+
+    def _prune_if_due(self):
+        try:
+            conf = self.config_store.get()["accounts"]
+            path = self._file_path(conf["file"])
+            if not path or not self.get()["users"]:
+                return
+            now = time.time()
+
+            def claim(raw):                            # every worker process looks; only one may run the check
+                state = raw.setdefault("_prune", {})
+                last = state.get("last_run") if isinstance(state.get("last_run"), (int, float)) else 0
+                if now - last < conf["prune"]["interval_hours"] * 3600:
+                    return False
+                state["last_run"] = now
+                return True
+            if self._locked_update(path, claim):
+                report = self.prune(now=now)
+                if report["error"]:
+                    _log("prune: " + report["error"])
+        except Exception as e:
+            _log("prune failed (%s: %s)" % (type(e).__name__, e))

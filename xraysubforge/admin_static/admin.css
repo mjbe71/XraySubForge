@@ -246,3 +246,5 @@ header h1 .ver { font-size: 12px; font-weight: 500; color: var(--muted); margin-
 .b-kv .row { flex-wrap: nowrap; }
 .b-kvpath { flex: 3; min-width: 0; }
 .b-kvval { flex: 1; min-width: 0; }
+
+.b-path { font-weight: 600; margin: 4px 0 8px; }

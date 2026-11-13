@@ -267,3 +267,103 @@ class Pool(Base):
         self.assertEqual(len(data["default"]["pool"]), 2)
         self.assertEqual(sorted(data["users"]), ["alice"])
         self.assertEqual(len(store.get()["default"]["pool"]), 2)
+
+
+class Prune(Base):
+    """accounts.prune: the accounts of users the panel no longer has are removed, carefully."""
+    DAY = 86400
+
+    def store(self, users, **prune):
+        with open(self.cfg_path, "w") as f:
+            json.dump({"panel": {"url": "http://panel.invalid/json/"},
+                       "accounts": {"file": "accounts.json", "prune": dict({"enabled": True}, **prune)}}, f)
+        with open(os.path.join(self.dir.name, "accounts.json"), "w") as f:
+            json.dump({"default": {}, "users": {u: {"privateKey": "k"} for u in users}}, f)
+        return AccountStore(ConfigStore(self.cfg_path))
+
+    @staticmethod
+    def panel(known, unknown=400):
+        return lambda panel, subid: "ok" if subid in known else unknown
+
+    def test_removed_only_after_the_days_and_two_checks(self):
+        st = self.store(["alice", "bob"])
+        probe = self.panel({"alice"})
+        rep = st.prune(now=0, probe=probe, pause=0)
+        self.assertEqual((rep["missing"], rep["removed"], rep["waiting"], rep["error"]), (1, 0, 1, ""))
+        self.assertEqual(st.prune(now=1 * self.DAY, probe=probe, pause=0)["removed"], 0)
+        self.assertEqual(st.prune(now=3 * self.DAY, dry=True, probe=probe, pause=0)["removed"], 1)   # dry: only counts
+        self.assertIn("bob", self.users()["users"])
+        self.assertEqual(st.prune(now=3 * self.DAY, probe=probe, pause=0)["removed"], 1)
+        self.assertEqual(sorted(self.users()["users"]), ["alice"])
+        self.assertEqual(self.users()["_prune"]["missing"], {})
+
+    def test_a_user_who_comes_back_starts_over(self):
+        st = self.store(["bob"])
+        st.prune(now=0, probe=self.panel(set()), pause=0)
+        st.prune(now=2 * self.DAY, probe=self.panel({"bob"}), pause=0)
+        self.assertEqual(self.users()["_prune"]["missing"], {})
+        self.assertEqual(st.prune(now=4 * self.DAY, probe=self.panel(set()), pause=0)["removed"], 0)
+        self.assertIn("bob", self.users()["users"])
+
+    def test_zero_days_removes_at_once_and_empty_reply_counts(self):
+        st = self.store(["bob"], after_days=0)
+        self.assertEqual(st.prune(probe=self.panel(set(), unknown="empty"), pause=0)["removed"], 1)
+        self.assertEqual(self.users()["users"], {})
+
+    def test_nothing_removed_when_the_panel_cannot_be_trusted(self):
+        from xraysubforge.panel import PanelError
+        st = self.store(["u%d" % i for i in range(10)], after_days=0)
+
+        def down(panel, subid):
+            raise PanelError("panel unreachable", 502)
+        for probe in (down, self.panel(set(), unknown=502), self.panel(set(), unknown=403),
+                      lambda panel, subid: "ok",                      # answers any id with configs
+                      self.panel({"u0", "u1"})):                      # 8 of 10 missing: more than max_percent
+            rep = st.prune(probe=probe, pause=0)
+            self.assertTrue(rep["error"])
+            self.assertEqual(rep["removed"], 0)
+        self.assertEqual(len(self.users()["users"]), 10)
+        self.assertEqual(st.prune(probe=self.panel({"u%d" % i for i in range(6)}), pause=0)["removed"], 4)
+
+    def test_a_different_error_for_one_user_is_not_missing(self):
+        st = self.store(["alice", "bob"], after_days=0)
+        rep = st.prune(probe=lambda panel, subid: 500 if subid == "bob" else "ok" if subid == "alice" else 404, pause=0)
+        self.assertEqual((rep["missing"], rep["removed"]), (0, 0))
+
+    def test_tick_runs_once_per_interval(self):
+        import time
+        st = self.store(["bob"], after_days=0)
+        calls = []
+        st.prune = lambda **kw: calls.append(kw) or {"error": ""}
+        st.tick()
+        st.tick()                                                       # looked a moment ago: nothing
+        deadline = time.time() + 5
+        while not calls and time.time() < deadline:
+            time.sleep(0.02)
+        self.assertEqual(len(calls), 1)
+        st._prune_looked = 0
+        st._prune_if_due()                                              # another worker: the check was claimed already
+        self.assertEqual(len(calls), 1)
+
+    def test_validation_cli_and_admin(self):
+        conf, problems = normalize({"accounts": {"prune": {"enabled": True, "after_days": -1, "max_percent": 0}}})
+        self.assertFalse(conf["accounts"]["prune"]["enabled"])                              # no accounts.file
+        self.assertEqual((conf["accounts"]["prune"]["after_days"], conf["accounts"]["prune"]["max_percent"]), (3, 50))
+        self.store(["bob"], after_days=0)
+        with mock.patch("xraysubforge.panel.probe", self.panel(set(), unknown=404)):
+            self.assertEqual(cli(["prune-accounts", "--dry-run", "--config", self.cfg_path]), 0)
+            self.assertIn("bob", self.users()["users"])
+            with open(self.cfg_path) as f:
+                raw = json.load(f)
+            raw["admin"] = {"password": "longenough1"}
+            with open(self.cfg_path, "w") as f:
+                json.dump(raw, f)
+            c = create_app(ConfigStore(self.cfg_path)).test_client()
+            csrf = c.post("/admin/api/login", json={"password": "longenough1"}).get_json()["csrf"]
+            r = c.post("/admin/api/prune-accounts", json={}, headers={"X-CSRF-Token": csrf}).get_json()
+            self.assertEqual((r["missing"], r["removed"]), (1, 1))                           # dry: would be removed
+            self.assertIn("bob", self.users()["users"])
+            r = c.post("/admin/api/prune-accounts", json={"run": True}, headers={"X-CSRF-Token": csrf}).get_json()
+            self.assertTrue(r["ok"])
+            self.assertEqual(self.users()["users"], {})
+            self.assertEqual(c.post("/admin/api/prune-accounts", json={}).status_code, 403)

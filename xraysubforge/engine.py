@@ -70,12 +70,51 @@ def apply_patch(cfg, patch):
         deep_merge(cfg, merge)
         for path, options in rnd.items():
             set_path(cfg, path, copy.deepcopy(random.choice(options)))
-    pre, post = patch.get("routing_prepend"), patch.get("routing_append")
-    if pre or post:
+    pre, post, early = patch.get("routing_prepend"), patch.get("routing_append"), patch.get("routing_early")
+    if pre or post or early:
         routing = cfg.get("routing") if isinstance(cfg.get("routing"), dict) else {}
         rules = routing.get("rules") if isinstance(routing.get("rules"), list) else []
-        routing["rules"] = copy.deepcopy(pre or []) + rules + copy.deepcopy(post or [])
+        n = len(rules)
+        while n and _is_catchall(rules[n - 1]):   # a rule after a catch-all never applies: the added rules go in front of it
+            n -= 1
+        e = min(_early_index(rules), n)
+        routing["rules"] = _to_main(cfg, pre) + rules[:e] + _to_main(cfg, early) + rules[e:n] + _to_main(cfg, post) + rules[n:]
         cfg["routing"] = routing
+
+
+def _early_index(rules):
+    """Where a rule with position "early" goes: after the DNS rules at the top (the DNS interception and the
+    inboundTag-only rules that keep DNS queries off the proxy), in front of everything else (private, domestic, ...)."""
+    n = 0
+    for r in rules:
+        if not isinstance(r, dict):
+            break
+        if r.get("outboundTag") == "dns-out" or (r.get("inboundTag") and set(r) <= {"type", "inboundTag", "outboundTag", "_keep"}):
+            n += 1
+        else:
+            break
+    return n
+
+
+def _is_catchall(rule):
+    """A rule that matches all tcp and udp traffic and nothing else (a balancer's catch-all, a decoy's, a chain's)."""
+    return (isinstance(rule, dict) and rule.get("network") in ("tcp,udp", "udp,tcp")
+            and set(rule) <= {"type", "network", "outboundTag", "balancerTag", "_keep"})
+
+
+def _to_main(cfg, rules):
+    """A copy of the rules; "outboundTag": "{main}" becomes the outbound (or balancer) that carries this config's traffic."""
+    out = copy.deepcopy(rules or [])
+    for r in out:
+        if isinstance(r, dict) and r.get("outboundTag") == "{main}":
+            main = cfg.get("_main")
+            if not main:
+                i = main_index(cfg)
+                main = ("outboundTag", cfg["outbounds"][i].get("tag")) if i is not None else None
+            r.pop("outboundTag")
+            if main and main[1]:
+                r[main[0]] = main[1]
+    return [r for r in out if not isinstance(r, dict) or r.get("outboundTag") or r.get("balancerTag")]
 
 
 def _rename(cfg, patch, counter):
@@ -175,6 +214,9 @@ def build_group(group, key, members, work, index, subid=None):
     gid = slug(group["id"])
     prefix = "%s-%d-" % (gid, index)
     balancer_tag = "%s-%d-lb" % (gid, index)
+    fmt = "%s%d"
+    if group.get("member_tag"):  # plain tags: proxy01, proxy02, ... and one balancer (every output config is its own file)
+        prefix, fmt, balancer_tag = group["member_tag"], "%s%02d", group.get("balancer_tag") or "balancer"
 
     mp = group.get("member_position") or []
     if mp:  # stable: members matching a "first" entry go to the front, "last" ones to the back
@@ -189,7 +231,7 @@ def build_group(group, key, members, work, index, subid=None):
     for n, (m, address) in enumerate(placed, 1):
         src = work[m["i"]]
         ob = copy.deepcopy(src["outbounds"][main_index(src)])
-        ob["tag"] = "%s%d" % (prefix, n)
+        ob["tag"] = fmt % (prefix, n)
         if address:
             h = _addr_holder(ob)
             h[0][h[1]] = address
@@ -198,7 +240,7 @@ def build_group(group, key, members, work, index, subid=None):
                 deep_merge(ob, mp.get("merge") or {})
                 for path, options in (mp.get("random") or {}).items():  # one random pick per member
                     set_path(ob, path, copy.deepcopy(random.choice(options)))
-        ob["tag"] = "%s%d" % (prefix, n)
+        ob["tag"] = fmt % (prefix, n)
         outbounds.append(ob)
         for mc in group.get("member_cost") or []:
             if match(mc.get("when"), src, m["fields"]):
@@ -242,6 +284,7 @@ def build_group(group, key, members, work, index, subid=None):
 
     default_name = "{split}" if group.get("split_by") else group["id"]
     out["remarks"] = render(group.get("name") or default_name, split=key, n=len(placed), group=group["id"])
+    out["_by"], out["_main"] = group["id"], ("balancerTag", balancer_tag)   # internal marks; removed before the reply
     return out, members
 
 
@@ -318,6 +361,7 @@ def build_chain(chain, key, sts, work, index, account, subid=None):
     old_tag = exit_ob.get("tag")
     gid = slug(chain["id"])
     entry_tag, exit_tag = "%s-%d-entry" % (gid, index), "%s-%d-exit" % (gid, index)
+    entry_tag, exit_tag = chain.get("entry_tag") or entry_tag, chain.get("exit_tag") or exit_tag
     values = {"account": account or {}, "exit": dict(first["fields"]), "choice": pick_choices(chain, subid),
               "split": key, "n": len(sts)}
     entry = substitute(chain["entry"], values)
@@ -345,6 +389,7 @@ def build_chain(chain, key, sts, work, index, account, subid=None):
     out.pop("burstObservatory", None)
     default_name = "{split}" if chain.get("split_by") else chain["id"]
     out["remarks"] = render(chain.get("name") or default_name, split=key, n=len(sts), group=chain["id"])
+    out["_by"], out["_main"] = chain["id"], ("outboundTag", entry_tag)
     return out
 
 
@@ -404,6 +449,7 @@ def build_chain_exit_first(chain, key, sts, work, index, account, subid, user_cf
         out.pop(k, None)
     gid = slug(chain["id"])
     entry_tag, exit_tag = "%s-%d-entry" % (gid, index), "%s-%d-exit" % (gid, index)
+    entry_tag, exit_tag = chain.get("entry_tag") or entry_tag, chain.get("exit_tag") or exit_tag
     values = {"account": account or {}, "exit": dict(first["fields"]), "choice": pick_choices(chain, subid),
               "split": key, "n": len(sts)}
     entry = substitute(chain["entry"], values)
@@ -433,6 +479,7 @@ def build_chain_exit_first(chain, key, sts, work, index, account, subid, user_cf
             out["routing"] = {"rules": [{"type": "field", "network": "tcp,udp", "outboundTag": entry_tag, "_keep": True}]}
         default_name = "{split}" if chain.get("split_by") else chain["id"]
         out["remarks"] = render(chain.get("name") or default_name, split=key, n=len(sts), group=chain["id"])
+        out["_by"], out["_main"] = chain["id"], ("outboundTag", entry_tag)
         return out
     spec = chain.get("exit") or {}
     flag = first["fields"].get("flag") or ""
@@ -458,6 +505,112 @@ def build_chain_exit_first(chain, key, sts, work, index, account, subid, user_cf
     out["outbounds"] = [exit_ob, entry]
     default_name = "{split}" if chain.get("split_by") else chain["id"]
     out["remarks"] = render(chain.get("name") or default_name, split=key, n=len(sts), group=chain["id"])
+    out["_by"], out["_main"] = chain["id"], ("outboundTag", exit_tag)
+    return out
+
+
+def _set_dialer(ob, tag):
+    """The outbound is dialed through the outbound tagged `tag` (None: directly)."""
+    stream = ob.get("streamSettings") if isinstance(ob.get("streamSettings"), dict) else {}
+    sock = stream.get("sockopt") if isinstance(stream.get("sockopt"), dict) else {}
+    if tag:
+        sock["dialerProxy"] = tag
+        stream["sockopt"] = sock
+        ob["streamSettings"] = stream
+    elif "dialerProxy" in sock:
+        sock.pop("dialerProxy")
+
+
+def build_hops(chain, key, sts, work, account, shared, subid, alive):
+    """Mode "hops": one output config whose traffic goes client -> hops[0] -> hops[1] -> ... -> the internet.
+    Each hop is an outbound from one of: the matched config itself ("block"), a WARP account ("warp"), an outbound
+    written by the admin ("outbound"), another config of the subscription ("config"), or the exit template of the
+    account ("account_exit"). In Xray terms every hop is dialed through the one before it (sockopt.dialerProxy)."""
+    first = sts[0]
+    src = work[first["i"]]
+    out = copy.deepcopy(src)
+    mi = main_index(out)
+    old_tag = out["outbounds"][mi].get("tag") if mi is not None else None
+    others = [o for i, o in enumerate(out.get("outbounds") or []) if i != mi and isinstance(o, dict) and o.get("protocol") in NON_PROXY]
+    user_id = find_user_id([work[st["i"]] for st in alive])
+    flag = first["fields"].get("flag") or ""
+    hops = chain["hops"]
+    made = []
+    for n, hop in enumerate(hops):
+        kind = hop["from"]
+        acct = shared if hop.get("account") == "shared" else account
+        values = {"account": acct or {}, "exit": dict(first["fields"]), "choice": pick_choices(chain, subid), "split": key,
+                  "n": len(sts), "user": {"id": user_id} if user_id else {}}
+        if kind == "block":
+            if mi is None:
+                raise ValueError("the config has no proxy outbound to use as a hop")
+            ob = copy.deepcopy(src["outbounds"][mi])
+        elif kind == "warp":
+            entry = hop.get("entry") or "{account.masque.outbound}"
+            ob = substitute(entry, values)
+            if isinstance(entry, str):      # the account holds the outbound: its own placeholders are filled too
+                ob = substitute(ob, values)
+            if isinstance(hop.get("merge"), dict):
+                deep_merge(ob, substitute(hop["merge"], values))
+            spec = hop.get("endpoints") or ("{account.masque.endpoints}" if dig(acct or {}, "masque.endpoints") else None)
+            eps = substitute(spec, values) if spec else None
+            if isinstance(eps, list) and eps:
+                host, port = split_endpoint(_pick(list(eps), "%s|%s|ep" % (subid, chain["id"]), hop.get("pick") == "per_user"))
+                st = ob.setdefault("settings", {})
+                if host:
+                    st["address"] = host
+                    if port.isdigit():
+                        st["port"] = int(port)
+        elif kind == "outbound":
+            ob = substitute(hop["outbound"], values)
+        elif kind == "config":
+            pool = [st for st in alive if st["i"] != first["i"] and main_index(work[st["i"]]) is not None
+                    and match(hop["when"], work[st["i"]], st["fields"])]
+            same = [st for st in pool if flag and st["fields"].get("flag") == flag]
+            if not pool:
+                raise ValueError("no config of this subscription matches hop %d" % (n + 1))
+            pick = work[(same or pool)[0]["i"]]
+            ob = copy.deepcopy(pick["outbounds"][main_index(pick)])
+        else:  # account_exit
+            exits = acct.get(hop.get("from_account", "exits")) if isinstance(acct.get(hop.get("from_account", "exits")), dict) else {}
+            tmpl = (exits.get(flag) if flag else None) or acct.get(hop.get("default_account", "exit"))
+            if isinstance(tmpl, dict) and isinstance(tmpl.get("outbound"), dict):
+                tmpl = tmpl["outbound"]
+            if not (isinstance(tmpl, dict) and tmpl.get("protocol")):
+                raise ValueError("no exit template in the account for %r" % flag)
+            ob = copy.deepcopy(tmpl)
+            if hop.get("user_id", True) and not (user_id and set_user_id(ob, user_id)):
+                raise ValueError("the user has no config with an id to put into the exit")
+        if not (isinstance(ob, dict) and ob.get("protocol")):
+            raise ValueError("hop %d did not give an outbound" % (n + 1))
+        made.append((kind, ob))
+    last = len(made) - 1
+    tags = []
+    for n, (kind, ob) in enumerate(made):       # the last hop carries the traffic: proxy01; the hops before it: warp / hop1, hop2
+        tags.append("proxy01" if n == last else "warp" if kind == "warp" and "warp" not in tags else "hop%d" % (n + 1))
+    for n, (kind, ob) in enumerate(made):
+        ob["tag"] = tags[n]
+        _set_dialer(ob, tags[n - 1] if n else None)
+    main_tag = tags[last]
+    out["outbounds"] = [ob for _, ob in reversed(made)] + others
+    out.pop("observatory", None)
+    out.pop("burstObservatory", None)
+    routing = out.get("routing") if isinstance(out.get("routing"), dict) else {}
+    rules = [r for r in (routing.get("rules") if isinstance(routing.get("rules"), list) else []) if isinstance(r, dict) and "balancerTag" not in r]
+    for r in rules:
+        if old_tag and r.get("outboundTag") == old_tag:
+            r["outboundTag"] = main_tag
+    routing.pop("balancers", None)
+    if chain.get("before"):  # extra outbounds in front (a harmless first outbound); all traffic still goes to the last hop
+        vals = dict(values, entry=made[last][1].get("settings") or {}, user={"id": user_id or "00000000-0000-0000-0000-000000000000"})
+        out["outbounds"] = substitute(chain["before"], vals) + out["outbounds"]
+        rules.append({"type": "field", "network": "tcp,udp", "outboundTag": main_tag, "_keep": True})
+    routing["rules"] = rules
+    out["routing"] = routing
+    old_name = str(src.get("remarks") or "")
+    default_name = "{split}" if chain.get("split_by") else "{name}"
+    out["remarks"] = render(chain.get("name") or default_name, name=old_name, country=flag, split=key, n=len(sts), group=chain["id"]).strip()
+    out["_by"], out["_main"] = chain["id"], ("outboundTag", main_tag)
     return out
 
 
@@ -480,6 +633,7 @@ def process(configs, conf, subid=None, accounts=None, params=None):
     account = dict(accounts.get("default") or {})
     personal = (accounts.get("users") or {}).get(subid)
     pool = account.pop("pool", None)
+    shared = dict(account)                             # the default account alone, for chains with "account": "shared"
     if isinstance(personal, dict) and personal and (personal.get("privateKey") or not pool):
         account.update(personal)
     elif isinstance(pool, list) and pool and subid:  # shared accounts until the user has a personal one
@@ -549,18 +703,32 @@ def process(configs, conf, subid=None, accounts=None, params=None):
             continue
 
         def run_chain(ch=ch):
+            acct = shared if ch.get("account") == "shared" else account
             cands = [st for st in alive if match(ch.get("exit_when"), work[st["i"]], st["fields"])
-                     and (ch.get("mode") == "exit_first" or main_index(work[st["i"]]) is not None)]
+                     and (ch.get("mode") in ("exit_first", "hops") or main_index(work[st["i"]]) is not None)]
+            if ch.get("mode") == "hops":
+                buckets = bucketize(cands, ch.get("split_by"), work) if ch.get("split_by") else {}
+                todo = [(k, v) for k, v in buckets.items()] if ch.get("split_by") else [("", [st]) for st in cands]
+                for key, sts in todo:
+                    cfg = guarded("chain %s" % ch["id"], lambda key=key, sts=sts: build_hops(
+                        ch, key, sts, work, account, shared, subid, alive))
+                    if cfg is None:
+                        continue
+                    for st in sts:
+                        st["chains"].append(ch["id"])
+                        removed.add(st["i"])
+                    made.append((sts[0]["i"], ch.get("position"), cfg, ch["id"], len(sts)))
+                return
             for bi, (key, sts) in enumerate(bucketize(cands, ch.get("split_by"), work).items()):
                 if ch.get("mode") == "exit_first":
                     matched = {st["i"] for st in cands}
                     user_cfgs = [work[st["i"]] for st in alive if st["i"] not in matched]
                     cfg = guarded("chain %s" % ch["id"], lambda key=key, sts=sts, bi=bi: build_chain_exit_first(
-                        ch, key, sts, work, bi, account, subid, user_cfgs))
+                        ch, key, sts, work, bi, acct, subid, user_cfgs))
                     if ch.get("remove_exit_from_output", True):
                         removed.update(st["i"] for st in sts)  # the placeholder never stays in the list
                 else:
-                    cfg = guarded("chain %s" % ch["id"], lambda key=key, sts=sts, bi=bi: build_chain(ch, key, sts, work, bi, account, subid))
+                    cfg = guarded("chain %s" % ch["id"], lambda key=key, sts=sts, bi=bi: build_chain(ch, key, sts, work, bi, acct, subid))
                 if cfg is None:
                     continue
                 sts[0]["chains"].append(ch["id"])
@@ -600,6 +768,9 @@ def process(configs, conf, subid=None, accounts=None, params=None):
                 r.pop("_keep", None)
 
     run_patches("output", output)
+    for c in output:
+        c.pop("_by", None)
+        c.pop("_main", None)
 
     for st in state:
         action = st["action"] or "keep"

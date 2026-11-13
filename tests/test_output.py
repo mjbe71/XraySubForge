@@ -131,3 +131,52 @@ class SplitInboundOptions(unittest.TestCase):
         self.assertEqual(socks["sniffing"], {"destOverride": ["http", "tls"], "enabled": True, "routeOnly": True})
         _, problems = normalize({"output": {"socks_port": 99999, "route_only": "yes", "sniff_override": [1]}})
         self.assertEqual(sum("output." in p for p in problems), 3)
+
+
+class Dns(unittest.TestCase):
+    def test_general_dns_hosts_and_servers(self):
+        mine = {"hosts": {"dns.example": "1.2.3.4"}, "servers": ["9.9.9.9", {"address": "8.8.4.4", "domains": ["geosite:google"]}],
+                "queryStrategy": "UseIPv4"}
+        out, problems = run({"dns": mine})
+        self.assertEqual(problems, [])
+        self.assertEqual(out[0]["dns"], {"servers": mine["servers"], "hosts": mine["hosts"], "queryStrategy": "UseIPv4"})
+        out, _ = run({"dns": dict(mine, servers_at="first")})
+        self.assertEqual(out[0]["dns"]["servers"], mine["servers"] + ["1.1.1.1"])
+        out, _ = run({"dns": {"servers": ["9.9.9.9"], "servers_at": "last"}})
+        self.assertEqual(out[0]["dns"]["servers"], ["1.1.1.1", "9.9.9.9"])
+        cfg = base()
+        del cfg["dns"]
+        out, _ = run({"dns": {"hosts": {"a": "1.1.1.1"}}}, [cfg])                    # a config without dns gets one
+        self.assertEqual(out[0]["dns"], {"hosts": {"a": "1.1.1.1"}})
+        _, problems = run({"dns": {"servers": "x", "servers_at": "middle"}})
+        self.assertEqual(len(problems), 2)
+
+    def test_domestic_dns_adds_its_servers_and_the_direct_rule(self):
+        out, problems = run({"direct_dns": True})
+        self.assertEqual(problems, [])
+        self.assertEqual(out[0]["dns"]["servers"], [
+            {"address": "223.5.5.5", "domains": ["geosite:private"], "finalQuery": True, "skipFallback": True, "tag": "domestic-dns_0_0"},
+            {"address": "223.5.5.5", "domains": ["domain:ir", "geosite:category-ir"], "finalQuery": True, "skipFallback": True, "tag": "domestic-dns_1_0"},
+            "1.1.1.1"])
+        self.assertEqual(out[0]["routing"]["rules"][0],
+                         {"type": "field", "inboundTag": ["domestic-dns_0_0", "domestic-dns_1_0"], "outboundTag": "direct"})
+        self.assertIn("direct", [o["tag"] for o in out[0]["outbounds"]])
+        out, _ = run({"direct_dns": {"ips": ["10.0.0.1", "10.0.0.2"], "domains": [["domain:ir"]]}})
+        self.assertEqual([(x["address"], x["tag"]) for x in out[0]["dns"]["servers"][:2]],
+                         [("10.0.0.1", "domestic-dns_0_0"), ("10.0.0.2", "domestic-dns_0_1")])
+        out, _ = run({"direct_dns": {"ips": []}})                                    # only the rule for the panel's own servers
+        self.assertEqual(out[0]["dns"]["servers"], ["1.1.1.1"])
+        cfg = base()
+        cfg["dns"]["servers"].append({"address": "1.2.3.4", "tag": "domestic-dns_0_0"})
+        out, _ = run({"direct_dns": True}, [cfg])                                    # the panel sent its own: ours are not added
+        self.assertEqual(len(out[0]["dns"]["servers"]), 2)
+        _, problems = run({"direct_dns": {"ips": "x"}})
+        self.assertEqual(len(problems), 1)
+
+    def test_dedicated_dns_with_several_servers(self):
+        out, problems = run({"dedicated_dns": {"ips": ["9.9.9.9", "8.8.8.8"]}, "base_rules": True, "direct_dns": True})
+        self.assertEqual(problems, [])
+        servers = out[0]["dns"]["servers"]
+        self.assertEqual([(x["address"], x["tag"]) for x in servers[:2]], [("9.9.9.9", "dedicated-dns"), ("8.8.8.8", "dedicated-dns_1")])
+        self.assertEqual(servers[2]["tag"], "domestic-dns_0_0")                      # the domestic ones come after the dedicated ones
+        self.assertIn({"type": "field", "inboundTag": ["dedicated-dns", "dedicated-dns_1"], "outboundTag": "direct"}, out[0]["routing"]["rules"])

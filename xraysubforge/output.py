@@ -20,10 +20,13 @@ DIRECT_RULES = [
     {"type": "field", "ip": ["geoip:ir"], "outboundTag": "direct"},
 ]
 
+DOMESTIC_IPS = ["223.5.5.5"]
+DOMESTIC_DOMAINS = [["geosite:private"], ["domain:ir", "geosite:category-ir"]]
+
 SNIFFING = {"destOverride": ["http", "tls", "quic", "fakedns"], "enabled": True, "routeOnly": False}
 
 KEYS = {"enabled", "when", "dns_out", "split_inbounds", "block_udp_443", "quic_domains", "sniff_override", "route_only", "socks_port", "http_port", "base_rules",
-        "dedicated_dns", "direct_dns", "remark_rewrite", "sampling", "panel_balancers", "replace_routing", "domain_strategy"}
+        "dns", "dedicated_dns", "direct_dns", "remark_rewrite", "sampling", "panel_balancers", "replace_routing", "domain_strategy"}
 
 
 def _int(v):
@@ -53,12 +56,30 @@ def check_output(raw):
     br = raw.get("base_rules")
     if br is not None and not (isinstance(br, bool) or (isinstance(br, list) and all(isinstance(x, dict) for x in br))):
         p.append("output.base_rules: must be true, false or a list of routing rules")
+    def strings(v):
+        return isinstance(v, list) and all(isinstance(x, str) and x for x in v)
+    dns = raw.get("dns")
+    if dns is not None:
+        if not isinstance(dns, dict):
+            p.append("output.dns: must be an object (hosts, servers, servers_at and any other key of Xray's dns)")
+        else:
+            if "hosts" in dns and not isinstance(dns["hosts"], dict):
+                p.append("output.dns.hosts: must be an object (name -> address or list of addresses)")
+            if "servers" in dns and not (isinstance(dns["servers"], list) and all(isinstance(x, (str, dict)) for x in dns["servers"])):
+                p.append("output.dns.servers: must be a list of addresses or server objects")
+            if "tag" in dns and not (isinstance(dns["tag"], str) and dns["tag"]):
+                p.append("output.dns.tag: must be a non-empty string")
+            if dns.get("servers_at", "replace") not in ("replace", "first", "last"):
+                p.append('output.dns.servers_at: must be "replace", "first" or "last"')
     dd = raw.get("dedicated_dns")
-    if dd is not None and not (isinstance(dd, bool) or (isinstance(dd, dict) and isinstance(dd.get("ip", "x"), str))):
-        p.append('output.dedicated_dns: must be true, false or {"ip": "...", "tag": "..."}')
+    if dd is not None and not (isinstance(dd, bool) or (isinstance(dd, dict) and isinstance(dd.get("ip", "x"), str)
+                                                        and ("ips" not in dd or strings(dd["ips"])))):
+        p.append('output.dedicated_dns: must be true, false or {"ips": ["..."], "tag": "..."}')
     dn = raw.get("direct_dns")
-    if dn is not None and not (isinstance(dn, bool) or (isinstance(dn, dict) and _regex_ok(dn.get("tag_regex", "x")))):
-        p.append('output.direct_dns: must be true, false or {"tag_regex": "..."}')
+    if dn is not None and not (isinstance(dn, bool) or (
+            isinstance(dn, dict) and _regex_ok(dn.get("tag_regex", "x")) and ("ips" not in dn or dn["ips"] == [] or strings(dn["ips"]))
+            and ("domains" not in dn or (isinstance(dn["domains"], list) and all(strings(x) for x in dn["domains"]))))):
+        p.append('output.direct_dns: must be true, false or {"ips": ["..."], "domains": [["..."], ...], "tag_regex": "..."}')
     rr = raw.get("remark_rewrite")
     if rr is not None:
         if not isinstance(rr, list):
@@ -168,18 +189,48 @@ def apply_output(cfg, out, ours):
         n = count_members(cfg.get("outbounds"), bo.get("subjectSelector"))
         bo["pingConfig"]["sampling"] = sp["fixed"] if sp.get("fixed") else max(1, n // sp["members_div"] + sp.get("extra", 0))
 
+    gd = out.get("dns")
+    if isinstance(gd, dict) and gd:  # the admin's own DNS settings: hosts and other keys are merged, servers are placed
+        from .engine import deep_merge
+        spec = copy.deepcopy(gd)
+        at, servers = spec.pop("servers_at", "replace"), spec.pop("servers", None)
+        cur = cfg.get("dns") if isinstance(cfg.get("dns"), dict) else {}
+        deep_merge(cur, spec)
+        if isinstance(servers, list) and servers:
+            old = cur.get("servers") if isinstance(cur.get("servers"), list) else []
+            cur["servers"] = servers if at == "replace" else servers + old if at == "first" else old + servers
+        cfg["dns"] = cur
     dns = cfg.get("dns") if isinstance(cfg.get("dns"), dict) else None
     dd = out.get("dedicated_dns")
-    dd_tag = None
+    dd_tags = []
     if dd and dns is not None:
         doms = proxy_domains(cfg)
         spec = dd if isinstance(dd, dict) else {}
-        dd_tag = spec.get("tag", "dedicated-dns")  # the direct rule is added even for a config with nothing to resolve
+        ips = spec.get("ips") or [spec.get("ip", "8.8.8.8")]
+        tag = spec.get("tag", "dedicated-dns")
+        # the direct rule is added even for a config with nothing to resolve
+        dd_tags = [tag if n == 0 else "%s_%d" % (tag, n) for n in range(len(ips))]
         if doms:
             if not isinstance(dns.get("servers"), list):
                 dns["servers"] = []
-            dns["servers"].insert(0, {"address": spec.get("ip", "8.8.8.8"), "domains": doms,
-                                       "skipFallback": True, "tag": dd_tag})
+            dns["servers"][0:0] = [{"address": ip, "domains": doms, "skipFallback": True, "tag": dd_tags[n]}
+                                   for n, ip in enumerate(ips)]
+    dn = out.get("direct_dns")
+    dn_rx = None
+    if dn and dns is not None:  # DNS servers inside the country for the country's own names, asked directly
+        spec = dn if isinstance(dn, dict) else {}
+        dn_rx = re.compile(spec.get("tag_regex", "^domestic-dns"))
+        servers = dns.get("servers") if isinstance(dns.get("servers"), list) else []
+        have = any(isinstance(x, dict) and isinstance(x.get("tag"), str) and dn_rx.search(x["tag"]) for x in servers)
+        ips = spec["ips"] if "ips" in spec else DOMESTIC_IPS
+        if ips and not have:  # the panel sent none of its own: add ours (after the dedicated ones)
+            sets = spec.get("domains") or DOMESTIC_DOMAINS
+            made = [{"address": ip, "domains": list(doms), "finalQuery": True, "skipFallback": True,
+                     "tag": "domestic-dns_%d_%d" % (si, ii)} for si, doms in enumerate(sets) for ii, ip in enumerate(ips)]
+            at = len(dd_tags) if servers[:len(dd_tags)] and all(
+                isinstance(x, dict) and x.get("tag") in dd_tags for x in servers[:len(dd_tags)]) else 0
+            servers[at:at] = made
+            dns["servers"] = servers
 
     rules = routing.get("rules") if isinstance(routing.get("rules"), list) else []
     if out.get("replace_routing"):
@@ -190,14 +241,12 @@ def apply_output(cfg, out, ours):
         head.append({"type": "field", "inboundTag": ["socks"], "port": "53", "outboundTag": "dns-out"})
     br = out.get("base_rules")
     if br:
-        if dd_tag:
-            head.append({"type": "field", "inboundTag": [dd_tag], "outboundTag": "direct"})
+        if dd_tags:
+            head.append({"type": "field", "inboundTag": list(dd_tags), "outboundTag": "direct"})
         head += copy.deepcopy(DIRECT_RULES if br is True else br)
-    dn = out.get("direct_dns")
-    if dn and dns is not None:
-        rx = re.compile(dn.get("tag_regex", "^domestic-dns") if isinstance(dn, dict) else "^domestic-dns")
-        tags = [x["tag"] for x in dns.get("servers") or [] if isinstance(x, dict) and isinstance(x.get("tag"), str) and rx.search(x["tag"])]
-        if tags:  # queries of the panel's own domestic DNS servers must not go through the proxy
+    if dn_rx is not None:
+        tags = [x["tag"] for x in dns.get("servers") or [] if isinstance(x, dict) and isinstance(x.get("tag"), str) and dn_rx.search(x["tag"])]
+        if tags:  # queries of the domestic DNS servers must not go through the proxy
             head.append({"type": "field", "inboundTag": tags, "outboundTag": "direct"})
     if out.get("block_udp_443"):
         rule = {"type": "field", "network": "udp", "port": "443", "outboundTag": "block"}
