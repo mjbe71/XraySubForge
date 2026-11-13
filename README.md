@@ -84,6 +84,14 @@ parameters (for `leastLoad`: `expected`, `maxRTT`, `tolerance`, `baselines`) and
 **Strategy** setting, each with Xray's default shown as a hint. Costs are rows: *this condition costs this much, everything else
 costs that*. Switching to another strategy and back keeps what you typed.
 
+## Chains, routing rules and DNS
+
+<p align="center"><img src="docs/assets/screens/chain-rules.png" alt="A chain block: WARP, then the config, with its own routing rules and a position for each rule" width="420"> <img src="docs/assets/screens/dns.png" alt="The DNS form: hosts, servers, queryStrategy and the DNS inbound tag" width="420"></p>
+
+A **Chain** block sends each config through its hops (WARP, then the config, or any outbound you import from a link). Each block can add
+its own **routing rules**; every rule is placed at the end of the list, in front of the final catch-all, or *early*, after the DNS
+rules. DNS has forms (and *Edit as JSON* / *Import JSON*) under Settings.
+
 ## Preview before anything reaches a user
 
 <p align="center"><img src="docs/assets/screens/preview.png" alt="The preview: what happens to each config of a user's subscription" width="360"></p>

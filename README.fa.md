@@ -57,6 +57,12 @@
 
 *Balancer* را بزنید، *One per country* را تیک بزنید، گونه‌های مورد نظر را داخلش بکشید و انتخاب کنید عضو را چطور برگزیند. پارامترهای خود strategy (برای `leastLoad`: `expected`، `maxRTT`، `tolerance`، `baselines`) و probe که اعضا را اندازه می‌گیرد داخل تنظیم **Strategy** هستند و پیش‌فرض Xray به‌صورت راهنما نشان داده می‌شود. costها ردیف‌اند: *این شرط این‌قدر cost دارد، بقیه آن‌قدر*. اگر به strategy دیگر بروید و برگردید، چیزی که نوشته بودید نمی‌پرد.
 
+## زنجیره، قوانین مسیریابی و DNS
+
+<p align="center"><img src="docs/assets/screens/chain-rules.png" alt="بلوک زنجیره: WARP و بعد کانفیگ، با قوانین مسیریابی خودش و جایگاه برای هر قانون" width="420"> <img src="docs/assets/screens/dns.png" alt="فرم DNS: host، server، queryStrategy و تگ inbound" width="420"></p>
+
+بلوک **Chain** هر کانفیگ را از hopهایش رد می‌کند (WARP و بعد خود کانفیگ، یا هر outbound که از لینک ایمپورت می‌کنید). هر بلوک می‌تواند **قوانین مسیریابی** خودش را داشته باشد؛ هر قانون یا ته لیست و قبل از قانون فراگیر آخر می‌نشیند، یا *اول*، بعد از قوانین DNS. برای DNS در تب Settings فرم هست (و *Edit as JSON* / *Import JSON*).
+
 ## پیش‌نمایش قبل از رسیدن به کاربر
 
 <p align="center"><img src="docs/assets/screens/preview.png" alt="پیش‌نمایش: هر کانفیگ ساب یک کاربر چه می‌شود" width="360"></p>
