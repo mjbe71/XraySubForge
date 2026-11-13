@@ -23,7 +23,7 @@ import re
 
 from .matching import check_catchall, check_hops, check_member_patch, check_member_position, check_when
 
-BLOCK_TYPES = ("list", "balancer", "warp", "chain", "drop")
+BLOCK_TYPES = ("list", "balancer", "chain", "drop")
 BLOCK_KEYS = {"id", "name", "type", "kinds", "per_country", "flagless", "settings", "enabled", "advanced"}
 # group keys a balancer block may carry as they are (kept when a classic group is turned into a block)
 ADVANCED_GROUP_KEYS = {"params", "probe", "probe_kind", "member_cost", "min_members", "remove_members_from_output", "position",
@@ -37,7 +37,6 @@ BALANCER_SETTINGS = LIST_SETTINGS | {"strategy", "pool", "load", "probe", "cost"
 LOAD_KEYS = {"expected": int, "maxRTT": str, "tolerance": float, "baselines": list}
 PROBE_KEYS = {"leastLoad": {"destination": str, "connectivity": str, "interval": str, "sampling": int, "timeout": str, "httpMethod": str},
               "leastPing": {"probeUrl": str, "probeInterval": str, "enableConcurrency": bool}}
-WARP_SETTINGS = {"warp", "pick", "name", "decoy", "entry_merge", "position", "remove_exit", "choices", "entry", "endpoints", "account", "rules"}
 # a chain block: its configs go through the hops in settings.hops (client -> hop 1 -> hop 2 -> the internet)
 CHAIN_SETTINGS = {"hops", "name", "decoy", "choices", "rules"}
 DEFAULT_HOPS = [{"from": "warp"}, {"from": "block"}]
@@ -45,8 +44,6 @@ DEFAULT_HOPS = [{"from": "warp"}, {"from": "block"}]
 WARP_DECOY = [{"protocol": "vless", "tag": "decoy",
                "settings": {"address": "{entry.address}", "port": "{entry.port}", "id": "{user.id}", "encryption": "none"},
                "streamSettings": {"network": "tcp", "security": "tls", "tlsSettings": {"serverName": "www.cloudflare.com"}}}]
-# chain keys a WARP block may carry as they are (kept when a classic chain is turned into a block)
-ADVANCED_CHAIN_KEYS = {"entry", "endpoints", "exit", "entry_merge", "before", "choices", "remove_exit_from_output", "position", "name", "split_by"}
 PATCH_KEYS = {"stage", "target", "when", "merge", "random", "routing_prepend", "routing_append"}
 STRATEGIES = ("leastLoad", "leastPing", "random", "roundRobin")
 FINGERPRINTS = ("chrome", "firefox", "safari", "ios", "android", "edge", "360", "qq", "random", "randomized", "unsafe")
@@ -119,7 +116,9 @@ def _check_block(b, where):
     for k in b:
         if k not in BLOCK_KEYS and not k.startswith("_"):
             p.append("%s: unknown key %r" % (where, k))
-    if b.get("type", "list") not in BLOCK_TYPES:
+    if b.get("type") == "warp":
+        p.append('%s.type: the WARP block type was removed; use a "chain" block with a {"from": "warp"} hop' % where)
+    elif b.get("type", "list") not in BLOCK_TYPES:
         p.append("%s.type: must be one of %s" % (where, ", ".join(BLOCK_TYPES)))
     if "enabled" in b and not isinstance(b["enabled"], bool):
         p.append("%s.enabled: must be true or false" % where)
@@ -140,7 +139,7 @@ def _check_block(b, where):
                 p += check_when(w, "%s.kinds[%d]" % (where, i))
     adv = b.get("advanced")
     btype = b.get("type", "list")
-    allowed_adv = {"balancer": ("group", "member_patch"), "list": ("patches",), "warp": ("chain",)}.get(btype, ())
+    allowed_adv = {"balancer": ("group", "member_patch"), "list": ("patches",)}.get(btype, ())
     if adv is not None:
         if not isinstance(adv, dict) or not allowed_adv:
             p.append("%s.advanced: must be an object (not for drop blocks)" % where)
@@ -151,9 +150,6 @@ def _check_block(b, where):
             g = adv.get("group", {})
             if not isinstance(g, dict) or any(k not in ADVANCED_GROUP_KEYS for k in g):
                 p.append("%s.advanced.group: may hold only %s" % (where, ", ".join(sorted(ADVANCED_GROUP_KEYS))))
-            c = adv.get("chain", {})
-            if not isinstance(c, dict) or any(k not in ADVANCED_CHAIN_KEYS for k in c):
-                p.append("%s.advanced.chain: may hold only %s" % (where, ", ".join(sorted(ADVANCED_CHAIN_KEYS))))
             if not isinstance(adv.get("member_patch", []), list):
                 p.append("%s.advanced.member_patch: must be a list" % where)
             pt = adv.get("patches", [])
@@ -162,7 +158,7 @@ def _check_block(b, where):
     s = b.get("settings", {})
     if not isinstance(s, dict):
         return p + ["%s.settings: must be an object" % where]
-    allowed = {"balancer": BALANCER_SETTINGS, "list": LIST_SETTINGS | {"patches", "rules"}, "warp": WARP_SETTINGS, "chain": CHAIN_SETTINGS}.get(btype, set())
+    allowed = {"balancer": BALANCER_SETTINGS, "list": LIST_SETTINGS | {"patches", "rules"}, "chain": CHAIN_SETTINGS}.get(btype, set())
     for k in s:
         if k not in allowed:
             p.append("%s.settings.%s: not available for a %s block" % (where, k, b.get("type", "list")))
@@ -216,7 +212,7 @@ def _check_block(b, where):
             p += check(s[key], "%s.settings.%s" % (where, key))
     if "min_members" in s and not (isinstance(s["min_members"], int) and not isinstance(s["min_members"], bool) and s["min_members"] >= 1):
         p.append("%s.settings.min_members: must be a whole number, 1 or more" % where)
-    for key in ("keep_members", "include_balanced", "remove_exit"):
+    for key in ("keep_members", "include_balanced"):
         if key in s and not isinstance(s[key], bool):
             p.append("%s.settings.%s: must be true or false" % (where, key))
     if "position" in s and s["position"] not in ("top", "bottom"):
@@ -229,26 +225,17 @@ def _check_block(b, where):
             p.append("%s.settings.patches: a list of patches (%s)" % (where, ", ".join(sorted(PATCH_KEYS))))
     if "choices" in s and not (isinstance(s["choices"], dict) and all(isinstance(v, list) and v for v in s["choices"].values())):
         p.append("%s.settings.choices: must be an object of non-empty lists" % where)
-    if "entry" in s and not ((isinstance(s["entry"], dict) and s["entry"]) or (isinstance(s["entry"], str) and re.fullmatch(r"\{account\.[A-Za-z0-9_.\-]+\}", s["entry"]))):
-        p.append("%s.settings.entry: an outbound object, or one {account.x} placeholder" % where)
-    if "endpoints" in s and not ((isinstance(s["endpoints"], list) and s["endpoints"] and all(isinstance(x, str) for x in s["endpoints"]))
-                                 or (isinstance(s["endpoints"], str) and s["endpoints"].startswith("{account."))):
-        p.append("%s.settings.endpoints: a list of addresses, or one {account.x} placeholder" % where)
-    for key in ("expand", "entry_merge"):
+    for key in ("expand",):
         if key in s and not isinstance(s[key], dict):
             p.append("%s.settings.%s: must be an object" % (where, key))
     if "pool" in s and not (isinstance(s["pool"], list) and s["pool"] and all(isinstance(a, str) and a.strip() for a in s["pool"])):
         p.append("%s.settings.pool: must be a list of addresses" % where)
     if "name" in s and not isinstance(s["name"], str):
         p.append("%s.settings.name: must be a string" % where)
-    if "warp" in s and s["warp"] not in ("exit", "only"):
-        p.append('%s.settings.warp: must be "exit" (WARP, then the exit) or "only" (WARP alone)' % where)
     if "decoy" in s and s["decoy"] != "vless":
         p.append('%s.settings.decoy: must be "vless"' % where)
     if "hops" in s:
         p += check_hops(s["hops"], "%s.settings.hops" % where)
-    if "account" in s and s["account"] not in ("personal", "shared"):
-        p.append('%s.settings.account: must be "personal" (each user their own account) or "shared" (the default account)' % where)
     if "rules" in s and not (isinstance(s["rules"], list) and s["rules"] and all(isinstance(r, dict) for r in s["rules"])):
         p.append("%s.settings.rules: must be a non-empty list of routing rules" % where)
     elif "rules" in s:
@@ -256,8 +243,6 @@ def _check_block(b, where):
             if r.get("position", "end") not in ("end", "early"):
                 p.append('%s.settings.rules: "position" must be "end" (default) or "early" (before the private / domestic rules, after the DNS rules)' % where)
                 break
-    if "pick" in s and s["pick"] not in ("random", "per_user"):
-        p.append('%s.settings.pick: must be "random" or "per_user"' % where)
     return p
 
 
@@ -383,34 +368,6 @@ def compile_blocks(raw):
             own_rules({"made_by": gid})
             out["order"].append({"id": gid, "when": {"made_by": gid}, "rank": rank})
             continue
-        if btype == "warp":
-            chain = {"id": gid, "mode": "exit_first", "exit_when": claim, "entry": "{account.masque.outbound}",
-                     "endpoints": "{account.masque.endpoints}", "pick": s.get("pick", "random"),
-                     "entry_tag": "warp", "exit_tag": MEMBER_TAG + "01",
-                     "name": _name(s.get("name"), b.get("name") or bid, b.get("per_country", False))}
-            if b.get("per_country"):
-                chain["split_by"] = {"field": "flag", "regex": "(.+)"}
-            if s.get("warp") == "only":
-                chain["exit"] = False
-                if s.get("decoy") == "vless":
-                    chain["before"] = copy.deepcopy(WARP_DECOY)
-            for key in ("choices", "entry", "endpoints"):
-                if s.get(key):
-                    chain[key] = copy.deepcopy(s[key])
-            if s.get("position"):
-                chain["position"] = s["position"]
-            if s.get("remove_exit"):
-                chain["remove_exit_from_output"] = True
-            if s.get("account") == "shared":
-                chain["account"] = "shared"
-            if isinstance(s.get("entry_merge"), dict) and s["entry_merge"]:
-                chain["entry_merge"] = copy.deepcopy(s["entry_merge"])
-            chain.update((b.get("advanced") or {}).get("chain") or {})
-            out["chains"].append(chain)
-            own_rules({"made_by": gid})
-            out["order"].append({"id": gid, "when": {"made_by": gid}, "rank": rank})
-            continue
-
         strategy = s.get("strategy", "leastLoad")
         group = {"id": gid, "when": claim, "type": strategy, "member_tag": MEMBER_TAG,
                  "name": _name(s.get("name"), b.get("name") or bid, b.get("per_country", False))}
@@ -461,6 +418,19 @@ def compile_blocks(raw):
         group.update(adv.get("group") or {})            # kept as they were (a converted classic group)
         if adv.get("member_patch"):
             group["member_patch"] = list(group.get("member_patch") or []) + list(adv["member_patch"])
+        if group.get("catchall_rules"):                 # a rule may ask for "early": after the DNS rules, in front of the direct ones
+            rules = group["catchall_rules"]
+            early = [r for r in rules if r.get("position") == "early"]
+            end = [{k: v for k, v in r.items() if k != "position"} for r in rules if r.get("position") != "early"]
+            if early:
+                body = [dict({"type": "field", "outboundTag": "{main}"}, **{k: copy.deepcopy(v) for k, v in r.items()
+                                                                           if k != "position" and v not in ([], "", None)}) for r in early]
+                out["patches"].append({"id": gid + "-early", "stage": "output", "routing_early": body,
+                                       "when": {"made_by": {"in": [gid, gid + "--noflag"]}}})
+            if end:
+                group["catchall_rules"] = end
+            else:
+                group.pop("catchall_rules")             # only early rules: the default catch-all stays at the end
         out["groups"].append(group)
         if b.get("per_country") and b.get("flagless", "own") == "own":   # configs without a flag: a balancer of their own
             rest_group = dict(group, id=gid + "--noflag", when={"all": [claim, {"flag": {"exists": False}}]},

@@ -221,6 +221,8 @@ def check_member_patch(mpt, where):
 def check_catchall(cr, where):
     if not (isinstance(cr, list) and cr and all(isinstance(r, dict) for r in cr)):
         return ["%s: must be a non-empty list of routing rules (the balancer tag is filled in)" % where]
+    if any(r.get("position", "end") not in ("end", "early") for r in cr):
+        return ['%s: "position" must be "end" (default) or "early"' % where]
     return []
 
 
@@ -229,7 +231,6 @@ HOP_KEYS = {
     "warp": {"account", "pick", "entry", "endpoints", "merge"},
     "outbound": {"outbound"},
     "config": {"when"},
-    "account_exit": {"from_account", "default_account", "user_id"},
 }
 
 
@@ -262,16 +263,16 @@ def check_hops(hops, where):
                 p.append("%s.merge: must be an object" % w)
         elif kind == "outbound":
             ob = hop.get("outbound")
-            if not (isinstance(ob, dict) and isinstance(ob.get("protocol"), str) and ob["protocol"]):
-                p.append("%s.outbound: required; an Xray outbound object with a protocol" % w)
+            one = isinstance(ob, dict) and isinstance(ob.get("protocol"), str) and ob["protocol"]
+            many = isinstance(ob, dict) and ob and not ob.get("protocol") and all(
+                isinstance(k, str) and k and isinstance(v, dict) and isinstance(v.get("protocol"), str) and v["protocol"] for k, v in ob.items())
+            if not (one or many):
+                p.append('%s.outbound: required; an Xray outbound object with a protocol, or {"<flag>": outbound, ..., "default": outbound}' % w)
         elif kind == "config":
             if not (isinstance(hop.get("when"), dict) and hop["when"]):
                 p.append("%s.when: required; which config of the subscription to use" % w)
             else:
                 p += check_when(hop["when"], w + ".when")
-        elif kind == "account_exit":
-            if "user_id" in hop and not isinstance(hop["user_id"], bool):
-                p.append("%s.user_id: must be true or false" % w)
     if sum(1 for h in hops if h.get("from") == "block") > 1:
         p.append("%s: only one hop can be the block's own configs" % where)
     return p

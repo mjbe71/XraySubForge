@@ -26,7 +26,7 @@ DOMESTIC_DOMAINS = [["geosite:private"], ["domain:ir", "geosite:category-ir"]]
 SNIFFING = {"destOverride": ["http", "tls", "quic", "fakedns"], "enabled": True, "routeOnly": False}
 
 KEYS = {"enabled", "when", "dns_out", "split_inbounds", "block_udp_443", "quic_domains", "sniff_override", "route_only", "socks_port", "http_port", "base_rules",
-        "dns", "dedicated_dns", "direct_dns", "remark_rewrite", "sampling", "panel_balancers", "replace_routing", "domain_strategy"}
+        "dns", "dedicated_dns", "direct_dns", "sampling", "panel_balancers", "replace_routing", "domain_strategy"}
 
 
 def _int(v):
@@ -80,15 +80,6 @@ def check_output(raw):
             isinstance(dn, dict) and _regex_ok(dn.get("tag_regex", "x")) and ("ips" not in dn or dn["ips"] == [] or strings(dn["ips"]))
             and ("domains" not in dn or (isinstance(dn["domains"], list) and all(strings(x) for x in dn["domains"]))))):
         p.append('output.direct_dns: must be true, false or {"ips": ["..."], "domains": [["..."], ...], "tag_regex": "..."}')
-    rr = raw.get("remark_rewrite")
-    if rr is not None:
-        if not isinstance(rr, list):
-            p.append('output.remark_rewrite: must be a list of {"regex": "...", "replace": "...", "if": "..."}')
-        else:
-            for i, e in enumerate(rr):
-                if not (isinstance(e, dict) and _regex_ok(e.get("regex")) and isinstance(e.get("replace", ""), str)
-                        and _regex_ok(e.get("if", "x"))):
-                    p.append('output.remark_rewrite[%d]: needs {"regex": "...", "replace": "...", "if": "..."} with valid regexes' % i)
     if "domain_strategy" in raw and not isinstance(raw["domain_strategy"], str):
         p.append("output.domain_strategy: must be a string")
     sp = raw.get("sampling")
@@ -159,12 +150,6 @@ def _ensure_outbound(cfg, tag, ob):
 
 def apply_output(cfg, out, ours):
     """`ours` is True for configs built by a group (their balancers and observatory are ours; the panel's are not)."""
-    if out.get("remark_rewrite") and isinstance(cfg.get("remarks"), str):
-        r = cfg["remarks"]
-        for e in out["remark_rewrite"]:  # for example drop the code before the flag, or a provider word
-            if not e.get("if") or re.search(e["if"], r):
-                r = re.sub(e["regex"], e.get("replace", ""), r)
-        cfg["remarks"] = r.strip()
     routing = cfg.get("routing") if isinstance(cfg.get("routing"), dict) else {}
 
     pb = out.get("panel_balancers")

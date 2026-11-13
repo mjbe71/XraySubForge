@@ -47,6 +47,7 @@ DEFAULTS = {
     "accounts": {
         "file": "",                              # JSON file with account values for {account.*} placeholders
         "default": {},                           # ...or put a shared account right here
+        "endpoints": [],                         # WARP endpoint pool: host, host:port or [v6]:port; used by every WARP hop that has none of its own
         "register": {                            # optional: create a Cloudflare WARP account for each user automatically
             "enabled": False,                    # needs accounts.file (the accounts are saved there under "users")
             "api": "", "client_version": "",     # empty = built-in values (the unofficial Cloudflare client API)
@@ -144,10 +145,23 @@ SECTION_CHECKS = {
     "accounts": {
         "file": (lambda v: isinstance(v, str), "a file path (string)"),
         "default": (lambda v: isinstance(v, dict), "an object"),
+        "endpoints": (lambda v: isinstance(v, list) and all(isinstance(x, str) for x in v), "a list of strings"),
         "register": (lambda v: isinstance(v, dict), "an object"),
         "prune": (lambda v: isinstance(v, dict), "an object"),
     },
 }
+
+_ENDPOINT = re.compile(r"^(\[[0-9A-Fa-f:.]+\](:\d{1,5})?|[A-Za-z0-9.\-]+(:\d{1,5})?|[0-9A-Fa-f:]*:[0-9A-Fa-f:]+)$")
+
+
+def valid_endpoint(ep):
+    """host, host:port, [v6]:port or a bare IPv6 address (a port, when given, is 1-65535)."""
+    ep = ep.strip()
+    if not ep or not _ENDPOINT.match(ep):
+        return False
+    port = ep[ep.rfind("]") + 2:] if ep.startswith("[") else (ep.rpartition(":")[2] if ep.count(":") == 1 else "")
+    return not port or 0 < int(port) < 65536
+
 
 PRUNE_CHECKS = {
     "enabled": (lambda v: isinstance(v, bool), "true or false"),
@@ -172,7 +186,7 @@ ITEM_KEYS = {
                "member_cost", "min_members", "remove_members_from_output", "position", "expand", "include_balanced", "member_position", "catchall_rules", "member_patch",
                "member_tag", "balancer_tag"},
     "chains": {"id", "enabled", "exit_when", "split_by", "name", "entry", "choices", "through_exit",
-               "remove_exit_from_output", "position", "mode", "exit", "endpoints", "pick", "entry_merge", "before",
+               "remove_exit_from_output", "position", "mode", "endpoints", "pick", "entry_merge", "before",
                "entry_tag", "exit_tag", "account", "hops", "each"},
     "order": {"id", "enabled", "when", "rank"},
     "patches": {"id", "enabled", "stage", "target", "when", "merge", "random", "rename", "routing_prepend", "routing_append", "routing_early"},
@@ -275,15 +289,12 @@ def _check_item(kind, item, where):
             p += check_hops(item.get("hops"), where + ".hops")
         elif not ((isinstance(en, dict) and en) or (isinstance(en, str) and re.fullmatch(r"\{account\.[A-Za-z0-9_.\-]+\}", en))):
             p.append("%s.entry: required; the outbound (JSON object, or one {account.x} placeholder) to dial through the exit" % where)
-        if item.get("mode") not in (None, "entry_first", "exit_first", "hops"):
-            p.append('%s.mode: must be "entry_first", "exit_first" or "hops"' % where)
+        if item.get("mode") not in (None, "entry_first", "hops"):
+            p.append('%s.mode: must be "entry_first" or "hops" ("exit_first" was removed: its exit came from the accounts file)' % where)
         if "each" in item and not isinstance(item["each"], bool):
             p.append("%s.each: must be true or false" % where)
         if item.get("pick") not in (None, "random", "per_user"):
             p.append('%s.pick: must be "random" or "per_user"' % where)
-        ex = item.get("exit")
-        if ex is not None and ex is not False and not (isinstance(ex, dict) and all(k in ("from_account", "default_account", "user_id") for k in ex)):
-            p.append('%s.exit: must be false (entry only) or {"from_account": "exits", "default_account": "exit", "user_id": true}' % where)
         if "before" in item and not (isinstance(item["before"], list) and all(isinstance(o, dict) for o in item["before"])):
             p.append("%s.before: must be a list of outbounds" % where)
         if "entry_merge" in item and not isinstance(item["entry_merge"], dict):
@@ -370,6 +381,14 @@ def normalize(raw):
     _section("panel", raw.get("panel"), conf, problems)
     _section("admin", raw.get("admin"), conf, problems)
     _section("accounts", raw.get("accounts"), conf, problems)
+    good = []
+    for ep in conf["accounts"].get("endpoints") or []:
+        if valid_endpoint(ep):
+            if ep.strip() not in good:
+                good.append(ep.strip())
+        else:
+            problems.append("accounts.endpoints: %r is not host, host:port or [v6]:port; ignored" % ep)
+    conf["accounts"]["endpoints"] = good
     taken = {conf["server"]["route"].rstrip("/"), conf["admin"]["path"].rstrip("/")}
     for key in ("raw_route", "clash_route"):                       # each public path must be its own
         path = conf["server"][key].rstrip("/")

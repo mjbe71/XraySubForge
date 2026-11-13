@@ -215,29 +215,21 @@ class MoreBlocks(unittest.TestCase):
         self.assertIs(main_ob(out[0])["mux"]["enabled"], True)
         self.assertNotIn("mux", main_ob(out[3]))
 
-    def test_warp_block_becomes_an_exit_first_chain(self):
-        conf, problems = normalize({"blocks": {"list": [
-            {"id": "m", "name": "Masque", "type": "warp", "per_country": True, "kinds": [{"protocol": "masque"}],
-             "settings": {"name": "{country}Masque", "pick": "per_user"}},
-            {"id": "solo", "name": "Free", "type": "warp", "kinds": [{"remark": "IR"}], "settings": {"warp": "only"},
-             "advanced": {"chain": {"entry_merge": {"streamSettings": {"sockopt": {"domainStrategy": "UseIP"}}}}}}]}})
-        self.assertEqual([p for p in problems if "blocks" in p or "chains" in p], [])
-        m, solo = conf["chains"]
-        self.assertEqual((m["mode"], m["entry"], m["endpoints"], m["pick"], m["name"]),
-                         ("exit_first", "{account.masque.outbound}", "{account.masque.endpoints}", "per_user", "{split}Masque"))
-        self.assertEqual(m["split_by"], {"field": "flag", "regex": "(.+)"})
-        self.assertIs(solo["exit"], False)
-        self.assertIn("entry_merge", solo)
-        _, problems = normalize({"blocks": {"list": [{"id": "x", "type": "warp", "settings": {"warp": "both"}, "advanced": {"chain": {"mode": "x"}}}]}})
-        self.assertTrue(any("settings.warp" in p for p in problems) and any("advanced.chain" in p for p in problems))
+    def test_the_old_warp_block_and_exit_first_mode_are_gone(self):
+        _, problems = normalize({"blocks": {"list": [{"id": "w", "type": "warp", "kinds": [{"protocol": "masque"}]}]}})
+        self.assertTrue([p for p in problems if "WARP block type was removed" in p])
+        _, problems = normalize({"chains": [{"id": "c", "mode": "exit_first", "entry": {"protocol": "masque"}}]})
+        self.assertTrue([p for p in problems if "exit_first" in p])
+        _, problems = normalize({"chains": [{"id": "c", "entry": {"protocol": "masque"}, "exit": False}]})
+        self.assertTrue([p for p in problems if "'exit'" in p or "exit" in p])
 
-    def test_warp_only_decoy_setting(self):
+    def test_chain_block_decoy_setting(self):
         conf, problems = normalize({"blocks": {"list": [
-            {"id": "solo", "name": "Free", "type": "warp", "kinds": [{"remark": "IR"}], "settings": {"warp": "only", "decoy": "vless"}}]}})
+            {"id": "solo", "name": "Free", "type": "chain", "kinds": [{"remark": "IR"}], "settings": {"hops": [{"from": "warp"}], "decoy": "vless"}}]}})
         self.assertEqual([p for p in problems if "blocks" in p], [])
         before = conf["chains"][0]["before"][0]
         self.assertEqual((before["protocol"], before["tag"], before["streamSettings"]["security"]), ("vless", "decoy", "tls"))
-        _, problems = normalize({"blocks": {"list": [{"id": "x", "type": "warp", "settings": {"decoy": "freedom"}}]}})
+        _, problems = normalize({"blocks": {"list": [{"id": "x", "type": "chain", "settings": {"decoy": "freedom"}}]}})
         self.assertTrue(any("settings.decoy" in p for p in problems))
 
 
@@ -321,29 +313,26 @@ class MemberPlacementAndPatch(unittest.TestCase):
 
 
 class ExpandAndEntryMerge(unittest.TestCase):
-    def test_settings_reach_group_and_chain(self):
+    def test_expand_reaches_the_group(self):
         ex = {"addresses": ["a.example.com", "b.example.com"], "copies": 2, "layout": "blocks", "server_by": {"field": "remark", "regex": "s(\\d)"}}
         conf, problems = normalize({"blocks": {"list": [
             {"id": "t", "type": "balancer", "kinds": [{"remark": {"contains": "x"}}], "settings": {"expand": ex}},
-            {"id": "w", "type": "warp", "kinds": [{"remark": {"contains": "y"}}], "settings": {"warp": "only", "entry_merge": {"streamSettings": {"sockopt": {"domainStrategy": "UseIP"}}}}}]}})
-        self.assertEqual([p for p in problems if "blocks" in p or "expand" in p or "entry_merge" in p], [])
+            ]}})
+        self.assertEqual([p for p in problems if "blocks" in p or "expand" in p], [])
         self.assertEqual(conf["groups"][0]["expand"], ex)
-        self.assertEqual(conf["chains"][0]["entry_merge"]["streamSettings"]["sockopt"]["domainStrategy"], "UseIP")
         _, problems = normalize({"blocks": {"list": [{"id": "t", "type": "balancer", "settings": {"expand": []}}]}})
         self.assertTrue(any("settings.expand" in p for p in problems))
 
 
 class PlacementSettings(unittest.TestCase):
-    def test_balancer_and_warp_settings(self):
+    def test_balancer_settings(self):
         conf, problems = normalize({"blocks": {"list": [
             {"id": "t", "type": "balancer", "kinds": [{"remark": {"contains": "x"}}],
-             "settings": {"min_members": 3, "keep_members": True, "position": "bottom", "include_balanced": True, "probe_kind": "observatory"}},
-            {"id": "w", "type": "warp", "kinds": [{"remark": {"contains": "y"}}], "settings": {"warp": "exit", "position": "top", "remove_exit": True}}]}})
+             "settings": {"min_members": 3, "keep_members": True, "position": "bottom", "include_balanced": True, "probe_kind": "observatory"}}]}})
         self.assertEqual([p for p in problems if "blocks" in p], [])
-        g, c = conf["groups"][0], conf["chains"][0]
+        g = conf["groups"][0]
         self.assertEqual((g["min_members"], g["remove_members_from_output"], g["position"], g["include_balanced"], g["probe_kind"]),
                          (3, False, "bottom", True, "observatory"))
-        self.assertEqual((c["position"], c["remove_exit_from_output"]), ("top", True))
         for bad in ({"min_members": 0}, {"position": "middle"}, {"keep_members": "yes"}, {"probe_kind": "x"}):
             _, problems = normalize({"blocks": {"list": [{"id": "t", "type": "balancer", "settings": bad}]}})
             self.assertTrue([p for p in problems if "settings." in p], bad)
@@ -353,21 +342,47 @@ class WarpAndListLeftovers(unittest.TestCase):
     def test_entry_choices_endpoints_and_patches(self):
         patch = {"stage": "output", "target": "outbound", "merge": {"mux": {"enabled": False}}, "routing_prepend": [{"type": "field", "domain": ["example.org"], "outboundTag": "direct"}]}
         conf, problems = normalize({"blocks": {"list": [
-            {"id": "w", "type": "warp", "kinds": [{"remark": {"contains": "y"}}],
-             "settings": {"choices": {"ep": ["1.1.1.1", "2.2.2.2"]}, "entry": "{account.masque.outbound}", "endpoints": ["a.example.com:443"]}},
+            {"id": "w", "type": "chain", "kinds": [{"remark": {"contains": "y"}}],
+             "settings": {"choices": {"ep": ["1.1.1.1", "2.2.2.2"]}}},
             {"id": "l", "type": "list", "kinds": [{"remark": {"contains": "z"}}], "settings": {"patches": [patch]}}]}})
         self.assertEqual([p for p in problems if "blocks" in p], [])
         c = conf["chains"][0]
-        self.assertEqual((c["choices"], c["endpoints"]), ({"ep": ["1.1.1.1", "2.2.2.2"]}, ["a.example.com:443"]))
+        self.assertEqual(c["choices"], {"ep": ["1.1.1.1", "2.2.2.2"]})
         self.assertTrue(any(x.get("routing_prepend") and x["merge"] == {"mux": {"enabled": False}} for x in conf["patches"]))
-        for bad in ({"choices": {"a": []}}, {"entry": "x"}, {"endpoints": "x"}):
-            _, problems = normalize({"blocks": {"list": [{"id": "w", "type": "warp", "settings": bad}]}})
+        for bad in ({"choices": {"a": []}},):
+            _, problems = normalize({"blocks": {"list": [{"id": "w", "type": "chain", "settings": bad}]}})
             self.assertTrue([p for p in problems if "settings." in p], bad)
 
 
 class PlainTagsRulesAndAccount(unittest.TestCase):
     ACCOUNTS = {"default": {"masque": {"outbound": {"protocol": "masque", "settings": {"key": "shared"}}, "endpoints": ["1.1.1.1:443"]}},
                 "users": {"u1": {"masque": {"outbound": {"protocol": "masque", "settings": {"key": "mine"}}, "endpoints": ["1.1.1.1:443"]}}}}
+
+    def _warp_chain(self, settings, accounts_conf):
+        conf, problems = normalize({"accounts": accounts_conf, "blocks": {"list": [
+            {"id": "w", "type": "chain", "kinds": [{"remark": {"contains": "z"}}],
+             "settings": {"hops": [dict({"from": "warp"}, **settings), {"from": "block"}]}}]}})
+        out = process([cfg("z1")], conf, subid="u1", accounts=self.ACCOUNTS)[0]
+        warp = next(o for o in out[0]["outbounds"] if o.get("tag") == "warp")
+        return problems, warp["settings"]
+
+    def test_endpoint_pool_replaces_the_account_endpoints(self):
+        problems, st = self._warp_chain({}, {"endpoints": ["9.9.9.9:2408"]})
+        self.assertEqual([p for p in problems if "endpoints" in p], [])
+        self.assertEqual((st["address"], st["port"]), ("9.9.9.9", 2408))
+
+    def test_a_hops_own_endpoints_win_over_the_pool(self):
+        _, st = self._warp_chain({"endpoints": ["8.8.4.4:500"]}, {"endpoints": ["9.9.9.9:2408"]})
+        self.assertEqual((st["address"], st["port"]), ("8.8.4.4", 500))
+
+    def test_without_a_pool_the_account_endpoints_are_used(self):
+        _, st = self._warp_chain({}, {})
+        self.assertEqual((st["address"], st["port"]), ("1.1.1.1", 443))
+
+    def test_bad_pool_entries_are_reported_and_dropped(self):
+        conf, problems = normalize({"accounts": {"endpoints": ["1.2.3.4:2408", "bad host!", "[2606::1]:500", "1.2.3.4:99999", " 1.2.3.4:2408 "]}})
+        self.assertEqual(conf["accounts"]["endpoints"], ["1.2.3.4:2408", "[2606::1]:500"])
+        self.assertEqual(len([p for p in problems if "accounts.endpoints" in p]), 2)
 
     def test_plain_tags_and_no_internal_marks(self):
         conf, problems = normalize({"blocks": {"list": [
@@ -400,21 +415,6 @@ class PlainTagsRulesAndAccount(unittest.TestCase):
         _, problems = normalize({"blocks": {"list": [{"id": "l", "settings": {"rules": []}}]}})
         self.assertTrue([p for p in problems if "settings.rules" in p])
 
-    def test_warp_block_tags_rules_and_shared_account(self):
-        def run_it(settings, subid="u1"):
-            conf, problems = normalize({"blocks": {"list": [
-                {"id": "w", "type": "warp", "per_country": False, "kinds": [{"remark": {"contains": "w"}}],
-                 "settings": dict({"warp": "only"}, **settings)}]}})
-            self.assertEqual([p for p in problems if "blocks" in p], [])
-            return process([cfg("w1")], conf, subid=subid, accounts=self.ACCOUNTS)[0][0]
-        c = run_it({"rules": [{"domain": ["example.org"]}]})
-        self.assertEqual([(o["tag"], o["settings"]["key"]) for o in c["outbounds"]], [("warp", "mine")])
-        self.assertEqual(c["routing"]["rules"][0], {"type": "field", "domain": ["example.org"], "outboundTag": "warp"})
-        self.assertEqual(run_it({"account": "shared"})["outbounds"][0]["settings"]["key"], "shared")
-        self.assertEqual(run_it({"account": "personal"})["outbounds"][0]["settings"]["key"], "mine")
-        _, problems = normalize({"blocks": {"list": [{"id": "w", "type": "warp", "settings": {"account": "x"}}]}})
-        self.assertTrue([p for p in problems if "settings.account" in p])
-
 
 class ChainBlocks(unittest.TestCase):
     """type "chain": the block's configs go through the hops (client -> hop 1 -> hop 2 -> the internet)."""
@@ -436,6 +436,29 @@ class ChainBlocks(unittest.TestCase):
     @staticmethod
     def dialer(ob):
         return ((ob.get("streamSettings") or {}).get("sockopt") or {}).get("dialerProxy")
+
+    def test_own_outbound_per_flag(self):
+        exits = {DE: {"protocol": "vless", "settings": {"address": "de.example.com", "port": 443, "id": "{user.id}", "flow": "xtls-rprx-vision"}},
+                 "default": {"protocol": "vless", "settings": {"address": "any.example.com", "port": 443, "id": "{user.id}"}}}
+        out = self.run_it([{"from": "warp"}, {"from": "outbound", "outbound": exits}],
+                          configs=[cfg("z1" + DE), cfg("z2" + TR)])
+        got = {c["remarks"]: c["outbounds"][0]["settings"] for c in out}
+        self.assertEqual(got["z1" + DE]["address"], "de.example.com")
+        self.assertEqual(got["z2" + TR]["address"], "any.example.com")       # no entry for this flag: "default"
+        self.assertEqual(got["z1" + DE]["id"], "0" * 8)                      # {user.id} = the id of the user's own config
+
+    def test_own_outbound_map_without_default_fails_cleanly_for_other_flags(self):
+        conf, problems = normalize({"blocks": {"list": [{"id": "c", "type": "chain", "kinds": [{"remark": {"contains": "z"}}],
+            "settings": {"hops": [{"from": "warp"}, {"from": "outbound", "outbound": {DE: {"protocol": "vless", "settings": {"address": "a", "port": 1, "id": "x"}}}}]}}]}})
+        self.assertEqual([p for p in problems if "blocks" in p], [])
+        _, report = process([cfg("z2" + TR)], conf, subid="u1", accounts=self.ACCOUNTS)
+        self.assertTrue(any("no outbound for the flag" in e for e in report["errors"]))
+
+    def test_own_outbound_map_is_checked(self):
+        for bad in ({}, {DE: {"settings": {}}}, {"": {"protocol": "vless"}}):
+            _, problems = normalize({"blocks": {"list": [{"id": "c", "type": "chain", "kinds": [{"remark": {"contains": "z"}}],
+                "settings": {"hops": [{"from": "outbound", "outbound": bad}]}}]}})
+            self.assertTrue([p for p in problems if "outbound" in p], bad)
 
     def test_warp_then_the_blocks_configs(self):
         out = self.run_it([{"from": "warp"}, {"from": "block"}])
@@ -477,15 +500,13 @@ class ChainBlocks(unittest.TestCase):
         self.assertEqual(de["outbounds"][1]["settings"]["vnext"][0]["address"], "gate-de.example.com")   # the same country first
         self.assertEqual(self.dialer(de["outbounds"][0]), "hop1")
 
-    def test_warp_alone_with_decoy_and_the_account_exit(self):
+    def test_warp_alone_with_decoy_and_no_account_exit(self):
         out = self.run_it([{"from": "warp"}], settings={"decoy": "vless"})
         z = out[0]
         self.assertEqual([o["tag"] for o in z["outbounds"][:2]], ["decoy", "proxy01"])
         self.assertEqual(z["routing"]["rules"][-1], {"type": "field", "network": "tcp,udp", "outboundTag": "proxy01"})
-        out = self.run_it([{"from": "warp"}, {"from": "account_exit"}])
-        z = out[0]
-        self.assertEqual(z["outbounds"][0]["settings"]["vnext"][0], {"address": "exit.example.com", "port": 443, "users": [{"id": "0" * 8}]})
-        self.assertEqual(self.dialer(z["outbounds"][0]), "warp")
+        _, problems = normalize({"blocks": {"list": [{"id": "c", "type": "chain", "settings": {"hops": [{"from": "warp"}, {"from": "account_exit"}]}}]}})
+        self.assertTrue([p for p in problems if "hops" in p])      # the exit template of the accounts file is gone as a hop kind
 
     def test_validation_and_a_failed_hop_keeps_the_config(self):
         for bad in ([], [{"from": "x"}], [{"from": "block"}, {"from": "block"}], [{"from": "outbound"}], [{"from": "config"}],
@@ -521,6 +542,24 @@ class BlockRulesAtTheEnd(unittest.TestCase):
         self.assertEqual([r.get("domain") or r.get("ip") or r.get("inboundTag") for r in rules],
                          [["socks"], ["dedicated-dns"], ["early.example"], ["geoip:private"], ["late.example"], None])
         self.assertTrue(all("position" not in r for r in rules))
+
+    def test_balancer_rules_can_be_early_too(self):
+        out, _, _, problems = run({"list": [{"id": "fast", "name": "Fast", "type": "balancer", "kinds": [CF],
+            "settings": {"catchall_rules": [{"domain": ["early.example"], "position": "early"}, {"network": "tcp,udp"}]}}]})
+        self.assertEqual([p for p in problems if "blocks" in p], [])
+        rules = out[0]["routing"]["rules"]
+        self.assertTrue(all("position" not in r for r in rules))
+        self.assertTrue(all(r.get("balancerTag") == "balancer" for r in rules if r.get("domain") == ["early.example"]))
+        i = [r.get("domain") == ["early.example"] for r in rules].index(True)
+        self.assertLess(i, len(rules) - 1)
+        self.assertEqual(rules[-1], {"type": "field", "network": "tcp,udp", "balancerTag": "balancer"})
+
+    def test_only_early_balancer_rules_keep_the_default_catchall(self):
+        out, _, _, _ = run({"list": [{"id": "fast", "name": "Fast", "type": "balancer", "kinds": [CF],
+            "settings": {"catchall_rules": [{"domain": ["early.example"], "position": "early"}]}}]})
+        rules = out[0]["routing"]["rules"]
+        self.assertEqual(rules[-1], {"type": "field", "network": "tcp,udp", "balancerTag": "balancer"})
+        self.assertEqual(sum(1 for r in rules if r.get("domain") == ["early.example"]), 1)
 
     def test_a_bad_position_is_reported(self):
         _, problems = normalize({"blocks": {"list": [

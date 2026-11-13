@@ -189,7 +189,7 @@ outbound** (for example a WARP/masque or WireGuard outbound), which in turn is d
 | `through_exit` | `true` | `false` = no exit: the config only borrows DNS/inbounds/routing from the first match and its own outbound is replaced by `entry`. |
 | `remove_exit_from_output` | `false` | Remove the exit config from the result. |
 | `position` | where the exit was | `"top"` or `"bottom"`. |
-| `entry_tag`, `exit_tag` | from the chain id | The tags of the two outbounds. WARP blocks use `warp` and `proxy01`. |
+| `entry_tag`, `exit_tag` | from the chain id | The tags of the two outbounds. Chain blocks use `warp` and `proxy01`. |
 | `account` | personal | `"shared"`: this chain always uses the default account, never a user's personal one. |
 
 **Placeholders** inside `entry` (strings only): `{choice.<name>}` (one value from this chain's `choices`), `{account.<key>}` values from [`accounts`](#accounts), `{exit.<field>}`
@@ -218,6 +218,13 @@ The file is either one flat object (one account for everybody) or
 `{"default": {...}, "users": {"<subscription id>": {...}}}`: a user's own entry is merged over `default`, so you can give
 individual users personal values. Treat the file as a secret (`accounts*.json` is in `.gitignore`).
 See `examples/accounts.example.json` and `examples/chain.json`.
+
+### `accounts.endpoints`: the WARP endpoint pool
+
+A list of WARP endpoints (`host`, `host:port` or `[v6]:port`; the output of an endpoint scanner can be pasted in the admin panel, Settings,
+*Accounts and WARP*). Every WARP hop that has no `endpoints` of its own picks one from the pool: at random, or the same
+one for the same user with `pick: "per_user"`. Order of precedence: the hop's own `endpoints`, then this pool, then the account's
+`masque.endpoints`. A bad entry is reported and ignored; duplicates are dropped. Empty (the default) = use the account's endpoints.
 
 ### `accounts.register`: create WARP accounts automatically (optional, off by default)
 
@@ -311,7 +318,7 @@ order items (ids starting with `blk-`), placed after your own ones, so everythin
 |---|---|
 | `rest` | `keep` (default): configs no block takes come last, as they are. `top`: they come first (for example the panel's info config). `hide`: they are removed. |
 | `list[].id` | Letters, digits, `-` and `_`. |
-| `list[].type` | `list` (default): the configs as they are. `balancer`: one balancer (or one per country with `per_country`). `chain`: each config goes through a chain of hops (below). `warp`: the older WARP block (still works; the panel converts it to a chain block). `drop`: removed. |
+| `list[].type` | `list` (default): the configs as they are. `balancer`: one balancer (or one per country with `per_country`). `chain`: each config goes through a chain of hops (below). The older `warp` block type was removed in 0.6.0 (its exit came from the accounts file): use a `chain` block. `drop`: removed. |
 | `list[].flagless` | Balancers with `per_country`: `own` (default) puts configs without a flag into one balancer of their own; `single` leaves them as they are. |
 | `list[].kinds` | A list of conditions; the block takes configs matching any of them. |
 | `list[].enabled` | `false` switches the block off; its configs go on to the next blocks. |
@@ -321,20 +328,17 @@ order items (ids starting with `blk-`), placed after your own ones, so everythin
 | `settings.strategy` | Balancers: `leastLoad` (default), `leastPing`, `random`, `roundRobin`. `leastLoad` and `leastPing` get a default probe. |
 | `settings.member_position` | Balancers: `[{ "when": {...}, "at": "first" \| "last" }]`, where matching members sit in the balancer (the first matching entry decides). |
 | `settings.member_patch` | Balancers: `[{ "when", "merge", "random" }]`, extra steps applied to every member after the fragment/cipher/fingerprint steps (for example `alpn` or `sockopt`). |
-| `settings.catchall_rules` | Balancers: the routing rules sent to the balancer, in this order (the balancer tag is filled in). Default: `{"network": "tcp,udp"}`. |
+| `settings.catchall_rules` | Balancers: the routing rules sent to the balancer, in this order (the balancer tag is filled in). Default: `{"network": "tcp,udp"}`. A rule can have `"position": "early"` (ours, removed from the output): it goes after the DNS rules at the top and in front of the private / domestic direct rules. If every rule is early, the default catch-all stays at the end. |
 | `settings.expand` | Balancers: the `expand` object (see below): several members per server. Wins over `pool`. |
-| `settings.entry_merge` | WARP blocks: an object merged into the WARP entry outbound (for example `sockopt`, or the account's keys with `{account.privateKey?}`). |
 | `settings.min_members` | Balancers: whole number, 1 or more; buckets with fewer members are not built (same as the group key). |
 | `settings.keep_members` | Balancers: `true` keeps the original single configs next to the balancer. |
 | `settings.include_balanced` | Balancers: `true` also uses configs that already have a balancer of the panel's own. |
 | `settings.probe_kind` | Balancers: `burst` or `observatory`; default by strategy (`burst` for `leastLoad`). |
 | `settings.position` | Old setting (still honoured, no longer offered): `top` or `bottom`, ignoring the block order. Order the blocks instead. |
 | `settings.hops` | Chain blocks: the path of the traffic, a list of 1 to 4 hops (see [Chain blocks](#chain-blocks)). Default `[{"from": "warp"}, {"from": "block"}]`. |
-| `settings.account` | WARP blocks: `personal` (default: the user's own account, else the shared one) or `shared` (always the default account; no personal account is created for this block). |
 | `settings.rules` | List, WARP and chain blocks: routing rules added at the end of the config's rules, but in front of a trailing catch-all rule (one that matches all tcp and udp traffic: a balancer's, a decoy's), since a rule after it would never apply. Empty fields (`"domain": []`) are dropped. A rule without `outboundTag` / `balancerTag` goes to the block's own proxy. Each rule can have `"position": "early"` (a key of ours, not Xray's, removed from the output): that rule goes after the DNS rules at the top and in front of the private / domestic direct rules, so it can override them. Default `"end"`. |
-| `settings.remove_exit` | WARP blocks: `true` removes the exit config from the result. |
 | `settings.patches` | List blocks: a list of patches (`stage`, `target`, `when`, `merge`, `routing_prepend`, `routing_append`) for this block's configs. |
-| `settings.choices`, `settings.entry`, `settings.endpoints` | WARP blocks: the chain keys of the same names (`choices`: object of lists; `entry`: outbound or `{account.x}` placeholder; `endpoints`: list or placeholder). |
+| `settings.choices` | Chain blocks: object of non-empty lists, picked from with `{choice.x}` placeholders in the hops. |
 | `settings.pool` | Balancers: every member gets one copy per address in this list. |
 | `settings.name` | Balancers: the name, with `{block}`, `{country}` (the flag) and `{n}` (members). Default `{block} {country}` or `{block}`. |
 
@@ -357,9 +361,8 @@ block's own configs are replaced by the chained ones. The same thing as the clas
 |---|---|---|
 | `block` | The config itself (its main outbound). At most one hop. | none |
 | `warp` | The WARP outbound of the account (`{account.masque.outbound}`), with one of the account's endpoints. | `account`: `personal` (default) or `shared`; `pick`: `random` (default) or `per_user`; `endpoints`, `entry`: your own list / outbound instead of the account's; `merge`: an object merged into the outbound |
-| `outbound` | An outbound you write (the panel can import it from a `vless://`, `vmess://`, `trojan://` or `ss://` link). Placeholders are filled in: `{user.id}` (the user's own id, the most frequent one among the user's configs), `{account.x}`, `{choice.x}`. | `outbound` (required) |
+| `outbound` | An outbound you write (the panel can import it from a `vless://`, `vmess://`, `trojan://` or `ss://` link). Placeholders are filled in: `{user.id}` (the user's own id, the most frequent one among the user's configs), `{account.x}`, `{choice.x}`. `outbound` can also be a map `{"🇩🇪": {outbound}, "🇹🇷": {outbound}, "default": {outbound}}`: the flag of the config picks the outbound (then `"default"`; none = that chain is skipped and the error is reported). This keeps exits in the configuration, so the accounts file needs no `exits`. | `outbound` (required) |
 | `config` | Another config of the same subscription: the first one matching `when`, one with the same flag first. That config also stays in the list. | `when` (required) |
-| `account_exit` | The exit template of the accounts file (`exits` by flag, else `exit`) with the user's id filled in: what the older WARP block calls "the exit". | `from_account`, `default_account`, `user_id` |
 
 Other settings of a chain block: `name` (`{block}`, `{name}` = the config's own name, `{country}`; default `{name}`, or
 `{block} {country}` with `per_country`), `decoy` (`"vless"`: an unused outbound in front), `choices`, `rules`. When a hop
@@ -397,34 +400,6 @@ single members. `pick`: `random` (a new random choice on every fetch) or `per_us
 `layout`: `grouped` (a server's members together) or `blocks` (`copies` blocks, each with one member of every server, so
 members of one server are not next to each other).
 
-## `chains` in `exit_first` mode
-
-The normal chain puts your outbound in front of an exit config. With `"mode": "exit_first"` the matched config
-(for example a placeholder the panel hands out per country) becomes `[exit, entry]`: traffic leaves through the exit and
-the exit is dialed **through** the entry (client → entry → exit). The matched config itself is removed from the result.
-
-```json
-{
-  "id": "warp-then-exit",
-  "mode": "exit_first",
-  "exit_when": { "protocol": "masque" },
-  "split_by": { "field": "flag", "regex": "(.+)" },
-  "name": "{split} WARP",
-  "entry": "{account.masque.outbound}",
-  "endpoints": "{account.masque.endpoints}",
-  "entry_merge": { "streamSettings": { "sockopt": { "domainStrategy": "UseIP" } } },
-  "pick": "random"
-}
-```
-
-- `entry`: an outbound, or one `{account.x}` placeholder (the placeholders inside it are filled too).
-- `endpoints`: a list (or placeholder) of `host`, `host:port` or `[v6]:port`; one is picked and written into the entry's address and port. `pick`: `random` or `per_user`.
-- `exit`: where the exit outbound comes from. By default the account's `exits` object, keyed by the config's flag, then the account's `exit`. The user's own id (the most frequent vless/vmess id among their other configs) is filled in. `{"user_id": false}` leaves the template as it is.
-- `"exit": false`: **entry only** (no exit). `before` is a list of outbounds placed in front of the entry, with `{entry.address}`, `{entry.port}` and `{user.id}` available; all traffic still goes to the entry.
-- If the user has no config with an id, no config is made and the problem shows in the preview's report.
-
-If the account has a `pool` list, a user without a personal account gets one entry of it, fixed by the subscription id.
-
 ## `output`: settings for every returned config
 
 Everything is off unless you turn it on. `when` limits it to some configs.
@@ -442,7 +417,6 @@ Everything is off unless you turn it on. `when` limits it to some configs.
 | `replace_routing` | Drop the template's routing rules and keep only balancer rules (and rules made by chains). With `domain_strategy` set, also sets it. |
 | `sampling` | Observatory `sampling` of **our** balancers: `{"fixed": 2}` or `{"members_div": 2, "extra": 2}` (members ÷ 2 + 2). |
 | `panel_balancers` | Tune the panel's own `leastLoad` balancers: `{"max_rtt": "2500ms", "few_max_members": 2, "expected_few": 1, "expected_many": 2}`. |
-| `remark_rewrite` | `[{ "if": "regex", "regex": "...", "replace": "..." }]` applied to each remark in order (`if` is optional). |
 
 ## `order`: the order of the result
 

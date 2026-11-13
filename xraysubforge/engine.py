@@ -439,76 +439,6 @@ def _pick(options, seed, per_user):
     return random.choice(options)
 
 
-def build_chain_exit_first(chain, key, sts, work, index, account, subid, user_cfgs):
-    """Mode "exit_first": the matched config (for example a placeholder the panel hands out per country) becomes
-    [exit, entry]. Traffic leaves through the exit, and the exit is dialed THROUGH the entry (client -> entry -> exit).
-    The exit is a template from the account (picked by the config's flag) with the user's own id filled in."""
-    first = sts[0]
-    out = copy.deepcopy(work[first["i"]])
-    for k in ("routing", "observatory", "burstObservatory"):
-        out.pop(k, None)
-    gid = slug(chain["id"])
-    entry_tag, exit_tag = "%s-%d-entry" % (gid, index), "%s-%d-exit" % (gid, index)
-    entry_tag, exit_tag = chain.get("entry_tag") or entry_tag, chain.get("exit_tag") or exit_tag
-    values = {"account": account or {}, "exit": dict(first["fields"]), "choice": pick_choices(chain, subid),
-              "split": key, "n": len(sts)}
-    entry = substitute(chain["entry"], values)
-    if isinstance(chain["entry"], str):  # the account holds the outbound: its own {account.x} placeholders are filled too
-        entry = substitute(entry, values)
-    if isinstance(chain.get("entry_merge"), dict):
-        deep_merge(entry, substitute(chain["entry_merge"], values))
-    per_user = chain.get("pick") == "per_user"
-    eps = substitute(chain["endpoints"], values) if chain.get("endpoints") else None
-    if eps:
-        host, port = split_endpoint(_pick(list(eps), "%s|%s|ep" % (subid, chain["id"]), per_user))
-        st = entry.setdefault("settings", {})
-        if host:
-            st["address"] = host
-            if port.isdigit():
-                st["port"] = int(port)
-    entry["tag"] = entry_tag
-    sock = (entry.get("streamSettings") or {}).get("sockopt")
-    if isinstance(sock, dict):
-        sock.pop("dialerProxy", None)
-
-    if chain.get("exit") is False:  # solo: the entry alone, no exit behind it
-        out["outbounds"] = [entry]
-        if chain.get("before"):  # extra outbounds in front (a harmless first outbound); all traffic still goes to the entry
-            vals = dict(values, entry=entry.get("settings") or {}, user={"id": find_user_id(user_cfgs) or "00000000-0000-0000-0000-000000000000"})
-            out["outbounds"] = substitute(chain["before"], vals) + [entry]
-            out["routing"] = {"rules": [{"type": "field", "network": "tcp,udp", "outboundTag": entry_tag, "_keep": True}]}
-        default_name = "{split}" if chain.get("split_by") else chain["id"]
-        out["remarks"] = render(chain.get("name") or default_name, split=key, n=len(sts), group=chain["id"])
-        out["_by"], out["_main"] = chain["id"], ("outboundTag", entry_tag)
-        return out
-    spec = chain.get("exit") or {}
-    flag = first["fields"].get("flag") or ""
-    exits = account.get(spec.get("from_account", "exits")) if isinstance(account.get(spec.get("from_account", "exits")), dict) else {}
-    tmpl = exits.get(flag) if flag else None
-    if not tmpl:
-        tmpl = account.get(spec.get("default_account", "exit"))
-    if isinstance(tmpl, dict) and isinstance(tmpl.get("outbound"), dict):
-        tmpl = tmpl["outbound"]
-    if not (isinstance(tmpl, dict) and tmpl.get("protocol")):
-        raise ValueError("no exit template in the account for %r" % flag)
-    exit_ob = copy.deepcopy(tmpl)
-    if spec.get("user_id", True):
-        uid = find_user_id(user_cfgs)
-        if not uid or not set_user_id(exit_ob, uid):
-            raise ValueError("the user has no config with an id to put into the exit")
-    exit_ob["tag"] = exit_tag
-    stream = exit_ob.get("streamSettings") if isinstance(exit_ob.get("streamSettings"), dict) else {}
-    sock = stream.get("sockopt") if isinstance(stream.get("sockopt"), dict) else {}
-    sock["dialerProxy"] = entry_tag
-    stream["sockopt"] = sock
-    exit_ob["streamSettings"] = stream
-    out["outbounds"] = [exit_ob, entry]
-    default_name = "{split}" if chain.get("split_by") else chain["id"]
-    out["remarks"] = render(chain.get("name") or default_name, split=key, n=len(sts), group=chain["id"])
-    out["_by"], out["_main"] = chain["id"], ("outboundTag", exit_tag)
-    return out
-
-
 def _set_dialer(ob, tag):
     """The outbound is dialed through the outbound tagged `tag` (None: directly)."""
     stream = ob.get("streamSettings") if isinstance(ob.get("streamSettings"), dict) else {}
@@ -524,8 +454,8 @@ def _set_dialer(ob, tag):
 def build_hops(chain, key, sts, work, account, shared, subid, alive):
     """Mode "hops": one output config whose traffic goes client -> hops[0] -> hops[1] -> ... -> the internet.
     Each hop is an outbound from one of: the matched config itself ("block"), a WARP account ("warp"), an outbound
-    written by the admin ("outbound"), another config of the subscription ("config"), or the exit template of the
-    account ("account_exit"). In Xray terms every hop is dialed through the one before it (sockopt.dialerProxy)."""
+    written by the admin ("outbound", one or one per flag), or another config of the subscription ("config").
+    In Xray terms every hop is dialed through the one before it (sockopt.dialerProxy)."""
     first = sts[0]
     src = work[first["i"]]
     out = copy.deepcopy(src)
@@ -562,7 +492,12 @@ def build_hops(chain, key, sts, work, account, shared, subid, alive):
                     if port.isdigit():
                         st["port"] = int(port)
         elif kind == "outbound":
-            ob = substitute(hop["outbound"], values)
+            spec = hop["outbound"]
+            if not spec.get("protocol"):     # a map {flag: outbound, "default": outbound}: the one for this config's flag
+                spec = spec.get(flag) or spec.get("default")
+                if not spec:
+                    raise ValueError("no outbound for the flag %r (and no \"default\")" % flag)
+            ob = substitute(spec, values)
         elif kind == "config":
             pool = [st for st in alive if st["i"] != first["i"] and main_index(work[st["i"]]) is not None
                     and match(hop["when"], work[st["i"]], st["fields"])]
@@ -571,16 +506,6 @@ def build_hops(chain, key, sts, work, account, shared, subid, alive):
                 raise ValueError("no config of this subscription matches hop %d" % (n + 1))
             pick = work[(same or pool)[0]["i"]]
             ob = copy.deepcopy(pick["outbounds"][main_index(pick)])
-        else:  # account_exit
-            exits = acct.get(hop.get("from_account", "exits")) if isinstance(acct.get(hop.get("from_account", "exits")), dict) else {}
-            tmpl = (exits.get(flag) if flag else None) or acct.get(hop.get("default_account", "exit"))
-            if isinstance(tmpl, dict) and isinstance(tmpl.get("outbound"), dict):
-                tmpl = tmpl["outbound"]
-            if not (isinstance(tmpl, dict) and tmpl.get("protocol")):
-                raise ValueError("no exit template in the account for %r" % flag)
-            ob = copy.deepcopy(tmpl)
-            if hop.get("user_id", True) and not (user_id and set_user_id(ob, user_id)):
-                raise ValueError("the user has no config with an id to put into the exit")
         if not (isinstance(ob, dict) and ob.get("protocol")):
             raise ValueError("hop %d did not give an outbound" % (n + 1))
         made.append((kind, ob))
@@ -638,6 +563,10 @@ def process(configs, conf, subid=None, accounts=None, params=None):
         account.update(personal)
     elif isinstance(pool, list) and pool and subid:  # shared accounts until the user has a personal one
         account.update(pick_from_pool(pool, subid))
+    pool_eps = list((conf.get("accounts") or {}).get("endpoints") or [])
+    if pool_eps:      # the pool takes the place of {account.masque.endpoints}; a hop's own endpoints still win
+        for acc in (account, shared):
+            acc["masque"] = dict(acc.get("masque") or {}, endpoints=list(pool_eps))
     work = [copy.deepcopy(c) for c in configs if isinstance(c, dict)]
     report = {"configs": [], "outputs": [], "errors": []}
 
@@ -705,7 +634,7 @@ def process(configs, conf, subid=None, accounts=None, params=None):
         def run_chain(ch=ch):
             acct = shared if ch.get("account") == "shared" else account
             cands = [st for st in alive if match(ch.get("exit_when"), work[st["i"]], st["fields"])
-                     and (ch.get("mode") in ("exit_first", "hops") or main_index(work[st["i"]]) is not None)]
+                     and (ch.get("mode") == "hops" or main_index(work[st["i"]]) is not None)]
             if ch.get("mode") == "hops":
                 buckets = bucketize(cands, ch.get("split_by"), work) if ch.get("split_by") else {}
                 todo = [(k, v) for k, v in buckets.items()] if ch.get("split_by") else [("", [st]) for st in cands]
@@ -720,19 +649,11 @@ def process(configs, conf, subid=None, accounts=None, params=None):
                     made.append((sts[0]["i"], ch.get("position"), cfg, ch["id"], len(sts)))
                 return
             for bi, (key, sts) in enumerate(bucketize(cands, ch.get("split_by"), work).items()):
-                if ch.get("mode") == "exit_first":
-                    matched = {st["i"] for st in cands}
-                    user_cfgs = [work[st["i"]] for st in alive if st["i"] not in matched]
-                    cfg = guarded("chain %s" % ch["id"], lambda key=key, sts=sts, bi=bi: build_chain_exit_first(
-                        ch, key, sts, work, bi, acct, subid, user_cfgs))
-                    if ch.get("remove_exit_from_output", True):
-                        removed.update(st["i"] for st in sts)  # the placeholder never stays in the list
-                else:
-                    cfg = guarded("chain %s" % ch["id"], lambda key=key, sts=sts, bi=bi: build_chain(ch, key, sts, work, bi, acct, subid))
+                cfg = guarded("chain %s" % ch["id"], lambda key=key, sts=sts, bi=bi: build_chain(ch, key, sts, work, bi, acct, subid))
                 if cfg is None:
                     continue
                 sts[0]["chains"].append(ch["id"])
-                if ch.get("mode") != "exit_first" and ch.get("remove_exit_from_output", False):
+                if ch.get("remove_exit_from_output", False):
                     removed.add(sts[0]["i"])
                 made.append((sts[0]["i"], ch.get("position"), cfg, ch["id"], 1))
 

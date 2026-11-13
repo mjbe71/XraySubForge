@@ -2,7 +2,7 @@
 
 <p align="center"><img src="docs/assets/banner.png" alt="XraySubForge: rebuild, optimize, deliver. A lightweight bridge between your Xray panel and your users" width="100%"></p>
 
-[فارسی](README.fa.md) · English · **v0.5.0**
+[فارسی](README.fa.md) · English · **v0.6.0**
 
 **An advanced reverse proxy for Xray subscriptions.** It sits between your 3x-ui panel (or another Xray-core panel) and
 your users' VPN apps. Users fetch their subscription from **your own domain, over HTTPS**; for every request
@@ -249,7 +249,7 @@ for all options and `examples/` for ready examples:
 | build the final subscription visually | `blocks` (the Blocks page) |
 | remove or reorder configs | `rules` |
 | merge configs into one balancer (per country, per name prefix, ...) | `groups` or a balancer block |
-| put your own outbound (WARP, WireGuard, ...) in front of an exit config | `chains` + `accounts` or a WARP block |
+| put your own outbound (WARP, WireGuard, ...) in front of an exit config | a chain block (a WARP hop, then your outbound) or `chains` |
 | change anything else (DNS, routing, mux, fragment, ...) | `patches` |
 | serve several panels or brands from one install | `profiles/` |
 | change address, port, URL path, timeouts, domains | `server`, `panel` |
@@ -261,7 +261,18 @@ for all options and `examples/` for ready examples:
 - Never commit `config.json` or an accounts file (the `.gitignore` excludes them).
 - The service never logs subscription ids or panel URLs.
 
-## What is new in 0.5.0
+## What is new in 0.6.0
+
+- **Exits no longer come from the accounts file** (breaking). The older WARP block, the `exit_first` chain mode, the classic chain
+  `exit` and the `account_exit` hop are gone: use a chain block with an *own outbound* hop, which can hold one outbound per flag.
+  *Convert to a Chain block* in the admin panel moves an old WARP block over and copies its exits into the hop.
+- **WARP endpoint pool** (`accounts.endpoints`) with a form in Settings.
+- **Per-rule position** (end or early) also for the routing rules of balancer blocks.
+- **Settings redesigned**: *Input* and *Output* cards (the addresses users get; raw links and Clash are switched on one by one),
+  *Routing* split from *Inbounds & sniffing*, a short explanation for each routing option.
+- `output.remark_rewrite` is removed: name configs with the *Name* setting of a block.
+
+## What was new in 0.5.0
 
 - **Chain blocks** (the WARP block grows into them): any config through WARP, another config of the subscription, or an imported
   outbound; several hops; plain outbound tags.

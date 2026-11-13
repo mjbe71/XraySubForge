@@ -119,7 +119,7 @@
     exp_keep_rule: "Kept by rule \"{rule}\"", exp_kept: "Kept as it is", exp_group: "Merged into balancer \"{g}\"", exp_chain: "Exit of \"{c}\"",
     colWhat: "What happens",
     restartBtn: "Restart the service", restartConfirm: "Restart the service now? The panel is unavailable for a few seconds.", restarting: "Restarting… waiting for the service to come back.",
-    restarted: "The service is back.", restartFail: "Could not restart: {err}", restartManual: "To restart: run \"sudo sforge restart\" on the server.", restartNeeded: "You changed server settings: restart the service to apply them.", chipsHint: "Type a word, then press Enter or +. Add as many as you like.", addWord: "+ Add", noAccountYet: "The WARP chain \"{id}\" cannot be shown here yet: it needs a WARP account. With automatic accounts on, each user's account is created the first time they fetch their subscription.",
+    restarted: "The service is back.", restartFail: "Could not restart: {err}", restartManual: "To restart: run \"sudo sforge restart\" on the server (or restart the systemd service you installed it as).", restartNeeded: "You changed server settings: restart the service to apply them.", chipsHint: "Type a word, then press Enter or +. Add as many as you like.", addWord: "+ Add", noAccountYet: "The WARP chain \"{id}\" cannot be shown here yet: it needs a WARP account. With automatic accounts on, each user's account is created the first time they fetch their subscription.",
     c_panel_url_ok: "Panel address is set", c_panel_url_fail: "The panel address is not set",
     c_panel_reach_ok: "The panel is reachable", c_panel_reach_warn: "The panel answered with an error (HTTP {code})",
     c_panel_reach_fail_connect: "Cannot connect to the panel: wrong address or port, or a firewall is blocking it",
@@ -176,7 +176,7 @@
     exp_keep_rule: "با قانون «{rule}» نگه داشته شد", exp_kept: "همان‌طور که هست می‌ماند", exp_group: "در بالانسر «{g}» ادغام شد", exp_chain: "خروجی «{c}»",
     colWhat: "چه می‌شود",
     restartBtn: "راه‌اندازی مجدد سرویس", restartConfirm: "سرویس همین حالا راه‌اندازی مجدد شود؟ پنل چند ثانیه در دسترس نیست.", restarting: "در حال راه‌اندازی مجدد… منتظر برگشتن سرویس هستیم.",
-    restarted: "سرویس برگشت.", restartFail: "راه‌اندازی مجدد ممکن نشد: {err}", restartManual: "برای راه‌اندازی مجدد، روی سرور «sudo sforge restart» را بزنید.", restartNeeded: "تنظیمات سرور را تغییر داده‌اید: برای اعمال، سرویس را راه‌اندازی مجدد کنید.", chipsHint: "یک کلمه بنویسید و Enter یا «+ افزودن» را بزنید. هر تعداد می‌توانید اضافه کنید.", addWord: "+ افزودن", noAccountYet: "زنجیرهٔ WARP با نام «{id}» هنوز در اینجا قابل نمایش نیست: به حساب WARP نیاز دارد. اگر حساب خودکار روشن باشد، حساب هر کاربر هنگام اولین دریافت ساب او ساخته می‌شود.",
+    restarted: "سرویس برگشت.", restartFail: "راه‌اندازی مجدد ممکن نشد: {err}", restartManual: "برای راه‌اندازی مجدد، روی سرور «sudo sforge restart» را بزنید (یا سرویس systemd که نصب کرده‌اید را restart کنید).", restartNeeded: "تنظیمات سرور را تغییر داده‌اید: برای اعمال، سرویس را راه‌اندازی مجدد کنید.", chipsHint: "یک کلمه بنویسید و Enter یا «+ افزودن» را بزنید. هر تعداد می‌توانید اضافه کنید.", addWord: "+ افزودن", noAccountYet: "زنجیرهٔ WARP با نام «{id}» هنوز در اینجا قابل نمایش نیست: به حساب WARP نیاز دارد. اگر حساب خودکار روشن باشد، حساب هر کاربر هنگام اولین دریافت ساب او ساخته می‌شود.",
     c_panel_url_ok: "آدرس پنل تنظیم شده است", c_panel_url_fail: "آدرس پنل تنظیم نشده است",
     c_panel_reach_ok: "پنل در دسترس است", c_panel_reach_warn: "پنل با خطا پاسخ داد (HTTP {code})",
     c_panel_reach_fail_connect: "اتصال به پنل ممکن نیست: آدرس یا پورت اشتباه است یا فایروال جلویش را گرفته",
@@ -198,7 +198,11 @@
     rank: "Rank", rankHint: "Lower numbers come first.",
     outHint: "Settings applied to every returned config after balancers and chains were built. Everything is off until you turn it on.",
     outEnabled: "Apply the output settings", outWhen: "Only for configs matching",
-    sectInbounds: "Inbounds & routing", sectDns: "DNS", sectTuning: "Balancer tuning", sectRemark: "Names",
+    sectInbounds: "Inbounds & sniffing", sectRouting: "Routing", bWarpRemoved: "The WARP block type was removed (its exit came from the accounts file).", bToChain: "Convert to a Chain block",
+    dnsOutHint: "Sends DNS queries (port 53) from the socks inbound to Xray's own DNS module. Only for configs that have DNS servers.",
+    blockUdpHint: "It applies only to the domains listed below (empty = a built-in list).",
+    domainStrategyHint: "How Xray resolves names for IP rules: AsIs never, IPIfNonMatch only when no domain rule matched, IPOnDemand whenever an IP rule needs it.",
+    dnsOrderHint: "Order matters: the dedicated DNS entries are placed first, so for the same names they win over the domestic ones.", sectDns: "DNS", sectTuning: "Balancer tuning",
     splitInbounds: "Separate socks and http inbounds (some apps do not work with the combined one)",
     dnsOut: "Add a dns-out outbound", blockUdp: "Block UDP port 443 (QUIC) so apps fall back to TCP",
     quicEdit: "Copy the built-in list here to edit it",
@@ -219,16 +223,14 @@
     samplingTitle: "Observatory sampling", samplingOff: "off (leave as is)", samplingFixed: "fixed number", samplingDiv: "from the number of members",
     samplingFixedN: "Samples", samplingDivN: "Members per sample", samplingExtra: "Extra samples",
     panelBal: "Tune the panel's own balancers", pbRtt: "Max RTT", pbFew: "\"Few\" means at most this many members", pbExpFew: "Expected (few members)", pbExpMany: "Expected (many members)",
-    remarkTitle: "Rewrite names", remarkHint: "Each rule replaces the text matching the pattern. The \"only if\" pattern, when set, must match the name for the rule to run.",
-    rwRegex: "Pattern", rwReplace: "Replace with", rwIf: "Only if name matches", addRule: "+ Add rule",
     usingDefaults: "Using the built-in defaults.", customize: "Customize",
     orWord: "or", notWord: "not",
-    chainMode: "Direction", modeEntry: "entry first: your outbound is dialed through the panel config", modeExit: "exit first: the exit goes through your entry (e.g. client → WARP → exit)",
-    chainEndpoints: "Endpoints", chainEndpointsHint: "Text with a placeholder, e.g. {account.masque.endpoints}; the address and port of the entry.",
-    chainPick: "Pick", pickRandom: "random each time", pickUser: "same per user",
-    chainExit: "Exit (JSON)", chainExitHint: "false = no exit config (solo). Or {\"from_account\": \"exits\", \"default_account\": \"exit\", \"user_id\": true}.",
-    chainEntryMerge: "Entry merge (JSON)", chainEntryMergeHint: "Merged into the entry outbound; {account.x?} placeholders are left out when missing.",
-    chainBefore: "Outbounds placed in front (JSON list)", chainBeforeHint: "Placeholders: {entry.address}, {entry.port}, {user.id}.",
+    
+    
+    pickRandom: "random each time", pickUser: "same per user",
+    
+    
+    
     expandTitle: "Copies per server", expandOn: "Make several copies of every server (different addresses)",
     exCopies: "Copies", exServerBy: "Server key field", exServerRegex: "Server key regex", exAddresses: "Addresses to use", exAddrRegex: "Keep own address when it matches",
     exLayout: "Layout", exGrouped: "grouped", exBlocks: "blocks (rotated per block)", exPick: "Pick", exWhen: "Only for members matching",
@@ -259,7 +261,11 @@
     rank: "رتبه", rankHint: "عدد کمتر زودتر می‌آید.",
     outHint: "تنظیماتی که بعد از ساخت بالانسرها و زنجیرها روی هر کانفیگ خروجی اعمال می‌شود. تا خودتان روشن نکنید همه خاموش است.",
     outEnabled: "تنظیمات خروجی اعمال شود", outWhen: "فقط برای کانفیگ‌های مطابق",
-    sectInbounds: "اینباند و مسیریابی", sectDns: "DNS", sectTuning: "تنظیم بالانسرها", sectRemark: "نام‌ها",
+    sectInbounds: "اینباند و sniffing", sectRouting: "مسیریابی", bWarpRemoved: "نوع بلوک WARP حذف شده است (خروجی‌اش از فایل حساب‌ها می‌آمد).", bToChain: "تبدیل به بلوک Chain",
+    dnsOutHint: "کوئری‌های DNS (پورت ۵۳) از اینباند socks را به ماژول DNS خود Xray می‌فرستد. فقط برای کانفیگ‌هایی که سرور DNS دارند.",
+    blockUdpHint: "فقط برای دامنه‌های فهرست پایین اعمال می‌شود (خالی = فهرست داخلی).",
+    domainStrategyHint: "Xray نام‌ها را برای قوانین IP چطور حل کند: AsIs هیچ‌وقت، IPIfNonMatch فقط وقتی هیچ قاعدهٔ دامنه نخورده، IPOnDemand هر وقت یک قاعدهٔ IP لازم داشته باشد.",
+    dnsOrderHint: "ترتیب مهم است: ورودی‌های DNS مخصوص اول گذاشته می‌شوند، پس برای همان نام‌ها بر DNS داخلی غلبه دارند.", sectDns: "DNS", sectTuning: "تنظیم بالانسرها",
     splitInbounds: "اینباند socks و http جدا باشد (بعضی برنامه‌ها با اینباند ترکیبی کار نمی‌کنند)",
     dnsOut: "خروجی dns-out اضافه شود", blockUdp: "پورت UDP 443 (QUIC) بسته شود تا برنامه‌ها به TCP برگردند",
     quicEdit: "کپی فهرست داخلی برای ویرایش",
@@ -280,16 +286,14 @@
     samplingTitle: "نمونه‌گیری observatory", samplingOff: "خاموش (دست نخورد)", samplingFixed: "عدد ثابت", samplingDiv: "بر اساس تعداد اعضا",
     samplingFixedN: "تعداد نمونه", samplingDivN: "تعداد عضو به‌ازای هر نمونه", samplingExtra: "نمونهٔ اضافه",
     panelBal: "بالانسرهای خود پنل هم تنظیم شوند", pbRtt: "حداکثر RTT", pbFew: "«کم» یعنی حداکثر این تعداد عضو", pbExpFew: "expected (عضو کم)", pbExpMany: "expected (عضو زیاد)",
-    remarkTitle: "بازنویسی نام‌ها", remarkHint: "هر قانون متنِ مطابق با الگو را عوض می‌کند. اگر «فقط اگر» پر باشد، نام باید با آن هم بخواند تا قانون اجرا شود.",
-    rwRegex: "الگو", rwReplace: "جایگزین", rwIf: "فقط اگر نام بخواند با", addRule: "+ افزودن قانون",
     usingDefaults: "مقدارهای داخلی استفاده می‌شود.", customize: "سفارشی‌سازی",
     orWord: "یا", notWord: "نه",
-    chainMode: "جهت", modeEntry: "ورودی اول: خروجی شما از داخل کانفیگ پنل رد می‌شود", modeExit: "خروجی اول: خروجی از ورودی شما رد می‌شود (مثلاً کلاینت ← WARP ← خروجی)",
-    chainEndpoints: "Endpoints", chainEndpointsHint: "متن با جایگزین، مثلاً {account.masque.endpoints}؛ آدرس و پورت ورودی.",
-    chainPick: "انتخاب", pickRandom: "هر بار تصادفی", pickUser: "برای هر کاربر ثابت",
-    chainExit: "خروجی (JSON)", chainExitHint: "false = بدون کانفیگ خروجی (تکی). یا {\"from_account\": \"exits\", \"default_account\": \"exit\", \"user_id\": true}.",
-    chainEntryMerge: "ادغام در ورودی (JSON)", chainEntryMergeHint: "در outbound ورودی ادغام می‌شود؛ جایگزین‌های {account.x?} اگر مقدار نداشته باشند حذف می‌شوند.",
-    chainBefore: "outboundهایی که جلو قرار می‌گیرند (فهرست JSON)", chainBeforeHint: "جایگزین‌ها: {entry.address}، {entry.port}، {user.id}.",
+    
+    
+    pickRandom: "هر بار تصادفی", pickUser: "برای هر کاربر ثابت",
+    
+    
+    
     expandTitle: "کپی به‌ازای هر سرور", expandOn: "از هر سرور چند کپی ساخته شود (با آدرس‌های مختلف)",
     exCopies: "تعداد کپی", exServerBy: "فیلد کلید سرور", exServerRegex: "regex کلید سرور", exAddresses: "آدرس‌های مورد استفاده", exAddrRegex: "اگر آدرس خودش با این بخواند نگه داشته شود",
     exLayout: "چیدمان", exGrouped: "گروهی", exBlocks: "بلوکی (چرخش در هر بلوک)", exPick: "انتخاب", exWhen: "فقط برای اعضای مطابق",
@@ -301,7 +305,7 @@
 
   Object.assign(STR.en, {
     tabList: "What users get", tabGroups: "Balancers", tabWarp: "WARP", tabSettings: "Settings", tabAdvanced: "Advanced",
-    sectFilter: "Remove or keep configs", sectSort: "Sort the list", sectServer: "Server, panel and accounts", sectOutput: "Final output settings",
+    sectFilter: "Remove or keep configs", sectSort: "Sort the list", sectServer: "Server, panel and accounts", sectOutput: "Changes made to every config",
     sectPatches: "Advanced edits (patches)", sectJson: "Whole config as JSON", moreOptions: "More options", unnamed: "(no name)",
     rulesHint: "Rules run from top to bottom; the first match decides.",
     groupsHint: "Merge several configs into one smart config that picks the best server by itself.",
@@ -311,14 +315,14 @@
     addFrom: "+ Add…", tpl_blank: "Empty (fill in yourself)",
     tpl_rule_name: "Remove configs whose name contains…", tpl_rule_proto: "Remove configs of a protocol…", tpl_rule_top: "Move configs whose name contains… to the top",
     tpl_group_flag: "Merge matching configs into one per country", tpl_group_all: "Merge matching configs into a single balancer",
-    tpl_chain_warp: "Send through WARP (client → WARP → config)", tpl_order_name: "Put configs whose name contains… first",
+    tpl_order_name: "Put configs whose name contains… first",
     sum_group: "{when} → merged into a smart config «{name}»", sum_group_split: "{when} → one smart config «{name}» per group",
-    sum_chain_entry: "For configs where {when}: your outbound is dialed through them", sum_chain_exit: "For configs where {when}: client → entry → that config",
+    sum_chain_entry: "For configs where {when}: your outbound is dialed through them", 
     offWord: "off", previewHint: "Enter a user's subscription id to see what that user gets.",
   });
   Object.assign(STR.fa, {
     tabList: "آنچه کاربر می‌گیرد", tabGroups: "بالانسرها", tabWarp: "WARP", tabSettings: "تنظیمات", tabAdvanced: "پیشرفته",
-    sectFilter: "حذف یا نگه‌داشتن کانفیگ‌ها", sectSort: "ترتیب لیست", sectServer: "سرور، پنل و حساب‌ها", sectOutput: "تنظیمات خروجی نهایی",
+    sectFilter: "حذف یا نگه‌داشتن کانفیگ‌ها", sectSort: "ترتیب لیست", sectServer: "سرور، پنل و حساب‌ها", sectOutput: "تغییراتی که روی هر کانفیگ اعمال می‌شود",
     sectPatches: "ویرایش پیشرفته (پچ)", sectJson: "کل تنظیمات به‌صورت JSON", moreOptions: "گزینه‌های بیشتر", unnamed: "(بدون نام)",
     rulesHint: "قانون‌ها از بالا به پایین بررسی می‌شوند؛ اولین قانونِ مطابق تصمیم می‌گیرد.",
     groupsHint: "چند کانفیگ را در یک کانفیگ هوشمند ادغام می‌کند که خودش بهترین سرور را برمی‌گزیند.",
@@ -328,9 +332,9 @@
     addFrom: "+ افزودن…", tpl_blank: "خالی (خودم پر می‌کنم)",
     tpl_rule_name: "حذف کانفیگ‌هایی که نامشان شامل … است", tpl_rule_proto: "حذف کانفیگ‌های یک پروتکل…", tpl_rule_top: "کانفیگ‌هایی که نامشان شامل … است بالا بروند",
     tpl_group_flag: "کانفیگ‌های مطابق به‌ازای هر کشور در یکی ادغام شوند", tpl_group_all: "کانفیگ‌های مطابق در یک بالانسر ادغام شوند",
-    tpl_chain_warp: "عبور از WARP (کلاینت ← WARP ← کانفیگ)", tpl_order_name: "کانفیگ‌هایی که نامشان شامل … است اول بیایند",
+    tpl_order_name: "کانفیگ‌هایی که نامشان شامل … است اول بیایند",
     sum_group: "{when} ← ادغام در کانفیگ هوشمند «{name}»", sum_group_split: "{when} ← یک کانفیگ هوشمند «{name}» به‌ازای هر گروه",
-    sum_chain_entry: "برای کانفیگ‌هایی که {when}: خروجی شما از داخل آن‌ها رد می‌شود", sum_chain_exit: "برای کانفیگ‌هایی که {when}: کلاینت ← ورودی ← آن کانفیگ",
+    sum_chain_entry: "برای کانفیگ‌هایی که {when}: خروجی شما از داخل آن‌ها رد می‌شود", 
     offWord: "خاموش", previewHint: "شناسهٔ ساب یک کاربر را بگذارید تا ببینید آن کاربر چه می‌گیرد.",
   });
   Object.assign(STR.en, {
@@ -339,8 +343,12 @@
     condMatches: "Matches {n} of {m} configs in your sample.", condNoSample: "Load your subscription in Preview to see how many configs match and to pick values from it.",
     condInvalid: "This condition is not complete or not valid yet.",
     themeDark: "Dark", themeLight: "Light", themeTitle: "Switch between light and dark",
-    sectPanelConn: "3x-ui panel connection", sectSubServer: "Subscription server", sectAccountsWarp: "Accounts and WARP",
-    panelConnHint: "Where XraySubForge reads the panel's JSON subscription from.", httpsTitle: "HTTPS",
+    sectPanelConn: "Input: the 3x-ui panel", sectAddresses: "Output: the addresses users get", sectSubServer: "Subscription server", sectAccountsWarp: "Accounts and WARP",
+    addrHint: "What users can fetch from this program. The JSON subscription is the main one and always exists; raw links and the Clash profile are extra formats for apps that cannot use JSON.",
+    addrJson: "JSON subscription (always on)", addrJsonHint: "Built from the panel with your rules and blocks.",
+    addrRaw: "Also give raw links", addrRawHint: "Plain links (vless://, ...) for apps that cannot use JSON.", addrRawSame: "The links are read from the raw subscription URL set under Input above.",
+    addrUrlHint: "The panel's subscription address, as in 3x-ui, without the user's id at the end.", addrClash: "Also give a Clash profile", addrClashHint: "The panel's Clash subscription, passed through unchanged.",
+    panelConnHint: "Where the program reads each user's configs from.", httpsTitle: "HTTPS",
     httpsHint: "Fill these in only if this service itself serves HTTPS. Leave them empty when a reverse proxy does it.",
     sp_title_group: "Make one balancer for each…", sp_title_chain: "Make one chain for each…",
     sp_none_group: "Nothing: all matching configs go into one balancer", sp_none_chain: "Nothing: one chain, from the first matching config",
@@ -356,8 +364,12 @@
     condMatches: "روی {n} کانفیگ از {m} کانفیگ نمونه می‌خورد.", condNoSample: "برای دیدن اینکه شرط روی چند کانفیگ می‌خورد و برای انتخاب مقدارها، ساب خود را در «پیش‌نمایش» بارگذاری کنید.",
     condInvalid: "این شرط هنوز کامل یا معتبر نیست.",
     themeDark: "تیره", themeLight: "روشن", themeTitle: "تغییر بین حالت روشن و تیره",
-    sectPanelConn: "اتصال به پنل 3x-ui", sectSubServer: "سرور ساب", sectAccountsWarp: "حساب‌ها و WARP",
-    panelConnHint: "آدرسی که XraySubForge ساب JSON پنل را از آن می‌خواند.", httpsTitle: "HTTPS",
+    sectPanelConn: "ورودی: پنل 3x-ui", sectAddresses: "خروجی: آدرس‌هایی که کاربر می‌گیرد", sectSubServer: "سرور ساب", sectAccountsWarp: "حساب‌ها و WARP",
+    addrHint: "آنچه کاربر می‌تواند از این برنامه بگیرد. ساب JSON اصلی است و همیشه هست؛ لینک خام و پروفایل Clash فرمت‌های اضافه برای برنامه‌هایی‌اند که JSON نمی‌خوانند.",
+    addrJson: "ساب JSON (همیشه روشن)", addrJsonHint: "از پنل ساخته می‌شود، با قوانین و بلوک‌های شما.",
+    addrRaw: "لینک خام هم بده", addrRawHint: "لینک‌های ساده (vless:// و ...) برای برنامه‌هایی که JSON نمی‌خوانند.", addrRawSame: "لینک‌ها از آدرس ساب خامی خوانده می‌شوند که در بخش «ورودی» بالا گذاشته‌اید.",
+    addrUrlHint: "آدرس ساب پنل، همان‌طور که در 3x-ui هست، بدون شناسهٔ کاربر در انتها.", addrClash: "پروفایل Clash هم بده", addrClashHint: "ساب Clash پنل، بدون تغییر عبور داده می‌شود.",
+    panelConnHint: "برنامه کانفیگ هر کاربر را از کجا می‌خواند.", httpsTitle: "HTTPS",
     httpsHint: "این دو را فقط وقتی پر کنید که خود این سرویس HTTPS بدهد. اگر reverse proxy این کار را می‌کند، خالی بگذارید.",
     sp_title_group: "یک بالانسر جدا برای هر…", sp_title_chain: "یک زنجیرهٔ جدا برای هر…",
     sp_none_group: "هیچ‌کدام: همهٔ کانفیگ‌های مطابق در یک بالانسر", sp_none_chain: "هیچ‌کدام: یک زنجیره از اولین کانفیگ مطابق",
@@ -372,10 +384,10 @@
     bSourceHint: "Similar configs are grouped into kinds, so a block keeps working for every user and for servers added later. Drag a kind into a block, or press Pick and then Move here.",
     bNoSample: "Fetch a user's subscription in the Preview panel (on the right) to see your configs here.",
     bFinal: "Final subscription", bFinalHint: "Blocks run from top to bottom. A kind is in one list (or removed); several balancers may use the same kinds.",
-    sourceLabel: "Where the configs come from", sourceJson: "The panel's JSON subscription", sourceRaw: "The panel's raw links (JSON is built here)",
-    sourceHint: "With raw links you do not need the JSON subscription in 3x-ui; set the raw subscription URL above. vless, vmess, trojan and ss links are read; masque, hysteria2, tuic and wireguard are left out.",
-    rawModeLabel: "Raw link for users", rawPass: "The panel's links, unchanged", rawEngine: "With my rules and blocks",
-    rawModeHint: "Links carry fewer settings than JSON: balancers become their members, and fragment or cipher suites are left out.",
+    sourceLabel: "What the program reads from the panel", sourceJson: "The JSON subscription (the usual way)", sourceRaw: "The raw links (vless://, vmess://, ...; the JSON is built here)",
+    sourceHint: "This is only the input: where the program gets each user's configs. Users still receive JSON configs made with your rules and blocks. With raw links you do not need the JSON subscription in 3x-ui; set the raw subscription URL below. vless, vmess, trojan and ss links are read; masque, hysteria2, tuic and wireguard are left out.",
+    rawModeLabel: "What the raw-link address gives users", rawPass: "The panel's links, unchanged", rawEngine: "Links made with my rules and blocks",
+    rawModeHint: "This is only about the address where users get plain links (vless://, ...) instead of JSON; it needs the raw subscription URL. The JSON address always uses your rules and blocks. Links carry fewer settings than JSON: balancers become their members, and fragment or cipher suites are left out.",
     rawWarn: "The JSON subscription is the better source: it carries everything the panel knows (its DNS and routing, the hosts' fragment / Final Mask, mux, sockopt and more). Links carry only part of it, so those settings are lost unless you add them again here, and some types (masque, hysteria2, tuic, wireguard) are not read at all. Use raw links only when you cannot turn the JSON subscription on.",
     versionTitle: "The version of this panel (and the git commit, for a git checkout)",
     jsonTemplate: "Client config for links (JSON)", jsonTemplateHint: "Raw links only: inbounds, DNS and routing each built config gets. Empty = a built-in one.",
@@ -400,10 +412,13 @@
     s_include_balanced: "Include panel balancers", h_include_balanced: "Also use configs that already have a balancer of the panel's own.", bIncludeBalanced: "included",
     s_probe_kind: "Probe type", h_probe_kind: "Which Xray probe measures the members. Default: burstObservatory for leastLoad, observatory for the others.",
     s_position: "Position", h_position: "Old setting: puts the result at the top or the bottom of the subscription, ignoring the block order. Remove it and order the blocks instead.", bPosTop: "top", bPosBottom: "bottom",
-    s_remove_exit: "Remove the exit config", h_remove_exit: "Take the config the WARP chain starts from out of the result.", bRemoveExit: "removed",
+    
     s_expand: "Copies per server", h_expand: "Several members per server: one copy of each config per address, grouped by server. Replaces the plain address pool.",
-    s_entry_merge: "Entry changes", h_entry_merge: "Values merged into the WARP entry outbound, e.g. sockopt or the account's keys ({account.privateKey?}).",
+    
     kvPath: "path (a.b.c)", kvValue: "value", kvAdd: "+ Value", kvHint: "Common Xray paths and their values are suggested as you type. A value is JSON when it parses (true, 5, null, [..]); otherwise text. null deletes the key.",
+    hopOutMapHint: "One outbound, or one per country: {\"🇩🇪\": {outbound}, \"🇹🇷\": {outbound}, \"default\": {outbound}}. The flag of the config picks the outbound; {user.id} is the user's id.",
+    poolLabel: "WARP endpoint pool", poolCount: "{n} address(es)",
+    poolHint: "One address per line: host, host:port or [v6]:port (paste the scanner's output). Every WARP hop that has no endpoints of its own picks from here (random, or fixed per user with pick = per_user); a hop's own Endpoints field wins, and an empty pool falls back to the account's endpoints.",
     bRulePos: "Position", bPosEnd: "End of the list (before the final catch-all) — safe default",
     bPosEarly: "Early: after the DNS rules, before the private / domestic (Iran) direct rules",
     bRule: "Rule", bRuleAdd: "+ Rule", bRuleKept: "Also kept as they are: {k}", bExpandSum: "{n} copies", bNPaths: "{n} values",
@@ -423,11 +438,10 @@
     bOldBalancer: "balancer", bOldDrop: "removes", bOldRule: "rule", bOldWarp: "WARP chain", bConvert: "Convert to block", bOpenOld: "Open",
     bTakesNothing: "Takes no config of this sample.", bNoSampleShort: "Fetch a subscription to see what it takes.", bOldCond: "condition of {id}",
     advRules: "Rules and order", advPatches: "Patches", advJson: "JSON",
-    bWarp: "WARP", bAddWarp: "+ WARP block", bNewWarp: "WARP {n}", bChain: "Chain", bAddChain: "+ Chain block", bNewChain: "Chain {n}", bWarpOld: "WARP (old)", bToChain: "Convert to a chain block",
+    bWarp: "WARP", bAddWarp: "+ WARP block", bChain: "Chain", bAddChain: "+ Chain block", bNewChain: "Chain {n}", 
     s_hops: "Chain", h_hops: "The path of the traffic. Each hop is reached through the one before it; the last hop is where the traffic leaves.",
-    hopClient: "Client", hopInternet: "Internet", hopN: "Hop {n}", hopNone: "— none —", hop_block: "This block's configs", hop_warp: "WARP", hop_outbound: "My own outbound (link or JSON)", hop_config: "Another config of the subscription", hop_account_exit: "Exit template from the accounts file",
+    hopClient: "Client", hopInternet: "Internet", hopN: "Hop {n}", hopNone: "— none —", hop_block: "This block's configs", hop_warp: "WARP", hop_outbound: "My own outbound (link or JSON)", hop_config: "Another config of the subscription",
     hopBlockHint: "Each config dropped in this block becomes one chained config (with One per country: the first config of each country).",
-    hopAcctHint: "The outbound template in the accounts file (exits by country flag, else exit), with the user's own id filled in.",
     hopConfigHint: "The first config of the same subscription that matches (the same country first). It also stays in the list as it is.",
     hopLink: "Link (vless://, vmess://, trojan://, ss://)", hopImport: "Import", hopUserId: "Use each user's own id ({user.id})", hopOutHint: "Placeholders: {user.id} = the user's own id, {account.x} = a value of the account, {choice.x} = a value of Choices.", hopEndpoints: "Endpoints (empty = the account's)", hopEntry: "Entry outbound (empty = {account.masque.outbound})", hopMerge: "Changes to the WARP outbound", hopJson: "Edit as JSON", hopRows: "Edit as rows", hopImported: "Imported: {name}", s_warp: "Route", s_pick: "WARP endpoint",
     h_warp: "The config dropped here is only a placeholder. With an exit: the result is [exit, WARP], where the exit is the outbound template in the accounts file (exits by country flag, else exit) with the user's own id filled in, dialed through WARP. WARP only: WARP alone, no exit.",
@@ -436,10 +450,10 @@
     bDuplicate: "Duplicate this block (settings only, without its configs)", bCopyOf: "{name} copy", bLegacy: "old setting", bLiftPresets: "Move the fragment / cipher presets to their own settings", bLiftHint: "A step here only picks fragment or cipher presets: the Fragment and Cipher settings do the same.", h_pick: "Which WARP endpoint each user gets.",
     bCostTitle: "Cost per member", bCostHint: "The first rule that matches a config sets its cost (higher = chosen less often). A rule without a condition is the default.", bCostValue: "cost", bCostWhen: "when", bCostAdd: "+ Cost rule", bCostAll: "every other config",
     bLoadParams: "leastLoad parameters (empty = Xray default)", bProbeParams: "Probe (how members are measured)", bNoParams: "This strategy has no parameters.", s_load: "leastLoad parameters", h_load: "expected, maxRTT and tolerance of the leastLoad strategy. Empty fields use Xray's own defaults.", s_probe: "Probe", h_probe: "How the balancer measures its members: URL, method, interval, number of samples and timeout.",
-    s_decoy: "Decoy outbound", h_decoy: "With WARP only: an unused vless+TLS outbound in front, so apps that refuse a lone masque config load it.", bDecoyVless: "vless + TLS (unused)", bWarpExit: "WARP → exit server from the accounts file", bWarpOnly: "WARP only", bPickRandom: "random on every update", bPickUser: "fixed per user",
+    s_decoy: "Decoy outbound", h_decoy: "With WARP only: an unused vless+TLS outbound in front, so apps that refuse a lone masque config load it.", bDecoyVless: "vless + TLS (unused)", bPickRandom: "random on every update", bPickUser: "fixed per user",
     bAdvancedJson: "Advanced (JSON)", bAdvBalancer: "\"group\": extra balancer keys (params, probe, expand, …); \"member_patch\": extra steps for every member.",
     bAdvList: "\"patches\": a list of patches (merge, random, routing_prepend, …) applied to this block's configs.",
-    bAdvWarp: "\"chain\": extra chain keys (entry, endpoints, exit, entry_merge, before, …).",
+    
     domainsTitle: "More domains", domainsHint: "Each domain gets its own certificate, chosen by the name the app connects to (for example one behind Cloudflare with Cloudflare's Origin certificate, one behind another CDN). Point every domain at this server. Needs a restart.",
     dom_name: "Domain", dom_cert: "Certificate (fullchain)", dom_key: "Private key", domainAdd: "+ Domain",
     cancel: "Cancel", bEditCond: "Edit this condition", bDone: "Done", bDragBlock: "Drag to move this block",
@@ -458,11 +472,11 @@
     bSourceHint: "کانفیگ‌های مشابه یک «گونه» می‌شوند تا بلوک برای همهٔ کاربران و سرورهای بعدی هم کار کند. گونه را داخل یک بلوک بکشید، یا «انتخاب» و بعد «انتقال به اینجا» را بزنید.",
     bNoSample: "برای دیدن کانفیگ‌ها، ساب یک کاربر را در پنل پیش‌نمایش (سمت دیگر) بگیرید.",
     bFinal: "اشتراک نهایی", bFinalHint: "بلوک‌ها از بالا به پایین اجرا می‌شوند. هر گونه در یک فهرست است (یا حذف‌شده)؛ چند بالانسر می‌توانند از یک گونه استفاده کنند.",
-    sourceLabel: "کانفیگ‌ها از کجا بیایند", sourceJson: "ساب JSON پنل", sourceRaw: "لینک‌های خام پنل (JSON همین‌جا ساخته می‌شود)",
-    sourceHint: "با لینک‌های خام لازم نیست ساب JSON را در 3x-ui روشن کنید؛ آدرس ساب خام را بالا بگذارید.",
+    sourceLabel: "برنامه چه چیزی را از پنل بخواند", sourceJson: "ساب JSON پنل (روش معمول)", sourceRaw: "لینک‌های خام پنل (vless:// و ...؛ JSON همین‌جا ساخته می‌شود)",
+    sourceHint: "این فقط ورودی است: برنامه کانفیگ هر کاربر را از کجا بگیرد. کاربر باز هم JSON ساخته‌شده با قوانین و بلوک‌های شما را می‌گیرد. با لینک خام لازم نیست ساب JSON را در 3x-ui روشن کنید؛ آدرس ساب خام را پایین‌تر بگذارید. لینک‌های vless، vmess، trojan و ss خوانده می‌شوند؛ masque، hysteria2، tuic و wireguard کنار گذاشته می‌شوند.",
     rawWarn: "ساب JSON منبع بهتری است: هر چیزی که پنل می‌داند را دارد (DNS و routing پنل، fragment / Final Mask هاست‌ها، mux، sockopt و بیشتر). لینک‌ها فقط بخشی از این‌ها را دارند، پس آن تنظیمات از دست می‌روند مگر اینکه اینجا دوباره اضافه‌شان کنید، و بعضی نوع‌ها (masque، hysteria2، tuic، wireguard) اصلاً خوانده نمی‌شوند. لینک خام را فقط وقتی انتخاب کنید که نمی‌توانید ساب JSON را روشن کنید.",
-    rawModeLabel: "لینک خام برای کاربران", rawPass: "لینک‌های پنل، بدون تغییر", rawEngine: "با قوانین و بلوک‌های من",
-    rawModeHint: "لینک‌ها تنظیمات کمتری از JSON دارند: بالانسر به اعضایش تبدیل می‌شود و fragment و cipher suites حذف می‌شوند.",
+    rawModeLabel: "آدرس لینک خام به کاربر چه بدهد", rawPass: "لینک‌های پنل، بدون تغییر", rawEngine: "لینک‌هایی که با قوانین و بلوک‌های من ساخته می‌شوند",
+    rawModeHint: "این فقط مربوط به آدرسی است که کاربر لینک ساده (vless:// و ...) می‌گیرد، نه JSON؛ آدرس ساب خام را هم باید بگذارید. آدرس JSON همیشه با قوانین و بلوک‌های شما ساخته می‌شود. لینک‌ها تنظیمات کمتری از JSON دارند: بالانسر به اعضایش تبدیل می‌شود و fragment و cipher suites حذف می‌شوند.",
     bSelHint: "Ctrl/Cmd+کلیک چند مورد و Shift+کلیک یک بازه را انتخاب می‌کند؛ با هم بکشید یا «انتقال به اینجا» بزنید.", bSelN: "{n} انتخاب شد", bSelClear: "پاک کردن", bNotPlaced: "هنوز جایی نیست", bIn: "در {b}", bRemovedWhere: "حذف‌شده", bPick: "انتخاب", bPicked: "انتخاب شد", bMoveHere: "انتقال به اینجا",
     bDropHere: "گونه‌ها را اینجا رها کنید", bList: "فهرست", bBalancer: "بالانسر", bPerCountry: "یکی برای هر کشور",
     bUp: "بالا بردن بلوک", bDown: "پایین بردن بلوک", bDelete: "حذف بلوک", bTakeOut: "بیرون آوردن از این بلوک", bBlockName: "نام بلوک",
@@ -483,11 +497,10 @@
     bOldBalancer: "بالانسر", bOldDrop: "حذف", bOldRule: "قانون", bOldWarp: "زنجیرهٔ WARP", bConvert: "تبدیل به بلوک", bOpenOld: "باز کردن",
     bTakesNothing: "هیچ کانفیگی از این نمونه را برنمی‌دارد.", bNoSampleShort: "برای دیدن، یک ساب بگیرید.", bOldCond: "شرط {id}",
     advRules: "قوانین و ترتیب", advPatches: "پچ‌ها", advJson: "JSON",
-    bAddWarp: "+ بلوک WARP", bNewWarp: "WARP {n}", bChain: "Chain", bAddChain: "+ بلوک Chain", bNewChain: "Chain {n}", bWarpOld: "WARP (قدیمی)", bToChain: "تبدیل به بلوک Chain",
+    bAddWarp: "+ بلوک WARP", bChain: "Chain", bAddChain: "+ بلوک Chain", bNewChain: "Chain {n}", 
     s_hops: "Chain", h_hops: "مسیر ترافیک. هر hop از داخل hop قبلی وصل می‌شود؛ ترافیک از آخرین hop خارج می‌شود.",
-    hopClient: "کاربر", hopInternet: "اینترنت", hopN: "Hop {n}", hopNone: "— هیچ —", hop_block: "کانفیگ‌های همین بلوک", hop_warp: "WARP", hop_outbound: "outbound دلخواه (لینک یا JSON)", hop_config: "یک کانفیگ دیگر همین اشتراک", hop_account_exit: "قالب exit از فایل حساب‌ها",
+    hopClient: "کاربر", hopInternet: "اینترنت", hopN: "Hop {n}", hopNone: "— هیچ —", hop_block: "کانفیگ‌های همین بلوک", hop_warp: "WARP", hop_outbound: "outbound دلخواه (لینک یا JSON)", hop_config: "یک کانفیگ دیگر همین اشتراک",
     hopBlockHint: "هر کانفیگی که در این بلوک بگذارید یک کانفیگ chain می‌شود (با «یکی برای هر کشور»: اولین کانفیگ هر کشور).",
-    hopAcctHint: "قالب outbound داخل فایل حساب‌ها (exits بر اساس پرچم کشور، وگرنه exit) که id خود کاربر در آن گذاشته می‌شود.",
     hopConfigHint: "اولین کانفیگ همین اشتراک که شرط را داشته باشد (اول هم‌کشور). خودش هم بدون تغییر در لیست می‌ماند.",
     hopLink: "لینک (vless://، vmess://، trojan://، ss://)", hopImport: "Import", hopUserId: "id خود هر کاربر گذاشته شود ({user.id})", hopOutHint: "Placeholderها: {user.id} = id خود کاربر، {account.x} = مقداری از حساب، {choice.x} = مقداری از Choices.", hopEndpoints: "Endpointها (خالی = مال حساب)", hopEntry: "Entry outbound (خالی = {account.masque.outbound})", hopMerge: "تغییرات روی outbound وارپ", hopJson: "ویرایش به‌صورت JSON", hopRows: "ویرایش به‌صورت ردیف", hopImported: "Import شد: {name}", s_warp: "مسیر", s_pick: "endpoint وارپ",
     h_warp: "کانفیگی که اینجا می‌کشید فقط جانگهدار است. با exit: نتیجه [exit, WARP] است؛ exit همان قالب outbound داخل فایل حساب‌هاست (exits بر اساس پرچم کشور، وگرنه exit) که id خود کاربر در آن گذاشته می‌شود و از داخل WARP وصل می‌شود. فقط WARP: خود WARP بدون exit.",
@@ -505,10 +518,13 @@
     s_include_balanced: "شامل بالانسرهای پنل", h_include_balanced: "کانفیگ‌هایی که از قبل بالانسر خود پنل را دارند هم استفاده می‌شوند.", bIncludeBalanced: "شامل",
     s_probe_kind: "نوع probe", h_probe_kind: "کدام probe ایکس‌ری اعضا را اندازه بگیرد. پیش‌فرض: burstObservatory برای leastLoad و observatory برای بقیه.",
     s_position: "جایگاه", h_position: "تنظیم قدیمی: نتیجه را فارغ از ترتیب بلوک‌ها بالا یا پایین اشتراک می‌گذارد. آن را حذف کنید و به‌جایش ترتیب بلوک‌ها را عوض کنید.", bPosTop: "بالا", bPosBottom: "پایین",
-    s_remove_exit: "حذف کانفیگ خروج", h_remove_exit: "کانفیگی که زنجیرهٔ WARP از آن شروع می‌شود از نتیجه حذف می‌شود.", bRemoveExit: "حذف می‌شود",
+    
     s_expand: "Copies per server", h_expand: "چند عضو برای هر سرور: از هر کانفیگ به ازای هر آدرس یک کپی، گروه‌بندی‌شده بر اساس سرور. جایگزین Address pool ساده می‌شود.",
-    s_entry_merge: "تغییرات Entry", h_entry_merge: "مقادیری که در outbound ورودی WARP ادغام می‌شوند، مثل sockopt یا کلیدهای حساب ({account.privateKey?}).",
+    
     kvPath: "مسیر (a.b.c)", kvValue: "مقدار", kvAdd: "+ مقدار", kvHint: "مسیرهای رایج Xray و مقادیرشان هنگام تایپ پیشنهاد می‌شوند. مقدار اگر JSON معتبر باشد (true، 5، null، [..]) همان است، وگرنه متن. null کلید را حذف می‌کند.",
+    hopOutMapHint: "یک outbound، یا یکی برای هر کشور: {\"🇩🇪\": {outbound}, \"🇹🇷\": {outbound}, \"default\": {outbound}}. پرچم کانفیگ outbound را انتخاب می‌کند؛ {user.id} شناسهٔ کاربر است.",
+    poolLabel: "استخر endpoint وارپ", poolCount: "{n} آدرس",
+    poolHint: "هر خط یک آدرس: host یا host:port یا [v6]:port (خروجی اسکنر را paste کنید). هر hop وارپ که endpoint خودش را ندارد از اینجا انتخاب می‌کند (تصادفی، یا با pick = per_user برای هر کاربر ثابت)؛ فیلد Endpoints خودِ hop اولویت دارد و اگر استخر خالی باشد endpointهای حساب استفاده می‌شوند.",
     bRulePos: "جایگاه", bPosEnd: "ته لیست (قبل از قانون فراگیر آخر) — پیش‌فرض امن",
     bPosEarly: "اول: بعد از قوانین DNS و قبل از قوانین مستقیمِ private و ایران",
     bRule: "قانون", bRuleAdd: "+ قانون", bRuleKept: "این‌ها هم همان‌طور نگه داشته می‌شوند: {k}", bExpandSum: "{n} کپی", bNPaths: "{n} مقدار",
@@ -518,7 +534,7 @@
     bMoveAdv: "انتقال به Settings", bMoveAdvHint: "پارامترها، probe، cost، ترتیب اعضا، قوانین مسیریابی و patchهای اعضا Setting خودشان را دارند. انتقال، نتیجه را تغییر نمی‌دهد.",
     bNSteps: "{n} patch", bNRules: "{n} قانون", bPosAt: "جایگاه", bPos_first: "اول", bPos_last: "آخر", bPosAdd: "+ قانون ترتیب",
     bLoadParams: "پارامترهای leastLoad (خالی = پیش‌فرض Xray)", bProbeParams: "Probe (نحوهٔ اندازه‌گیری اعضا)", bNoParams: "این استراتژی پارامتری ندارد.", s_load: "پارامترهای leastLoad", h_load: "expected و maxRTT و tolerance در استراتژی leastLoad. فیلد خالی = پیش‌فرض Xray.", s_probe: "Probe", h_probe: "نحوهٔ اندازه‌گیری اعضای بالانسر: آدرس، متد، فاصله، تعداد نمونه و timeout.",
-    s_decoy: "outbound طعمه", h_decoy: "فقط با WARP تنها: یک outbound خالی vless+TLS در ابتدا می‌آید تا برنامه‌هایی که masque تنها را قبول نمی‌کنند، کانفیگ را باز کنند.", bDecoyVless: "vless + TLS (بدون استفاده)", bWarpExit: "WARP ← سرور exit از فایل حساب‌ها", bWarpOnly: "فقط WARP", bPickRandom: "تصادفی در هر به‌روزرسانی", bPickUser: "ثابت برای هر کاربر",
+    s_decoy: "outbound طعمه", h_decoy: "فقط با WARP تنها: یک outbound خالی vless+TLS در ابتدا می‌آید تا برنامه‌هایی که masque تنها را قبول نمی‌کنند، کانفیگ را باز کنند.", bDecoyVless: "vless + TLS (بدون استفاده)", bPickRandom: "تصادفی در هر به‌روزرسانی", bPickUser: "ثابت برای هر کاربر",
     domainsTitle: "دامنه‌های بیشتر", domainsHint: "هر دامنه گواهی خودش را دارد و بر اساس نامی که اپ به آن وصل می‌شود انتخاب می‌شود (مثلاً یکی پشت Cloudflare با گواهی Origin کلادفلر، یکی پشت یک CDN دیگر). همهٔ دامنه‌ها باید به این سرور اشاره کنند. نیاز به راه‌اندازی دوباره دارد.",
     dom_name: "دامنه", dom_cert: "گواهی (fullchain)", dom_key: "کلید خصوصی", domainAdd: "+ دامنه",
     cancel: "انصراف", bEditCond: "ویرایش این شرط", bDone: "تمام", bDragBlock: "برای جابه‌جایی بلوک بکشید",
@@ -1006,7 +1022,7 @@
     let txt = "";
     if (kind === "rules") txt = t("whenIf") + " " + describeWhen(it.when) + " → " + t(it.do || "keep");
     else if (kind === "groups") txt = t(it.split_by && it.split_by.regex ? "sum_group_split" : "sum_group", { when: describeWhen(it.when), name: it.name || prettyId(it.id) });
-    else if (kind === "chains") txt = t(it.mode === "exit_first" ? "sum_chain_exit" : "sum_chain_entry", { when: describeWhen(it.exit_when) });
+    else if (kind === "chains") txt = t("sum_chain_entry", { when: describeWhen(it.exit_when) });
     else if (kind === "order") txt = describeWhen(it.when) + " → " + t("rank") + " " + (it.rank ?? 0);
     else txt = describeWhen(it.when);
     return h("p", { class: "summary" }, txt);
@@ -1114,38 +1130,15 @@
         memberPatchEditor(g)));
   };
 
-  const chainBody = (c) => {
-    const modeBox = h("div");
-    const drawMode = () => {
-      const exitFirst = c.mode === "exit_first";
-      if (exitFirst) {
-        modeBox.replaceChildren(
-          h("div", { class: "row" }, h("label", { class: "check" }, bindBool(c, "remove_exit_from_output", false), t("removeExit"))),
-          field(t("entry"), bindJSON(c, "entry", 4), t("entryHint"), true),
-          h("div", { class: "grid" },
-            field(t("chainEndpoints"), bindText(c, "endpoints"), t("chainEndpointsHint")),
-            field(t("chainPick"), bindSelect(c, "pick", [["", t("pickRandom")], ["random", t("pickRandom")], ["per_user", t("pickUser")]]))),
-          field(t("chainExit"), bindJSON(c, "exit", 4), t("chainExitHint"), true),
-          field(t("chainEntryMerge"), bindJSON(c, "entry_merge", 8), t("chainEntryMergeHint"), true),
-          field(t("chainBefore"), bindJSON(c, "before", 6), t("chainBeforeHint"), true));
-      } else {
-        modeBox.replaceChildren(
-          h("div", { class: "row" },
-            h("label", { class: "check" }, bindBool(c, "through_exit", true), t("throughExit")),
-            h("label", { class: "check" }, bindBool(c, "remove_exit_from_output", false), t("removeExit"))),
-          field(t("entry"), bindJSON(c, "entry", 10), t("entryHint"), true),
-          field(t("choices"), bindJSON(c, "choices", 4), t("choicesHint"), true));
-      }
-    };
-    const modeSel = h("select", { onchange: () => { if (modeSel.value === "exit_first") c.mode = "exit_first"; else delete c.mode; changed(); drawMode(); } },
-      h("option", { value: "entry_first" }, t("modeEntry")), h("option", { value: "exit_first" }, t("modeExit")));
-    modeSel.value = c.mode === "exit_first" ? "exit_first" : "entry_first";
-    drawMode();
-    return h("div", {}, whenEditor(c, "exit_when", "exitWhen"),
-      field(t("chainMode"), modeSel, null, true), splitEditor(c, "chains"),
-      h("div", { class: "grid" }, field(t("name"), bindText(c, "name"))),
-      moreBox(field(t("position"), bindSelect(c, "position", [["", t("default")], ["top", t("top")], ["bottom", t("bottom")]])), modeBox));
-  };
+  const chainBody = (c) => h("div", {}, whenEditor(c, "exit_when", "exitWhen"), splitEditor(c, "chains"),
+    h("div", { class: "grid" }, field(t("name"), bindText(c, "name"))),
+    moreBox(field(t("position"), bindSelect(c, "position", [["", t("default")], ["top", t("top")], ["bottom", t("bottom")]])),
+      h("div", {},
+        h("div", { class: "row" },
+          h("label", { class: "check" }, bindBool(c, "through_exit", true), t("throughExit")),
+          h("label", { class: "check" }, bindBool(c, "remove_exit_from_output", false), t("removeExit"))),
+        field(t("entry"), bindJSON(c, "entry", 10), t("entryHint"), true),
+        field(t("choices"), bindJSON(c, "choices", 4), t("choicesHint"), true))));
 
   const patchBody = (p) => h("div", {}, whenEditor(p),
     h("div", { class: "grid" },
@@ -1178,16 +1171,23 @@
       } }, t(run ? "pruneRun" : "pruneCheck"));
       return b;
     };
+    const pruneBox = h("div", { class: "opt" });
+    const drawPrune = () => {
+      const cb = bindBool(pr, "enabled", false);
+      cb.addEventListener("change", drawPrune);
+      pruneBox.replaceChildren(h("label", { class: "check" }, cb, t("pruneEnabled")),
+        ...(pr.enabled ? [h("div", { class: "grid" },
+          field(t("pruneDays"), bindText(pr, "after_days", { num: true, placeholder: "3" })),
+          field(t("prunePercent"), bindText(pr, "max_percent", { num: true, placeholder: "50" })),
+          field(t("pruneHours"), bindText(pr, "interval_hours", { num: true, placeholder: "24" }))),
+          h("div", {}, pruneBtn(false), " ", pruneBtn(true), " ", pmsg)] : []));
+    };
+    drawPrune();
     return h("div", {},
       h("label", { class: "check" }, bindBool(r, "enabled", false), t("regEnabled")),
       field(t("regSubid"), subid),
       h("div", {}, btn, " ", msg),
-      h("label", { class: "check" }, bindBool(pr, "enabled", false), t("pruneEnabled")),
-      h("div", { class: "grid" },
-        field(t("pruneDays"), bindText(pr, "after_days", { num: true, placeholder: "3" })),
-        field(t("prunePercent"), bindText(pr, "max_percent", { num: true, placeholder: "50" })),
-        field(t("pruneHours"), bindText(pr, "interval_hours", { num: true, placeholder: "24" }))),
-      h("div", {}, pruneBtn(false), " ", pruneBtn(true), " ", pmsg),
+      pruneBox,
       moreBox(...extraMore, h("div", { class: "grid" },
         field(t("regRetry"), bindText(r, "retry_seconds", { num: true, placeholder: "600" })),
         field(t("regApi"), bindText(r, "api")),
@@ -1244,6 +1244,47 @@
     return box;
   }
 
+  // the addresses users fetch: the JSON subscription (always) and, when switched on, the raw links and the Clash profile
+  function addressesEditor(p, s) {
+    const proxy = p.mode === "proxy", fromRaw = p.source === "raw" && !proxy;
+    const row = (titleKey, hintKey, isOn, setOn, body) => {
+      const box = h("div", { class: "opt" });
+      const draw = () => {
+        const on = isOn();
+        const cb = h("input", { type: "checkbox", checked: on, onchange: () => { setOn(cb.checked); changed(); draw(); } });
+        box.replaceChildren(h("label", { class: "check" }, cb, t(titleKey)), h("p", { class: "hint" }, t(hintKey)));
+        if (on) box.append(body());
+      };
+      draw();
+      return box;
+    };
+    let rawWanted = !!p.raw_url, clashWanted = !!p.clash_url, rawStash = p.raw_url || "", clashStash = p.clash_url || "";
+    const urlField = (key, labelKey, ph, stash) => {
+      const f = field(t(labelKey), bindText(p, key, { placeholder: ph }), t("addrUrlHint"), true);
+      if (stash && !p[key]) { p[key] = stash; f.querySelector("input").value = stash; changed(); }
+      return f;
+    };
+    return h("div", {},
+      h("p", { class: "hint" }, t("addrHint")),
+      h("div", { class: "opt" }, h("p", { class: "check" }, h("strong", {}, t("addrJson"))), h("p", { class: "hint" }, t("addrJsonHint")),
+        field(t("route"), bindText(s, "route", { placeholder: "/sub/" }))),
+      row("addrRaw", "addrRawHint", () => (fromRaw ? s.raw_route !== "" : rawWanted),
+        (v) => {
+          if (fromRaw) { if (v) delete s.raw_route; else s.raw_route = ""; return; }
+          rawWanted = v;
+          if (!v) { rawStash = p.raw_url || rawStash; delete p.raw_url; }
+        },
+        () => h("div", {},
+          fromRaw ? h("p", { class: "hint" }, t("addrRawSame")) : urlField("raw_url", "rawUrl", "https://panel.example.com:2096/sub/", rawStash),
+          h("div", { class: "grid" },
+            field(t("route"), bindText(s, "raw_route", { placeholder: "/raw/" })),
+            proxy ? null : field(t("rawModeLabel"), bindSelect(p, "raw_mode", [["", t("rawPass")], ["engine", t("rawEngine")]]), t("rawModeHint"))))),
+      row("addrClash", "addrClashHint", () => clashWanted,
+        (v) => { clashWanted = v; if (!v) { clashStash = p.clash_url || clashStash; delete p.clash_url; } },
+        () => h("div", {}, urlField("clash_url", "clashUrl", "https://panel.example.com:2096/clash/", clashStash),
+          field(t("route"), bindText(s, "clash_route", { placeholder: "/clash/" })))));
+  }
+
   function settingsEditor() {
     const s = (cfg.server = cfg.server || {});
     const p = (cfg.panel = cfg.panel || {});
@@ -1253,13 +1294,12 @@
       detailsBox("sectPanelConn", h("div", {},
         h("p", { class: "hint" }, t("panelConnHint")),
         modeEditor(p, () => drawEditor()),
-        p.mode === "proxy" ? null : h("div", { class: "grid" },
-          field(t("sourceLabel"), bindSelect(p, "source", [["", t("sourceJson")], ["raw", t("sourceRaw")]]), t("sourceHint")),
-          field(t("rawModeLabel"), bindSelect(p, "raw_mode", [["", t("rawPass")], ["engine", t("rawEngine")]]), t("rawModeHint"))),
-        p.source === "raw" ? h("div", { class: "msg warn" }, t("rawWarn")) : null,
+        p.mode === "proxy" ? null : field(t("sourceLabel"), bindSelect(p, "source", [["", t("sourceJson")], ["raw", t("sourceRaw")]]), t("sourceHint"), true),
+        p.source === "raw" && p.mode !== "proxy" ? h("div", { class: "msg warn" }, t("rawWarn")) : null,
         p.mode === "proxy" ? h("p", { class: "hint" }, t("proxyHelp")) : null,
-        field(t(p.mode === "proxy" ? "jsonUrl" : "panelUrl"), bindText(p, "url", { placeholder: "https://panel.example.com:2096/json/" }), null, true),
-        formatFields(p),
+        p.source === "raw" && p.mode !== "proxy"
+          ? field(t("rawUrlNeeded"), bindText(p, "raw_url", { placeholder: "https://panel.example.com:2096/sub/" }), t("formatUrlHint"), true)
+          : field(t(p.mode === "proxy" ? "jsonUrl" : "panelUrl"), bindText(p, "url", { placeholder: "https://panel.example.com:2096/json/" }), null, true),
         h("label", { class: "check" }, bindBool(p, "verify_tls", true), t("verifyTls")),
         moreBox(
           h("div", { class: "grid" },
@@ -1268,13 +1308,11 @@
           field(t("headers"), bindJSON(p, "headers"), null, true),
           field(t("passHeaders"), bindJSON(p, "pass_headers"), null, true),
           field(t("jsonTemplate"), bindJSON(p, "json_template", 8), t("jsonTemplateHint"), true))), true),
+      detailsBox("sectAddresses", addressesEditor(p, s), true),
       detailsBox("sectSubServer", h("div", {},
         h("div", { class: "grid" },
           field(t("host"), bindText(s, "host", { placeholder: "127.0.0.1" })),
-          field(t("port"), bindText(s, "port", { num: true, placeholder: "8080" })),
-          field(t("route"), bindText(s, "route", { placeholder: "/sub/" })),
-          field(t("rawRoute"), bindText(s, "raw_route", { placeholder: "/raw/" })),
-          field(t("clashRoute"), bindText(s, "clash_route", { placeholder: "/clash/" }))),
+          field(t("port"), bindText(s, "port", { num: true, placeholder: "8080" }))),
         h("h3", {}, t("httpsTitle")),
         h("p", { class: "hint" }, t("httpsHint")),
         h("div", { class: "grid" },
@@ -1286,9 +1324,21 @@
           field(t("workers"), bindText(s, "workers", { num: true })),
           field(t("threads"), bindText(s, "threads", { num: true })))),
         restartBlock())),
-      (cfg.panel || {}).mode === "proxy" ? null : detailsBox("sectAccountsWarp", registerEditor(a, [
+      (cfg.panel || {}).mode === "proxy" ? null : detailsBox("sectAccountsWarp", h("div", {}, endpointPool(a), registerEditor(a, [
         field(t("accountFile"), bindText(a, "file", { placeholder: "accounts.json" }), t("accountHint"), true),
-        field(t("accountDefault"), bindJSON(a, "default"), null, true)])));
+        field(t("accountDefault"), bindJSON(a, "default"), null, true)]))));
+  }
+
+  // the WARP endpoint pool: one address per line (host, host:port or [v6]:port); every WARP hop without endpoints of its own uses it
+  function endpointPool(a) {
+    const count = h("span", { class: "hint" });
+    const lines = (v) => v.split(/[\n,;]+/).map((x) => x.trim()).filter(Boolean);
+    const show = () => { count.textContent = t("poolCount", { n: (a.endpoints || []).length }); };
+    const ta = h("textarea", { rows: 7, class: "mono", spellcheck: "false", placeholder: "162.159.192.1:2408\n162.159.198.114\n[2606:4700:d0::a29f:c001]:500",
+      "aria-label": t("poolLabel"), oninput: (e) => { a.endpoints = lines(e.target.value); if (!a.endpoints.length) delete a.endpoints; show(); changed(); } });
+    ta.value = (a.endpoints || []).join("\n");
+    show();
+    return field(t("poolLabel"), h("div", {}, ta, count), t("poolHint"), true);
   }
 
   function rawEditor() {
@@ -1775,10 +1825,7 @@
   // ---------- blocks: the drag-and-drop builder ----------
   const B_SETTINGS = [
     { key: "hops", kind: "custom", fixed: true, def: [{ from: "warp" }, { from: "block" }], types: ["chain"] },
-    { key: "warp", kind: "one", options: ["exit", "only"], labels: { exit: "bWarpExit", only: "bWarpOnly" }, def: "exit", types: ["warp"] },
-    { key: "account", kind: "one", options: ["personal", "shared"], labels: { personal: "bAcctPersonal", shared: "bAcctShared" }, def: "shared", types: ["warp"] },
-    { key: "pick", kind: "one", options: ["random", "per_user"], labels: { random: "bPickRandom", per_user: "bPickUser" }, def: "random", types: ["warp"] },
-    { key: "decoy", kind: "one", options: ["vless"], labels: { vless: "bDecoyVless" }, def: "vless", types: ["warp", "chain"] },
+    { key: "decoy", kind: "one", options: ["vless"], labels: { vless: "bDecoyVless" }, def: "vless", types: ["chain"] },
     { key: "fragment", kind: "multi", options: ["tlshello-0-len", "tlshello-6-98"], def: ["tlshello-0-len", "tlshello-6-98"], ph: "bCustomFrag", add: "bAddCustom", types: ["list", "balancer"] },
     { key: "cipher", kind: "multi", options: ["semi-python", "real-firefox"], def: ["semi-python", "real-firefox"], ph: "bCustomCipher", add: "bAddCustom", types: ["list", "balancer"] },
     { key: "fingerprint", kind: "one", options: ["chrome", "firefox", "safari", "ios", "android", "edge", "360", "qq", "random", "randomized", "unsafe"], def: "chrome", types: ["list", "balancer"] },
@@ -1794,17 +1841,13 @@
     { key: "keep_members", kind: "one", options: ["keep"], labels: { keep: "bKeepMembers" }, def: true, types: ["balancer"] },
     { key: "include_balanced", kind: "one", options: ["include"], labels: { include: "bIncludeBalanced" }, def: true, types: ["balancer"] },
     { key: "probe_kind", kind: "one", options: ["burst", "observatory"], labels: { burst: "burstObservatory", observatory: "observatory" }, def: "burst", types: ["balancer"] },
-    { key: "position", kind: "one", options: ["top", "bottom"], labels: { top: "bPosTop", bottom: "bPosBottom" }, def: "top", legacy: true, types: ["balancer", "warp"] },
-    { key: "remove_exit", kind: "one", options: ["remove"], labels: { remove: "bRemoveExit" }, def: true, types: ["warp"] },
+    { key: "position", kind: "one", options: ["top", "bottom"], labels: { top: "bPosTop", bottom: "bPosBottom" }, def: "top", legacy: true, types: ["balancer"] },
     { key: "expand", kind: "custom", def: { copies: 2 }, types: ["balancer"] },
-    { key: "entry_merge", kind: "custom", def: {}, types: ["warp"] },
-    { key: "choices", kind: "custom", def: { endpoint: ["1.2.3.4", "5.6.7.8"] }, types: ["warp", "chain"] },
-    { key: "entry", kind: "custom", def: "{account.masque.outbound}", types: ["warp"] },
-    { key: "endpoints", kind: "custom", def: "{account.masque.endpoints}", types: ["warp"] },
+    { key: "choices", kind: "custom", def: { endpoint: ["1.2.3.4", "5.6.7.8"] }, types: ["chain"] },
     { key: "patches", kind: "custom", def: [], types: ["list"] },
-    { key: "rules", kind: "custom", def: [{ domain: ["example.com"] }], types: ["list", "warp", "chain"] },
+    { key: "rules", kind: "custom", def: [{ domain: ["example.com"] }], types: ["list", "chain"] },
     { key: "pool", kind: "list", def: ["a.example.com", "b.example.com"], ph: "bAddressPh", add: "bAddAddress", types: ["balancer"] },
-    { key: "name", kind: "text", def: "{block} {country}", types: ["list", "balancer", "warp", "chain"] },
+    { key: "name", kind: "text", def: "{block} {country}", types: ["list", "balancer", "chain"] },
   ];
   const bType = (blk) => blk.type || "list";
   const bAllowed = (d, blk) => d.types.includes(bType(blk));
@@ -2086,6 +2129,7 @@
   const ROUTE_FIELDS = RULE_FIELDS.concat([["outboundTag", "text", "direct"], ["balancerTag", "text", ""]]);
   // rules of a list / WARP / chain block: these configs have no balancer; an empty outboundTag = the block's own proxy
   const BLOCK_RULE_FIELDS = RULE_FIELDS.concat([["outboundTag", "text", "this block's proxy"]]);
+  const BALANCER_RULE_FIELDS = RULE_FIELDS.slice();   // a separate array: only the position select tells it from the classic form
   function catchallEditor(st, key = "catchall_rules", newRule = { network: "tcp,udp" }, keepEmpty = false, fields = RULE_FIELDS) {
     const box = h("div", {});
     const draw = () => {
@@ -2099,7 +2143,7 @@
           sync();
         };
         const other = Object.keys(rule).filter((k) => k !== "type" && k !== "position" && !fields.some((f) => f[0] === k));
-        const posSel = fields === BLOCK_RULE_FIELDS ? field(t("bRulePos"), h("select", { "aria-label": "position",
+        const posSel = fields === BLOCK_RULE_FIELDS || fields === BALANCER_RULE_FIELDS ? field(t("bRulePos"), h("select", { "aria-label": "position",
           onchange: (e) => { if (e.target.value) rule.position = e.target.value; else delete rule.position; sync(); } },
           [["", t("bPosEnd")], ["early", t("bPosEarly")]].map(([v, label]) => h("option", { value: v, selected: (rule.position || "") === v }, label)))) : null;
         return h("div", { class: "b-costrow" },
@@ -2167,39 +2211,10 @@
     draw();
     return box;
   }
-  function entryEditor(st) {
-    const box = h("div", {});
-    const draw = () => {
-      const asText = typeof st.entry === "string";
-      const mode = h("select", { "aria-label": t("s_entry"), onchange: (e) => { st.entry = e.target.value === "text" ? "{account.masque.outbound}" : { protocol: "masque" }; changed(); draw(); } },
-        h("option", { value: "text", selected: asText }, t("entryText")), h("option", { value: "obj", selected: !asText }, t("entryObj")));
-      box.replaceChildren(mode, asText
-        ? h("input", { type: "text", class: "mono", value: st.entry, "aria-label": t("s_entry"), oninput: (e) => { st.entry = e.target.value; changed(); } })
-        : mergeEditor(st, "entry", true));
-    };
-    draw();
-    return box;
-  }
-  function endpointsEditor(st) {
-    const cur = Array.isArray(st.endpoints) ? st.endpoints.join(", ") : st.endpoints || "";
-    return h("input", { type: "text", class: "mono", value: cur, placeholder: "{account.masque.endpoints}  /  host:port, host:port", "aria-label": t("s_endpoints"),
-      oninput: (e) => { const v = e.target.value.trim(); st.endpoints = v.startsWith("{") ? v : v.split(",").map((x) => x.trim()).filter(Boolean); changed(); } });
-  }
 
   // Advanced keys that have a setting of their own: moved there (same result, nothing else changes)
   function bMovable(blk) {
     const g = (blk.advanced && blk.advanced.group) || {}, st = blk.settings || {}, strat = st.strategy || "leastLoad";
-    if (bType(blk) === "warp") {
-      const c = (blk.advanced && blk.advanced.chain) || {};
-      const w = [];
-      if (isObj(c.entry_merge) && !(isObj(st.entry_merge) && Object.keys(st.entry_merge).length)) w.push(["entry_merge", "entry_merge"]);
-      if (["top", "bottom"].includes(c.position) && st.position === undefined) w.push(["position", "position"]);
-      if (c.remove_exit_from_output === true && st.remove_exit === undefined) w.push(["remove_exit_from_output", "remove_exit"]);
-      if (isObj(c.choices) && Object.values(c.choices).every((x) => Array.isArray(x) && x.length) && !(isObj(st.choices) && Object.keys(st.choices).length)) w.push(["choices", "choices"]);
-      if ((typeof c.entry === "string" || (isObj(c.entry) && Object.keys(c.entry).length)) && st.entry === undefined) w.push(["entry", "entry"]);
-      if ((typeof c.endpoints === "string" || (Array.isArray(c.endpoints) && c.endpoints.length && c.endpoints.every((x) => typeof x === "string"))) && st.endpoints === undefined) w.push(["endpoints", "endpoints"]);
-      return w;
-    }
     const fits = (obj, fields) => isObj(obj) && Object.keys(obj).every((k) => {
       const f = fields.find((x) => x[0] === k);
       return f && (f[1] === "num" ? typeof obj[k] === "number" : f[1] === "bool" ? typeof obj[k] === "boolean" : f[1] === "list" ? Array.isArray(obj[k]) : typeof obj[k] === "string");
@@ -2222,7 +2237,7 @@
     bChange((b) => {
       const x = b.list[i], moves = bMovable(x);
       x.settings = x.settings || {};
-      const src = bType(x) === "warp" ? "chain" : "group";
+      const src = "group";
       moves.forEach(([from, to, val]) => { x.settings[to] = val !== undefined ? val : x.advanced[src][from]; delete x.advanced[src][from]; });
       if (isObj(x.advanced[src]) && !Object.keys(x.advanced[src]).length) delete x.advanced[src];
       if (Array.isArray(x.advanced.member_patch) && !(x.settings.member_patch || []).length) { x.settings.member_patch = x.advanced.member_patch; delete x.advanced.member_patch; }
@@ -2258,7 +2273,7 @@
   }
 
   // a chain block's path: client -> hop 1 -> hop 2 -> the internet; each hop picks where its outbound comes from
-  const HOP_KINDS = ["block", "warp", "outbound", "config", "account_exit"];
+  const HOP_KINDS = ["block", "warp", "outbound", "config"];
   const hopJsonMode = new WeakSet();
   function hopsEditor(st) {
     const box = h("div", {});
@@ -2274,7 +2289,6 @@
       };
       const body = (hp) => {
         if (hp.from === "block") return h("p", { class: "hint" }, t("hopBlockHint"));
-        if (hp.from === "account_exit") return h("p", { class: "hint" }, t("hopAcctHint"));
         if (hp.from === "config") return h("div", {}, h("p", { class: "hint" }, t("hopConfigHint")), whenEditor(hp));
         if (hp.from === "warp") {
           const ep = h("input", { type: "text", class: "mono", value: Array.isArray(hp.endpoints) ? hp.endpoints.join(", ") : hp.endpoints || "", placeholder: "{account.masque.endpoints}  /  host:port, host:port",
@@ -2311,6 +2325,7 @@
           h("div", { class: "row" }, h("strong", { class: "hint", style: "flex:1" }, (hp.outbound && hp.outbound.protocol) || ""),
             h("button", { type: "button", class: "small", onclick: () => { if (asJson) hopJsonMode.delete(hp); else hopJsonMode.add(hp); draw(); } }, t(asJson ? "hopRows" : "hopJson"))),
           asJson ? bindJSON(hp, "outbound", 10) : mergeEditor(hp, "outbound", true),
+          asJson ? h("p", { class: "hint" }, t("hopOutMapHint")) : null,
           h("p", { class: "hint" }, t("hopOutHint")));
       };
       const slot = (n) => {
@@ -2339,7 +2354,13 @@
       if (entry && entry !== "{account.masque.outbound}") warp.entry = entry;
       if (eps && eps !== "{account.masque.endpoints}") warp.endpoints = eps;
       const hops = [warp];
-      if (s.warp !== "only" && c.exit !== false) hops.push(Object.assign({ from: "account_exit" }, isObj(c.exit) ? c.exit : {}));
+      if (s.warp !== "only" && c.exit !== false) {      // the exit used to come from the accounts file: it becomes an own outbound (per flag)
+        const d = (cfg.accounts && cfg.accounts.default) || {}, map = {};
+        const bare = (v) => (isObj(v) && isObj(v.outbound) ? v.outbound : v);
+        if (isObj(d.exits)) Object.keys(d.exits).forEach((k) => { if (isObj(d.exits[k])) map[k] = bare(d.exits[k]); });
+        if (isObj(d.exit) && d.exit.protocol) map.default = bare(d.exit);
+        hops.push({ from: "outbound", outbound: Object.keys(map).length ? map : { protocol: "vless" } });
+      }
       const ns = { hops };
       ["name", "rules"].forEach((k) => { if (s[k] !== undefined) ns[k] = s[k]; });
       if (s.decoy && hops.length === 1) ns.decoy = s.decoy;
@@ -2400,16 +2421,13 @@
     if (key === "strategy") box.append(bStrategyFields(blk, v));
     if (key === "member_position") box.append(positionEditor(blk.settings));
     if (key === "member_patch") box.append(memberPatchEditor(blk.settings));
-    if (key === "catchall_rules") box.append(catchallEditor(blk.settings));
+    if (key === "catchall_rules") box.append(catchallEditor(blk.settings, "catchall_rules", { network: "tcp,udp" }, false, BALANCER_RULE_FIELDS));
     if (key === "hops") box.append(hopsEditor(blk.settings));
     if (key === "rules") box.append(catchallEditor(blk.settings, "rules", { domain: [] }, false, BLOCK_RULE_FIELDS));
     if (key === "member_patch" && bLiftable(blk.settings).length) box.append(h("div", { class: "row" },
       h("button", { type: "button", class: "small", onclick: () => bChange((b) => { bLift(b.list[i].settings); }, true) }, t("bLiftPresets")), h("span", { class: "hint" }, t("bLiftHint"))));
     if (key === "expand") box.append(expandEditor(blk.settings));
-    if (key === "entry_merge") box.append(mergeEditor(blk.settings, "entry_merge", true));
     if (key === "choices") box.append(choicesEditor(blk.settings));
-    if (key === "entry") box.append(entryEditor(blk.settings));
-    if (key === "endpoints") box.append(endpointsEditor(blk.settings));
     if (key === "patches") box.append(patchesEditor(blk.settings));
     if (d.kind === "list") {
       box.append(h("div", { class: "b-opts" }, v.map((n) => h("button", { type: "button", class: "b-opt mono", onclick: () => { if (v.length > 1) put(v.filter((x) => x !== n)); } }, n, " ×"))));
@@ -2453,7 +2471,6 @@
           Object.keys(x.settings).forEach((q) => { if (!B_DEF[q] || !bAllowed(B_DEF[q], x)) delete x.settings[q]; });
           if (!Object.keys(x.settings).length) delete x.settings;
         }
-        if (k === "warp" && !(x.settings && x.settings.warp)) x.settings = Object.assign({ warp: "exit" }, x.settings || {});
         if (k === "chain" && !(x.settings && x.settings.hops)) x.settings = Object.assign({ hops: JSON.parse(JSON.stringify(B_DEF.hops.def)) }, x.settings || {});
         delete x.advanced;                          // its keys depend on the type
       }) }, label);
@@ -2461,7 +2478,8 @@
       ondragstart: (e) => { bBlockDrag = i; try { e.dataTransfer.setData("text/plain", "block"); e.dataTransfer.effectAllowed = "move"; } catch (x) { /* ignore */ } },
       ondragend: () => { bBlockDrag = null; } }, "⠿");
     const head = h("div", { class: "b-head" }, grip, nameIn,
-      h("div", { class: "seg", role: "group" }, typeBtn("list", t("bList")), typeBtn("balancer", t("bBalancer")), typeBtn("chain", t("bChain")), blk.type === "warp" ? typeBtn("warp", t("bWarpOld")) : null),
+      h("div", { class: "seg", role: "group" }, typeBtn("list", t("bList")), typeBtn("balancer", t("bBalancer")), typeBtn("chain", t("bChain"))),
+      blk.type === "warp" ? h("span", { class: "hint b-removed" }, t("bWarpRemoved")) : null,
       blk.type === "warp" ? h("button", { type: "button", class: "small primary", onclick: () => bWarpToChain(i) }, t("bToChain")) : null,
       isBal || blk.type === "warp" || blk.type === "chain" ? h("label", { class: "check small b-pc" }, h("input", { type: "checkbox", checked: !!blk.per_country, onchange: () => bChange((b) => { b.list[i].per_country = !b.list[i].per_country; }) }), t("bPerCountry")) : null,
       h("button", { type: "button", class: "icon", "aria-label": t("bUp"), title: t("bUp"), onclick: () => { const prev = all[all.indexOf(i) - 1]; if (prev !== undefined) bChange((b) => { const x = b.list.splice(i, 1)[0]; b.list.splice(prev, 0, x); }); } }, "↑"),
@@ -2547,7 +2565,7 @@
       bHasPick() ? h("button", { type: "button", class: "b-movehere", onclick: () => bMove(bPicked(), i, bSel.length ? true : bPickSource) }, t("bMoveHere")) : null));
     // list blocks leave no trace in the preview report: count the sample configs of their kinds instead
     const n = counts[PREFIX_BLK + id] || (bType(blk) === "list" ? (blk.kinds || []).reduce((sum, w) => sum + ((names[kkey(w)] || {}).count || 0), 0) : 0);
-    const card = h("div", { class: "b-block" + (blk.type === "warp" || blk.type === "chain" ? " warp" : "") }, head, h("p", { class: "hint b-takes" }, sample ? t("bTakes", { n }) : ""),
+    const card = h("div", { class: "b-block" + (blk.type === "chain" ? " warp" : "") }, head, h("p", { class: "hint b-takes" }, sample ? t("bTakes", { n }) : ""),
       pills, menu, openKey ? bSettingEditor(blk, i, openKey) : extraEditor, zone);
     // blocks move by dragging their grip onto another block (it goes before or after, by where it is dropped)
     card.addEventListener("dragover", (e) => {
@@ -2655,10 +2673,9 @@
     const blocks = order.map((i) => bBlockCard(v.list[i], i, order, names, counts));
     const nb = (type) => bChange((b) => {
       const n = b.list.filter((x) => x.type !== "drop").length + 1;
-      const item = { id: nextId("block", b.list), name: t(type === "balancer" ? "bNewBalancer" : type === "warp" ? "bNewWarp" : type === "chain" ? "bNewChain" : "bNewBlock", { n }), type, kinds: [] };
+      const item = { id: nextId("block", b.list), name: t(type === "balancer" ? "bNewBalancer" : type === "chain" ? "bNewChain" : "bNewBlock", { n }), type, kinds: [] };
       if (type === "chain") item.settings = { hops: JSON.parse(JSON.stringify(B_DEF.hops.def)) };
       if (type === "balancer") { item.per_country = true; item.settings = { strategy: "leastLoad" }; }
-      if (type === "warp") { item.per_country = true; item.settings = { warp: "exit" }; }
       const firstDrop = b.list.findIndex((x) => x.type === "drop");
       if (firstDrop < 0) b.list.push(item); else b.list.splice(firstDrop, 0, item);
     });
@@ -2680,7 +2697,7 @@
     const kindsOf = (id) => (bKinds || []).filter((k) => (kindIds[kkey(k.when)] || []).includes(id));
     (cfg.groups || []).forEach((g, gi) => { if (g.enabled !== false) classic.push({ id: g.id, kind: "group", label: t("bOldBalancer"), convert: () => bConvertGroup(gi), open: "groups" }); });
     (cfg.rules || []).forEach((r, ri) => { if (r.enabled !== false) classic.push({ id: r.id, kind: "rule", label: r.do === "drop" ? t("bOldDrop") : t("bOldRule"), convert: r.do === "drop" ? () => bConvertRule(ri) : null, open: "list" }); });
-    (cfg.chains || []).forEach((c, ci) => { if (c.enabled !== false) classic.push({ id: c.id, kind: "chain", label: t("bOldWarp"), convert: c.mode === "exit_first" ? () => bConvertChain(ci) : null, open: "chains" }); });
+    (cfg.chains || []).forEach((c, ci) => { if (c.enabled !== false) classic.push({ id: c.id, kind: "chain", label: t("bOldWarp"), convert: null, open: "chains" }); });
     const offOld = ["groups", "rules", "chains"].reduce((n, k) => n + (cfg[k] || []).filter((x) => x.enabled === false).length, 0);
     const cleanBtn = offOld ? h("button", { type: "button", class: "small", onclick: () => bChange(() => {
       ["groups", "rules", "chains"].forEach((k) => { if (Array.isArray(cfg[k])) cfg[k] = cfg[k].filter((x) => x.enabled !== false); });
@@ -2758,41 +2775,6 @@
       cfg.groups[gi].enabled = false;
     });
   }
-  const B_ADV_CHAIN = ["exit", "before"];
-  function bConvertChain(ci) {
-    const c = cfg.chains[ci];
-    bChange((b) => {
-      const settings = {}, adv = {};
-      const perCountry = !!(c.split_by && c.split_by.field === "flag" && c.split_by.regex === "(.+)");
-      if (c.split_by && !perCountry) adv.split_by = JSON.parse(JSON.stringify(c.split_by));
-      if (c.exit === false) settings.warp = "only"; else settings.warp = "exit";
-      if (c.pick === "per_user") settings.pick = "per_user";
-      const name = c.name || (c.split_by ? "{split}" : c.id);
-      if (perCountry || !c.split_by) settings.name = name.replace(/\{split\}/g, "{country}").replace(/\{group\}/g, "{block}");
-      else adv.name = name;
-      if (c.entry !== "{account.masque.outbound}") settings.entry = JSON.parse(JSON.stringify(c.entry));
-      if (c.endpoints !== "{account.masque.endpoints}" && c.endpoints !== undefined) {
-        const ok = typeof c.endpoints === "string" || (Array.isArray(c.endpoints) && c.endpoints.every((x) => typeof x === "string"));
-        if (ok) settings.endpoints = JSON.parse(JSON.stringify(c.endpoints)); else adv.endpoints = JSON.parse(JSON.stringify(c.endpoints));
-      }
-      if (isObj(c.choices)) settings.choices = JSON.parse(JSON.stringify(c.choices));
-      B_ADV_CHAIN.forEach((k) => { if (c[k] !== undefined && !(k === "exit" && c[k] === false)) adv[k] = JSON.parse(JSON.stringify(c[k])); });
-      if (c.position) settings.position = c.position;
-      if (c.remove_exit_from_output === true) settings.remove_exit = true;
-      if (isObj(c.entry_merge)) settings.entry_merge = JSON.parse(JSON.stringify(c.entry_merge));
-      const block = { id: nextId("block", b.list), name: prettyId(c.id), type: "warp",
-        kinds: [Object.assign({ _label: t("bOldCond", { id: prettyId(c.id) }) }, c.exit_when || {})], settings };
-      if (perCountry) block.per_country = true;
-      // an old decoy in front of a WARP-only entry becomes the block's own Decoy setting, not a hidden advanced key
-      if (Array.isArray(adv.before) && adv.before.length === 1 && adv.before[0] && adv.before[0].tag === "decoy" && adv.before[0].protocol === "vless") {
-        settings.decoy = "vless"; delete adv.before;
-      }
-      if (Object.keys(adv).length) block.advanced = { chain: adv };
-      const firstDrop = b.list.findIndex((x) => x.type === "drop");
-      if (firstDrop < 0) b.list.push(block); else b.list.splice(firstDrop, 0, block);
-      cfg.chains[ci].enabled = false;
-    });
-  }
   function bConvertRule(ri) {
     const r = cfg.rules[ri];
     bChange((b) => {
@@ -2831,7 +2813,7 @@
     draw();
     return box;
   }
-  const flag = (o, key, labelKey) => h("div", { class: "row" }, h("label", { class: "check" }, bindBool(o, key, false), t(labelKey)));
+  const flag = (o, key, labelKey, hintKey) => h("div", { class: "row" }, h("label", { class: "check" }, bindBool(o, key, false), t(labelKey)), hintKey ? h("span", { class: "hint" }, t(hintKey)) : null);
 
   function baseRulesEditor(o) {
     const box = h("div", { class: "opt" });
@@ -2866,29 +2848,6 @@
       if (mode() === "div") box.append(h("div", { class: "grid" },
         field(t("samplingDivN"), bindText(o.sampling, "members_div", { num: true, optional: false })),
         field(t("samplingExtra"), bindText(o.sampling, "extra", { num: true }))));
-    }
-    draw();
-    return box;
-  }
-
-  function remarkRewriteEditor(o) {
-    const box = h("div", { class: "opt" });
-    function draw() {
-      box.replaceChildren(h("h4", {}, t("remarkTitle")), h("p", { class: "hint" }, t("remarkHint")));
-      const list = (o.remark_rewrite = Array.isArray(o.remark_rewrite) ? o.remark_rewrite : []);
-      list.forEach((e, i) => {
-        box.append(h("div", { class: "item" },
-          h("div", { class: "grid" },
-            field(t("rwRegex"), bindText(e, "regex")),
-            field(t("rwReplace"), bindText(e, "replace")),
-            field(t("rwIf"), bindText(e, "if"))),
-          h("div", { class: "row" },
-            h("button", { type: "button", onclick: () => { if (i > 0) { [list[i - 1], list[i]] = [list[i], list[i - 1]]; changed(); draw(); } } }, "↑"),
-            h("button", { type: "button", onclick: () => { if (i < list.length - 1) { [list[i + 1], list[i]] = [list[i], list[i + 1]]; changed(); draw(); } } }, "↓"),
-            h("button", { type: "button", class: "danger", onclick: () => { list.splice(i, 1); if (!list.length) delete o.remark_rewrite; changed(); draw(); } }, t("remove")))));
-      });
-      box.append(h("button", { type: "button", onclick: () => { list.push({ regex: "", replace: "" }); o.remark_rewrite = list; changed(); draw(); } }, t("addRule")));
-      if (!list.length) delete o.remark_rewrite;
     }
     draw();
     return box;
@@ -3066,16 +3025,17 @@
       h("p", { class: "hint" }, t("outHint")),
       h("div", { class: "row" }, h("label", { class: "check" }, bindBool(o, "enabled", true), t("outEnabled"))),
       whenEditor(o, "when", "outWhen"),
-      detailsBox("sectInbounds", h("div", {},
-        splitFlagAndOptions(o),
-        flag(o, "dns_out", "dnsOut"),
-        flag(o, "block_udp_443", "blockUdp"),
+      detailsBox("sectInbounds", splitFlagAndOptions(o), true),
+      detailsBox("sectRouting", h("div", {},
+        flag(o, "dns_out", "dnsOut", "dnsOutHint"),
+        flag(o, "block_udp_443", "blockUdp", "blockUdpHint"),
         h("label", { class: "f wide" }, t("quicDomains"),
           quicEditor(o, quic)),
         flag(o, "replace_routing", "replaceRouting"),
-        field(t("domainStrategy"), dom),
+        field(t("domainStrategy"), dom, t("domainStrategyHint")),
         baseRulesEditor(o)), true),
       detailsBox("sectDns", h("div", {},
+        h("p", { class: "hint" }, t("dnsOrderHint")),
         optSection(o, "dns", "dnsOn", dnsEditor),
         optSection(o, "dedicated_dns", "dedicatedDns", (v) => h("div", { class: "grid" },
           field(t("ddIps"), csvInput(v, "ips", "8.8.8.8, 1.1.1.1", v.ip ? [v.ip] : [], () => { delete v.ip; })), field(t("ddTag"), bindText(v, "tag")))),
@@ -3090,8 +3050,7 @@
           field(t("pbRtt"), bindText(v, "max_rtt")),
           field(t("pbFew"), bindText(v, "few_max_members", { num: true })),
           field(t("pbExpFew"), bindText(v, "expected_few", { num: true })),
-          field(t("pbExpMany"), bindText(v, "expected_many", { num: true })))))),
-      detailsBox("sectRemark", remarkRewriteEditor(o)));
+          field(t("pbExpMany"), bindText(v, "expected_many", { num: true })))))));
   }
 
   const orderBody = (r) => h("div", {}, whenEditor(r),
@@ -3111,7 +3070,6 @@
       ["tpl_blank", (items) => ({ id: nextId("group", items), type: "leastLoad", when: {} })],
     ],
     chains: [
-      ["tpl_chain_warp", (items) => ({ id: nextId("chain", items), mode: "exit_first", exit_when: { remark: { contains: "" } }, entry: "{account.masque.outbound}", endpoints: "{account.masque.endpoints}", pick: "random" })],
       ["tpl_blank", (items) => ({ id: nextId("chain", items), exit_when: {}, entry: {} })],
     ],
     order: [

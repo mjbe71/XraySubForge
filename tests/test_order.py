@@ -1,4 +1,4 @@
-"""Tests for `order` (stable sort by rank) and output.remark_rewrite."""
+"""Tests for `order` (stable sort by rank)."""
 import copy
 import unittest
 
@@ -37,20 +37,6 @@ class Order(unittest.TestCase):
     def test_off_by_default(self):
         names, _ = run({}, ["b", "a"])
         self.assertEqual(names, ["b", "a"])
-
-
-class RemarkRewrite(unittest.TestCase):
-    RULES = [{"regex": "^.*?([\\U0001F1E6-\\U0001F1FF]{2})", "replace": "\\1", "if": "[\\U0001F1E6-\\U0001F1FF]{2}"},
-             {"regex": "(?<![A-Za-z])CF(?![a-z])[-_ ]?", "replace": "", "if": "[\\U0001F1E6-\\U0001F1FF]{2}"}]
-
-    def test_rewrite(self):
-        names, p = run({"output": {"remark_rewrite": self.RULES}}, ["Berlin1" + FLAG + "CF-TypeX", "CF-plain", "Tunnel" + FLAG + "X"])
-        self.assertEqual(names, [FLAG + "TypeX", "CF-plain", FLAG + "X"])  # no flag: left alone
-        self.assertEqual(p, [])
-
-    def test_validation(self):
-        _, p = normalize({"output": {"remark_rewrite": [{"regex": "("}]}})
-        self.assertTrue(p)
 
 
 if __name__ == "__main__":
